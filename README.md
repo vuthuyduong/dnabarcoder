@@ -1,7 +1,8 @@
 # dnabarcoder
 
-Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file (data/moldITS.fasta) and their taxonomic classification (data/moldITS.current.classification) in a tab delimited file as inputs. It contains four components: analyzation, visualization, prediction, and classification.
-Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification
+Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file  and their taxonomic classification in a tab delimited file as inputs (see data/moldITS.fasta and data/moldITS.current.classification). Dnabarcoder contains four components: analyzation, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs.
+
+Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification.
 
 ## Dependencies:
 
@@ -10,22 +11,17 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 
 ## analyzation
 
+The analyzation component was to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels.
 ## visualization
-There are two datasets available as inputs for fMLC. The "small" dataset contains ~4000 ITS yeast sequences, checked and validated by the specialists at the Westerdijk Fungal Biodiversity Institute. This dataset were analyzed and released in [Vu D. et al. 2016](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5192050/). The "large" dataset contains ~350K ITS fungal sequences downloaded from GenBank (https://www.ncbi.nlm.nih.gov/) which was used in [Vu D. et al. 2014](https://www.nature.com/articles/srep06837) to evaluate the speed of MLC.
-
-<!---[Download](http://www.westerdijkinstitute.nl/Download/SmallDatasetOf4KYeastITSSequences.zip) the small demo dataset.  -->
-
-[Download](http://www.westerdijkinstitute.nl/Download/LargeDatasetOf350KITSSequences.zip) the large demo dataset. 
 
 ## prediction
 
-After clustering the DNA sequences by fMLC, the groupings of the sequences can be saved as output of fMLC. A sparse (or complete) similarity matrix (in .sim format) can be saved in the folder where the dataset is given, to capture the similarity structure of the sequences. Based on this similarity matrix, the coordiates of the sequences can be computed and saved (in .outLargeVis format) using LargeVis. Finally, a json file containing the coordinates and metadata of the sequences is resided in the folder DiVE/data folder as an input of DiVE to visualize the data. This json file can be used for visualization by external applications as well.The clustering and visualization results of the two datasets can be found at https://github.com/FastMLC/fMLC/tree/master/data.
-
 ## classification
+
 
 ## Contact person 
 
-Duong Vu (d.vu@westerdijkinstitute.nl)
+Duong Vu (d.vu@wi.knaw.nl)
 
 
 ## References
