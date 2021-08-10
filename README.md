@@ -39,9 +39,22 @@ If we want to visualize the distribution of the sequences with Krona, then we ca
 
 Here the minimum BLAST alignment length mc is set to 400 as 95% of the barcodes have a length of more than 400bp.
 
+- To compute a similarity matrix for the barcodes:
 
+../../dnabarcoder.py sim -i moldITS.fasta -mc 400
 
 ## visualization
+
+The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
+Together with sequence distribution and variation, visu-alization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
+
+../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3
+
+Here the sequences are colored by on the taxa at the position 3 (the class level) in the classification file. 
+
+We can also visualize the sequences using DiVE (https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
+
+../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3 -method dive
 
 ## prediction
 
