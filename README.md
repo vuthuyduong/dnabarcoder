@@ -1,6 +1,6 @@
 # dnabarcoder
 
-dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. 
+dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification 
 
 ## analyzation
 
