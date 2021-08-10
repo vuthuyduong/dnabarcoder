@@ -33,7 +33,7 @@ If we want to visualize the distribution of the sequences with Krona, then we ca
 
 ../../dnabarcoder.py  distribution -i moldITS.fasta -c moldITS.current.classification -p 2,3,4,5,6,7 -method krona
 
-- To get sequence variation:
+- To get sequence variation with different taxonomic groups:
 
 ../../dnabarcoder.py variation -i moldITS.fasta -c moldITS.current.classification -p 3,4,5,6,7  -mc 400
 
