@@ -7,7 +7,7 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 ## Dependencies:
 
 - BLAST for DNA sequence comparison
-- LARGEVIS (https://github.com/rugantio/LargeVis-python3) for DNA sequence visualization
+- [LARGEVIS](https://github.com/rugantio/LargeVis-python3) for DNA sequence visualization
 
 ## Analyzation
 
@@ -52,7 +52,7 @@ Together with sequence distribution and variation, visu-alization helped evaluat
 
 Here the sequences are colored by on the taxa at the position 3 (the class level) in the classification file. 
 
-We can also visualize the sequences using DiVE (https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
+We can also visualize the sequences using [DIVE](https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
 
 ../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3 -mc 400 -method dive
 
@@ -86,11 +86,15 @@ Here t is the threshold or cut-off for removing sequences of the same complex. T
 
 The prediction will be saved in the file dnabarcoder/moldITS.predicted and the cut-offs will be saved in the file dnabarcoder/moldITS.cutoffs
 
-## Classification
+## Classification/Assigment
 
 The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs predicted for the reference dataset.
 
-- Using a global similarity cutoff, please use the following command:
+- To classify the SH.fasta file, use the following command:
+
+../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -mc 400
+
+- Using a global similarity cutoff, use the following command:
 
 ../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -cutoff 0.97 -mc 400
 
@@ -110,8 +114,23 @@ Globally:
 
 Locally:
 
-../../classification/assign.py -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -rank species -mc 400
+../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -rank species -mc 400
 
+The result will be saved in dnabarcoder/SH.moldITS_BLAST.species.assigned. 
+
+- To compute classification/assigment accuracy and precision, use the following commands:
+
+../../dnabarcoder.py accuracy -i dnabarcoder/SH.moldITS_BLAST.species.assigned -c SH.current.classification -r moldITS.current.classification
+
+-To visualize the classification/assignment results with Krona:
+
+../../dnabarcoder.py krona -i dnabarcoder/SH.moldITS_BLAST.classified -c moldITS.current.classification
+
+../../dnabarcoder.py krona -i dnabarcoder/SH.moldITS_BLAST.assigned -c moldITS.current.classification
+
+## Data
+
+The mold ITS barcode dataset was released in Vu et al. 2019, while the SH.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The moldITS.current.classification and SH.current.classification were updated from [Mycobank](https://www.mycobank.org/).
 
 ## Contact person 
 
@@ -120,6 +139,6 @@ Duong Vu (d.vu@wi.knaw.nl)
 
 ## References
 
-Vu D. et al. (2019). Massive fungal biodiversity data re-annotation with multi-level clustering. Scientific Reports 4: 6837.
+Vu D. et al. (2019). Large-scale generation and analysis of filamentous fungal DNA barcodes boosts coverage for kingdom fungi and reveals thresholds for fungal species and higher taxon delimitation. Studies in Mycology 92, 135-154.
 
 
