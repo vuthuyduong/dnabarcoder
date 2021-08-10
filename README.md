@@ -14,10 +14,13 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. 
 
 To get an overview of the moldITS.fasta dataset:
+
 ../../dnabarcoder overview -i moldITS.fasta -c moldITS.current.classification
 
 To see the distribution of the barcode lengths:
+
 ../../dnabarcoder length -i moldITS.fasta -l 100
+
 Here l is the interval length.
 
 
