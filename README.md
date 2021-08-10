@@ -1,6 +1,6 @@
 # dnabarcoder
 
-Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file  and their taxonomic classification in a tab delimited file as inputs (see data/moldITS.fasta and data/moldITS.current.classification). Dnabarcoder contains four components: analyzation, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs. For every function of dnabarcoder, a figure is generated to interpret the result.
+Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file  and their taxonomic classification in a tab delimited file as inputs (see data/moldITS.fasta and data/moldITS.current.classification for the format of the files). The output of dnabarcode will be saved in an folder given by the user. If this folder is not given, the folder namely dnabarcoder will be created. Dnabarcoder contains four components: analyzation, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs. For every function of dnabarcoder, a figure is generated to interpret the result.
 
 Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification.
 
@@ -48,15 +48,27 @@ Here the minimum BLAST alignment length mc is set to 400 as 95% of the barcodes 
 The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
 Together with sequence distribution and variation, visu-alization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
 
-../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3
+../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3 -mc 400
 
 Here the sequences are colored by on the taxa at the position 3 (the class level) in the classification file. 
 
 We can also visualize the sequences using DiVE (https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
 
-../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3 -method dive
+../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3 -mc 400 -method dive
 
 ## prediction
+
+The third component is to cluster and predict a similarity cut-off for sequence identification based on taxonomic classification. Given a taxonomic level, if higher taxonomic levels are not given, then whole dataset will be used for the prediction.
+
+- To predict a global similarity cut-off at the genus level of the moldITS dataset for example, use the followig command:
+
+../../prediction/predict.py -i moldITS.fasta -c moldITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6
+
+- To predict local similarity cut-offs at the genus level of the moldITS dataset for example, use the followig command:
+
+../../prediction/predict.py -i moldITS.fasta -c moldITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5,4,3,2
+
+The prediction will be saved in the file dnabarcoder/moldITS.predicted and the cut-offs will be saved in the file dnabarcoder/moldITS.cutoffs
 
 ## classification
 
