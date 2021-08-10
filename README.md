@@ -1,4 +1,4 @@
-# dnabarcoder
+# Dnabarcoder
 
 Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file  and their taxonomic classification in a tab delimited file as inputs (see data/moldITS.fasta and data/moldITS.current.classification for the format of the files). The output of dnabarcode will be saved in an folder given by the user. If this folder is not given, the folder namely dnabarcoder will be created. Dnabarcoder contains four components: analyzation, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs. For every function of dnabarcoder, a figure is generated to interpret the result.
 
@@ -9,7 +9,7 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 - BLAST for DNA sequence comparison
 - LARGEVIS (https://github.com/rugantio/LargeVis-python3) for DNA sequence visualization
 
-## analyzation
+## Analyzation
 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. 
 
@@ -43,7 +43,7 @@ Here the minimum BLAST alignment length mc is set to 400 as 95% of the barcodes 
 
 ../../dnabarcoder.py sim -i moldITS.fasta -mc 400
 
-## visualization
+## Visualization
 
 The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
 Together with sequence distribution and variation, visu-alization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
@@ -56,7 +56,7 @@ We can also visualize the sequences using DiVE (https://github.com/NLeSC/DiVE). 
 
 ../../dnabarcoder.py visualize -i moldITS.fasta -c moldITS.current.classification -p 3 -mc 400 -method dive
 
-## prediction
+## Prediction
 
 The third component is to cluster and predict a similarity cut-off for sequence identification based on taxonomic classification. Given a taxonomic level, if higher taxonomic levels are not given, then whole dataset will be used for the prediction.
 
@@ -84,8 +84,33 @@ Here t is the threshold or cut-off for removing sequences of the same complex. T
 
 ../../dnabarcoder.py -i moldITS.diff.fasta -c moldITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -hp 6,5,4,3,2 -mc 400 -sim dnabarcoder/moldITS.sim -prefix moldITS 
 
+The prediction will be saved in the file dnabarcoder/moldITS.predicted and the cut-offs will be saved in the file dnabarcoder/moldITS.cutoffs
 
-## classification
+## Classification
+
+The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs predicted for the reference dataset.
+
+- Using a global similarity cutoff, please use the following command:
+
+../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -cutoff 0.97 -mc 400
+
+- Using lobal similarity cutoffs, please use the following command:
+
+../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -cutoffs dnabarcoder/moldITS.cutoffs -mc 400
+
+- If there exists a file of classified sequences by BLAST or other tools, we can assign the classified sequences with the predicted cut-offs as follows:
+
+../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -mc 400
+
+- We can also assign the sequences at a specific taxonomic level. For example, at the species level:
+
+Globally:
+
+../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 -mc 400
+
+Locally:
+
+../../classification/assign.py -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -rank species -mc 400
 
 
 ## Contact person 
