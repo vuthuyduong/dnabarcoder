@@ -347,8 +347,8 @@ version:     %s
 
 Description: The script visualizes the classification/assignment results using Krona
     
-Arguments:   -i, --input             	        The file of classified/assigned sequences, required
-             -c, --classification               The fasta file of classified sequences, required 
+Arguments:   -i, --input             	        The classification/assignment file, required
+             -c, --classification               The classification file of the reference sequences, required 
              -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
