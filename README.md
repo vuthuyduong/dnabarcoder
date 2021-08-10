@@ -62,13 +62,28 @@ The third component is to cluster and predict a similarity cut-off for sequence 
 
 - To predict a global similarity cut-off at the genus level of the moldITS dataset for example, use the followig command:
 
-../../prediction/predict.py -i moldITS.fasta -c moldITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6
+../../dnabarcoder.py predict -i moldITS.fasta -c moldITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -mc 400
 
 - To predict local similarity cut-offs at the genus level of the moldITS dataset for example, use the followig command:
 
-../../prediction/predict.py -i moldITS.fasta -c moldITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5,4,3,2
+../../dnabarcoder.py predict -i moldITS.fasta -c moldITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5,4,3,2 -mc 400
 
 The prediction will be saved in the file dnabarcoder/moldITS.predicted and the cut-offs will be saved in the file dnabarcoder/moldITS.cutoffs
+
+- To predict global and local similarity cut-offs for the moldITS dataset at the species level, we first need to remove sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
+
+../../dnabarcoder.py remove -i moldITS.fasta -c moldITS.current.classification -p 7 -sim dnabarcoder/moldITS.sim -mc 400 -t 1
+
+Here t is the threshold or cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/moldITS.diff.fasta dna dnabarcoder/moldITS.similar
+
+-To predict global similarity cut-off for species identification of the moldITS dataset:
+
+../../dnabarcoder.py -i moldITS.diff.fasta -c moldITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -mc 400 -sim dnabarcoder/moldITS.sim -prefix moldITS 
+
+-To predict local similarity cut-offs for species identification of the moldITS dataset:
+
+../../dnabarcoder.py -i moldITS.diff.fasta -c moldITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -hp 6,5,4,3,2 -mc 400 -sim dnabarcoder/moldITS.sim -prefix moldITS 
+
 
 ## classification
 
