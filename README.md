@@ -1,12 +1,14 @@
 # dnabarcoder
 
-dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification 
+Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file (data/moldITS.fasta) and their taxonomic classification (data/moldITS.current.classification) in a tab delimited file as inputs. It contains four components: analyzation, visualization, prediction, and classification.
+Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification
+
+## Dependencies:
+
+- BLAST for DNA sequence comparison
+- LARGEVIS (https://github.com/rugantio/LargeVis-python3) for DNA sequence visualization
 
 ## analyzation
-
-[Windows](https://github.com/FastMLC/fMLC/tree/master/Windows)
-
-[Linux](https://github.com/FastMLC/fMLC/tree/master/Linux)
 
 ## visualization
 There are two datasets available as inputs for fMLC. The "small" dataset contains ~4000 ITS yeast sequences, checked and validated by the specialists at the Westerdijk Fungal Biodiversity Institute. This dataset were analyzed and released in [Vu D. et al. 2016](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5192050/). The "large" dataset contains ~350K ITS fungal sequences downloaded from GenBank (https://www.ncbi.nlm.nih.gov/) which was used in [Vu D. et al. 2014](https://www.nature.com/articles/srep06837) to evaluate the speed of MLC.
