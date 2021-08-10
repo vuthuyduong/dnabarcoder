@@ -130,7 +130,7 @@ The result will be saved in dnabarcoder/SH.moldITS_BLAST.species.assigned.
 
 ## Data
 
-The mold ITS barcode dataset was released in Vu et al. 2019, while the SH.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The moldITS.current.classification and SH.current.classification were updated from [Mycobank](https://www.mycobank.org/).
+The mold ITS barcode dataset was released in Vu et al. (2019), while the SH.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The moldITS.current.classification and SH.current.classification were updated from [Mycobank](https://www.mycobank.org/).
 
 ## Contact person 
 
