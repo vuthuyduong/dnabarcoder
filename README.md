@@ -13,15 +13,25 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. 
 
-To get an overview of the moldITS.fasta dataset:
+-To get an overview of the moldITS.fasta dataset:
 
-../../dnabarcoder overview -i moldITS.fasta -c moldITS.current.classification
+../../dnabarcoder.py overview -i moldITS.fasta -c moldITS.current.classification
 
-To see the distribution of the barcode lengths:
+-To see the distribution of the barcode lengths:
 
-../../dnabarcoder length -i moldITS.fasta -l 100
+../../dnabarcoder.py length -i moldITS.fasta -l 100
 
 Here l is the interval length.
+
+-To get the distribution of the sequences at different taxonomic level:
+
+../../dnabarcoder.py distribution -i moldITS.fasta -c moldITS.current.classification -p 3,4,5,6,7            
+
+where p is the position of the taxonomic level in the classification file.
+
+If we want to visualize the distribution of the sequences with Krona, then we can use the following command:
+
+../../dnabarcoder.py -i moldITS.fasta -c moldITS.current.classification -p 2,3,4,5,6,7 -method krona
 
 
 ## visualization
