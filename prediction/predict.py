@@ -110,8 +110,8 @@ def LoadSim(simfilename):
 		simmatrix[seqid1][seqid1]=1	
 		for seqid2 in seqids:
 			if not seqid2 in simmatrix[seqid1].keys():
-				simmatrix[seqid1].setdefault(seqid2,0)
-				#simmatrix[seqid1][seqid2]=0
+				#simmatrix[seqid1].setdefault(seqid2,0)
+				simmatrix[seqid1][seqid2]=0
 	simfile.close()		
 	return simmatrix
 
@@ -135,7 +135,7 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out db"
 	os.system(makedbcommand)
 	blastcommand = "blastn -query " + fastafilename + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
-	if mincoverage >=300:
+	if mincoverage >=400:
 		blastcommand = "blastn -query " + fastafilename + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
 	os.system(blastcommand)
 	
@@ -163,13 +163,13 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 	os.system("rm out.txt")
 	return simmatrix
 
-def LoadNeighbors(seqids,simmatrix,threshold):
+def LoadNeighbors(seqids,subsimmatrix,threshold):
 	neighbordict={}
 	for seqid in seqids:
 		neighbordict.setdefault(seqid, [])
 	for i in seqids:
 		for j in seqids:
-			if simmatrix[i][j] >= threshold:
+			if subsimmatrix[i][j] >= threshold:
 				neighbordict[i].append(j)
 				neighbordict[j].append(i)
 	#os.system("rm out.txt")
@@ -242,8 +242,23 @@ def isfloat(value):
     return True
   except ValueError:
     return False
+
+def ComputeSubSim(datasetname,records,simmatrix):
+	subsimmatrix={}
+	if simmatrix!={}:
+		for seqid1 in records.keys():
+			subsimmatrix.setdefault(seqid1,{})
+			for seqid2 in records.keys():
+				subsimmatrix[seqid1][seqid2]=simmatrix[seqid1][seqid2]		
+	else:
+		#save sequence records to a fasta file
+		subfastafilename=GetWorkingBase(datasetname) + ".fasta"
+		SeqIO.write(records.values(), subfastafilename, "fasta")			
+		subsimmatrix=ComputeSim(subfastafilename,records,mincoverage)
+		os.system("rm " + subfastafilename)
+	return subsimmatrix
 	
-def Predict(prediction_datasetname,records,classes):
+def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
 	thresholds=[]
 	fmeasures=[]	
 	t=round(threshold,4)
@@ -256,6 +271,8 @@ def Predict(prediction_datasetname,records,classes):
 		bestFmeasure=prediction_datasetname['confidence']
 	if 'fmeasures' in prediction_datasetname.keys():			
 		fmeasuredict=prediction_datasetname['fmeasures']
+	#compute sub simmatrix
+	subsimmatrix=ComputeSubSim(datasetname,records,simmatrix)
 	#compute optimal threshold
 	while t <= endthreshold:
 		print("Computing F-measure for threshold " + str(t))
@@ -265,7 +282,7 @@ def Predict(prediction_datasetname,records,classes):
 			fmeasure=fmeasuredict[str(t)]
 		else:	
 			#compute fmeasure
-			neighbordict = LoadNeighbors(records.keys(),simmatrix,t)	
+			neighbordict = LoadNeighbors(records.keys(),subsimmatrix,t)	
 			points=LoadPoints(neighbordict,records)
 			clusters=[]
 			Cluster(points,clusters)	
@@ -680,7 +697,7 @@ if __name__ == "__main__":
 		if os.path.exists(simfilename):
 			print("Loading similarity matrix " + simfilename)
 			simmatrix=LoadSim(simfilename)
-		else:	
+		elif higherclassificationpos=="":	#predict globally
 			print("Computing similarity matrix...")
 			simmatrix=ComputeSim(fastafilename,seqrecords,mincoverage)
 			print("Save similarity matrix " + simfilename)
@@ -766,7 +783,7 @@ if __name__ == "__main__":
 				bestFmeasure=0
 				groupno=len(classes)
 				print("Predicting optimal threshold to separate sequences at the " + rank + " level for " + datasetname)
-				thresholds,fmeasures,optthreshold,bestFmeasure=Predict(datasetdict,records,classes)	
+				thresholds,fmeasures,optthreshold,bestFmeasure=Predict(datasetname,datasetdict,records,classes,simmatrix)	
 				datasetdict['fasta filename']=fastafilename
 				datasetdict['classification filename']=classificationfilename
 				datasetdict['classification position']=pos
