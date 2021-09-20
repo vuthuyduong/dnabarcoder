@@ -69,7 +69,7 @@ def LoadClassification(seqIDs,seqrecords,classificationfilename,pos):
 		classname=""
 		if pos < len(elements):
 			 classname=elements[pos].rstrip()
-		if classname=="":
+		if classname=="" or classname=="unidentified":
 			continue 
 		if seqid in seqIDs:
 			index=seqIDs.index(seqid)
@@ -507,11 +507,11 @@ for classificationposition in poslist:
 if len(poslist)>1:
 	jsonvariationfilename = GetWorkingBase(referencename) + ".variation"
 	figoutput=jsonvariationfilename + ".png" 
-	if plottype=="plot":
-		PlotAll(figoutput,variationlist,labels)
-	else:	
-		BoxPlotAll(figoutput,variationlist,labels)
-	print("All variations and theirs figure are saved in file " + jsonvariationfilename + " and " + figoutput + ".")
+if plottype=="plot":
+	PlotAll(figoutput,variationlist,labels)
+else:	
+	BoxPlotAll(figoutput,variationlist,labels)
+print("All variations and theirs figure are saved in file " + jsonvariationfilename + " and " + figoutput + ".")
 			
 
 
