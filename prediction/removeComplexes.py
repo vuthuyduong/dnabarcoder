@@ -168,6 +168,8 @@ def ComputeFmeasure(classes,clusters):
 	#compute F-measure
 	f=0
 	n=0
+	if n==0:
+		return f
 	for classname in classes.keys():
 		group=classes[classname]
 		m = 0
@@ -278,6 +280,9 @@ if __name__ == "__main__":
 	allseqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 	sys.setrecursionlimit(len(allseqrecords)*2)
 	seqrecords,classes,classification=LoadClasses(allseqrecords,classificationfilename,classificationpos)
+	if len(seqrecords)==0:
+		print("No classification names are available for the sequences at the position " + str(classificationpos) + str("."))
+		os.sys.exit()
 	#load similarity matrix
 	if simfilename=="" or simfilename==None:
 		simfilename=GetWorkingBase(fastafilename) + ".sim"
