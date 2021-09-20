@@ -289,6 +289,8 @@ if __name__ == "__main__":
 		print("Computing similarity matrix...")
 		simmatrix=ComputeSim(fastafilename,seqrecords,mincoverage)
 		print("Save similarity matrix " + simfilename)
+		if len(seqrecords.keys())!=len(allseqrecords.keys()):
+			simfilename=GetWorkingBase(simfilename) + "." + str(classificationpos) + ".sim"
 		SaveSim(simmatrix,simfilename)	
 	
 	#load neighbors
