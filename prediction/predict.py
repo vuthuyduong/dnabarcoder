@@ -485,7 +485,7 @@ def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpo
 		if higherpos > 0:
 			if higherpos < len(texts):
 				higherclassname=texts[higherpos].rstrip()	
-		if classname != "" and higherclassname !="" and seqid in seqrecords.keys():
+		if classname != "" and higherclassname !="" and classname != "unidentified" and higherclassname !="unidentified" and seqid in seqrecords.keys():
 			if not higherclassname in datasets.keys():
 				datasets.setdefault(higherclassname,{})
 			datasets[higherclassname][seqid]=seqrecords[seqid]	
@@ -509,7 +509,7 @@ def GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationp
 			classname=""
 			if pos < len(texts):
 				classname=texts[pos].rstrip()	
-			if classname != "" and seqid in seqrecords.keys():
+			if classname != "" and classname != "unidentified" and seqid in seqrecords.keys():
 				alldatasets["All"][seqid]=seqrecords[seqid]
 		classificationfile.close()
 	return alldatasets
@@ -729,8 +729,8 @@ if __name__ == "__main__":
 					continue
 				elif fastafilename != datasetdict["fasta filename"] and classificationfilename!=datasetdict["classification filename"]:
 					continue
-				if predictiontype=="global" and datasetname !="All":
-					continue
+#				if predictiontype=="global" and datasetname !="All":
+#					continue
 				seqno=datasetdict['sequence number']
 				groupno=datasetdict['group number']			
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno=LoadPredictionAtPos(datasetdict)
