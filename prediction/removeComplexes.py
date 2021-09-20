@@ -180,27 +180,31 @@ def ComputeFmeasure(classes,clusters):
 		f = f +	(len(group)*m)	
 	return float(f)/float(n) 
 
-def LoadClasses(seqids,classificationfilename,pos):
+def LoadClasses(allseqrecords,classificationfilename,pos):
 	classificationfile= open(classificationfilename)
 #	records= open(classificationfilename,errors='ignore')
 	classification={}
 	classes={}
+	seqrecords={}
 	for line in classificationfile:
 		if line.startswith("#"):
 			 continue
 		words=line.split("\t")
 		seqid= words[0].rstrip().replace(">","")
-		if seqid in seqids:
+		if seqid in allseqrecords.keys():
 			classname=""
 			if pos < len(words):
 				classname=words[pos].rstrip()
+			if classname=="" or classname=="unidentified":	
+				continue
 			classification[seqid]=classname
+			seqrecords[seqid]=allseqrecords[seqid]
 			if classname in classes.keys():
 				classes[classname].append(seqid)
 			else:
 				classes.setdefault(classname,[seqid]) 
 	classificationfile.close()
-	return classes,classification
+	return seqrecords,classes,classification
 
 def MergeComplexes(complexes,classes):
 	removednames=[]
@@ -271,10 +275,9 @@ def SaveClusters(clusters,seqrecords,classes,classification,output,outputfastafi
 if __name__ == "__main__":
 	outputfastafilename=GetWorkingBase(fastafilename) + ".diff.fasta"	
 	outputname=GetWorkingBase(fastafilename) + ".similar"
-	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-	sys.setrecursionlimit(len(seqrecords)*2)
-	#seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-	classes,classification=LoadClasses(seqrecords.keys(),classificationfilename,classificationpos)
+	allseqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	sys.setrecursionlimit(len(allseqrecords)*2)
+	seqrecords,classes,classification=LoadClasses(allseqrecords,classificationfilename,classificationpos)
 	#load similarity matrix
 	if simfilename=="" or simfilename==None:
 		simfilename=GetWorkingBase(fastafilename) + ".sim"
