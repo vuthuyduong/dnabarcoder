@@ -110,7 +110,8 @@ def LoadSim(simfilename):
 		simmatrix[seqid1][seqid1]=1	
 		for seqid2 in seqids:
 			if not seqid2 in simmatrix[seqid1].keys():
-				simmatrix[seqid1][seqid2]=0
+				simmatrix[seqid1].setdefault(seqid2,0)
+				#simmatrix[seqid1][seqid2]=0
 	simfile.close()		
 	return simmatrix
 
@@ -556,7 +557,7 @@ def SavePrediction(predictiondict,outputnamewithfmeasures,outputnamewithoutfmeas
 			seqno=dataset["sequence number"]
 			groupno=dataset["group number"]
 			if groupno < minGroupNo or seqno < minSeqNo:	#delete the cutoffs that dont have enough sequences and groups for prediction
-				del datasets[datasetname]
+				del datasets[datasetname]			
 	with open(outputnamewithoutfmeasures,"w") as json_file:
 		if sys.version_info[0] >= 3:
 			json.dump(finalresults,json_file,indent=2)
@@ -787,7 +788,8 @@ if __name__ == "__main__":
 			outputwithoutfmeasures=GetBase(outputname) + ".cutoffs"	
 			SavePrediction(predictiondict,outputname,outputwithoutfmeasures)
 			#SaveCutoffs(predictiondict,outputcutoffs)
-			print("The prediction and cutoffs are saved in the files " + outputname + " and " + outputwithoutfmeasures + ".")	
+			print("Only cutoffs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", respectively.")
+			print("The prediction and cutoffs are saved in the files " + outputname + " and " + outputwithoutfmeasures + ".")
 	else:
 		#load existing prediction for plotting
 		for rank in predictiondict.keys():
