@@ -131,16 +131,18 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 				simmatrix[seqid1][seqid2]=1
 			else:
 				simmatrix[seqid1][seqid2]=0	
+	blastoutput = fastafilename + ".blast.out"		
+	blastdb=fastafilename + ".db"		
 	#blast
-	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out db"
+	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out " + blastdb
 	os.system(makedbcommand)
-	blastcommand = "blastn -query " + fastafilename + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + fastafilename + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
+		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	os.system(blastcommand)
 	
 	#read blast output
-	blastoutputfile = open("out.txt")
+	blastoutputfile = open(blastoutput)
 	score=0
 	for line in blastoutputfile:
 		if line.rstrip()=="":
@@ -160,7 +162,8 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 			simmatrix[i][j]=round(score,4)
 			simmatrix[j][i]=round(score,4)
 		#simmatrix[j][i]=score
-	os.system("rm out.txt")
+	os.system("rm " + blastoutput)
+	os.system("rm " + blastdb)
 	return simmatrix
 
 def LoadNeighbors(seqids,subsimmatrix,threshold):
