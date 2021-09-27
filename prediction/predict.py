@@ -129,8 +129,6 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		for seqid2 in seqrecords.keys():
 			if seqid1==seqid2:
 				simmatrix[seqid1][seqid2]=1
-			else:
-				simmatrix[seqid1][seqid2]=0	
 	blastoutput = fastafilename + ".blast.out"		
 	blastdb=fastafilename + ".db"		
 	#blast
@@ -163,7 +161,8 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 			simmatrix[j][i]=round(score,4)
 		#simmatrix[j][i]=score
 	os.system("rm " + blastoutput)
-	os.system("rm " + blastdb)
+	os.system("rm " + blastdb + "*")
+	os.system("rm " + blastdb + ".*")
 	return simmatrix
 
 def LoadNeighbors(seqids,subsimmatrix,threshold):
