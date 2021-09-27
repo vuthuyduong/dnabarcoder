@@ -155,10 +155,14 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		coverage=abs(pos2-pos1)
 		score=sim
 		if coverage < mincoverage:
-			score=float(score * coverage)/mincoverage	
-		if simmatrix[i][j] < score:
+			score=float(score * coverage)/mincoverage
+		if j in simmatrix[i].keys():
+			if simmatrix[i][j] < score:
+				simmatrix[i][j]=round(score,4)
+				simmatrix[j][i]=round(score,4)
+		else:
 			simmatrix[i][j]=round(score,4)
-			simmatrix[j][i]=round(score,4)
+			simmatrix[j][i]=round(score,4)	
 		#simmatrix[j][i]=score
 	os.system("rm " + blastoutput)
 	os.system("rm " + blastdb + "*")
@@ -171,9 +175,10 @@ def LoadNeighbors(seqids,subsimmatrix,threshold):
 		neighbordict.setdefault(seqid, [])
 	for i in seqids:
 		for j in seqids:
-			if subsimmatrix[i][j] >= threshold:
-				neighbordict[i].append(j)
-				neighbordict[j].append(i)
+			if j in subsimmatrix[i].keys():
+				if subsimmatrix[i][j] >= threshold:
+					neighbordict[i].append(j)
+					neighbordict[j].append(i)
 	#os.system("rm out.txt")
 	return neighbordict
 
