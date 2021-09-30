@@ -33,8 +33,10 @@ parser.add_argument('-sim','--simfilename', help='The similarity matrix of the s
 parser.add_argument('-hp','--higherclassificationpositions', default="", help='The prediction is based on the whole dataset if hp="". Otherwise it will be predicted based on different datasets obtained at the higher classifications, separated by ",".')
 parser.add_argument('-minGroupNo','--minimumgroupnumber', type=int, default=10, help='The minimum number of groups needed for prediction.')
 parser.add_argument('-minSeqNo','--minimumsequencenumber', type=int, default=50, help='The minimum number of sequences needed for prediction.')
+parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 #parser.add_argument('-type','--predictiontype', default="global", help='The type of prediction. There are three options for prediction type: global, local and all.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
+
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -67,7 +69,7 @@ def GetWorkingBase(filename):
 	basename=os.path.basename(filename)
 	if "." in basename:
 		basename=basename[:-(len(basename)-basename.rindex("."))] 
-	path=outputpath + "/" + filename
+	path=outputpath + "/" + basename
 	return path
 
 class PointDef:
@@ -107,11 +109,12 @@ def LoadSim(simfilename):
 	for seqid1 in seqids:
 		if not (seqid1 in simmatrix.keys()):
 			simmatrix.setdefault(seqid1, {})
-		simmatrix[seqid1][seqid1]=1	
-		for seqid2 in seqids:
-			if not seqid2 in simmatrix[seqid1].keys():
-				#simmatrix[seqid1].setdefault(seqid2,0)
-				simmatrix[seqid1][seqid2]=0
+			simmatrix[seqid1][seqid1]=1	
+		if len(seqids) < args.maxSimMatrixSize: #load full matrix	
+			for seqid2 in seqids:
+				if not seqid2 in simmatrix[seqid1].keys():
+					#simmatrix[seqid1].setdefault(seqid2,0)
+					simmatrix[seqid1][seqid2]=0
 	simfile.close()		
 	return simmatrix
 
@@ -129,6 +132,8 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		for seqid2 in seqrecords.keys():
 			if seqid1==seqid2:
 				simmatrix[seqid1][seqid2]=1
+			elif len(seqrecords.keys()) < args.maxSimMatrixSize: #load full matrix	
+				simmatrix[seqid1][seqid2]=0
 	blastoutput = fastafilename + ".blast.out"		
 	blastdb=fastafilename + ".db"		
 	#blast
@@ -137,8 +142,18 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	if mincoverage >=400:
 		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	print("Comparing the sequences of " + fastafilename + " using Blast...")
+	print(blastcommand)
 	os.system(blastcommand)
-	
+	if not os.path.exists(blastoutput):
+		print("Cannot compare the sequences of " + fastafilename + " using Blast...")
+		logfile=open(GetWorkingBase((os.path.basename(args.input))) + ".predict.log","w")
+		logfile.write("Make BLAST database command: " + makedbcommand + "\n")
+		logfile.write("No output for the BLAST command: " + blastcommand + "\n")
+		logfile.write("Please rerun prediction for " + os.path.basename(fastafilename) + ".")
+		logfile.close()
+		return {}
+	print("Reading Blast results of " + fastafilename + "...")
 	#read blast output
 	blastoutputfile = open(blastoutput)
 	score=0
@@ -156,29 +171,41 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		score=sim
 		if coverage < mincoverage:
 			score=float(score * coverage)/mincoverage
-		if j in simmatrix[i].keys():
+		if len(seqrecords.keys()) < args.maxSimMatrixSize: #the full sim matrix has been loaded 
 			if simmatrix[i][j] < score:
 				simmatrix[i][j]=round(score,4)
 				simmatrix[j][i]=round(score,4)
-		else:
-			simmatrix[i][j]=round(score,4)
-			simmatrix[j][i]=round(score,4)	
+		else:		
+			if j in simmatrix[i].keys():
+				if simmatrix[i][j] < score:
+					simmatrix[i][j]=round(score,4)
+					simmatrix[j][i]=round(score,4)
+			else:
+				simmatrix[i][j]=round(score,4)
+				simmatrix[j][i]=round(score,4)	
 		#simmatrix[j][i]=score
 	os.system("rm " + blastoutput)
 	os.system("rm " + blastdb + "*")
-	os.system("rm " + blastdb + ".*")
+	#os.system("rm " + blastdb + ".*")
 	return simmatrix
 
 def LoadNeighbors(seqids,subsimmatrix,threshold):
 	neighbordict={}
 	for seqid in seqids:
 		neighbordict.setdefault(seqid, [])
-	for i in seqids:
-		for j in seqids:
-			if j in subsimmatrix[i].keys():
+	if len(subsimmatrix.keys()) < args.maxSimMatrixSize:	 #the full matrix has been loaded
+		for i in seqids:
+			for j in seqids:
 				if subsimmatrix[i][j] >= threshold:
 					neighbordict[i].append(j)
 					neighbordict[j].append(i)
+	else:
+		for i in seqids:
+			for j in seqids:
+				if j in subsimmatrix[i].keys():
+					if subsimmatrix[i][j] >= threshold:
+						neighbordict[i].append(j)
+						neighbordict[j].append(i)					
 	#os.system("rm out.txt")
 	return neighbordict
 
@@ -262,7 +289,8 @@ def ComputeSubSim(datasetname,records,simmatrix):
 		subfastafilename=GetWorkingBase(datasetname) + ".fasta"
 		SeqIO.write(records.values(), subfastafilename, "fasta")			
 		subsimmatrix=ComputeSim(subfastafilename,records,mincoverage)
-		os.system("rm " + subfastafilename)
+		if subsimmatrix!={}:
+			os.system("rm " + subfastafilename)
 	return subsimmatrix
 	
 def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
@@ -278,8 +306,8 @@ def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
 		bestFmeasure=prediction_datasetname['confidence']
 	if 'fmeasures' in prediction_datasetname.keys():			
 		fmeasuredict=prediction_datasetname['fmeasures']
-	#compute sub simmatrix
-	subsimmatrix=ComputeSubSim(datasetname,records,simmatrix)
+	isError=False		
+	subsimmatrix={}	
 	#compute optimal threshold
 	while t <= endthreshold:
 		print("Computing F-measure for threshold " + str(t))
@@ -288,6 +316,12 @@ def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
 		if str(t) in fmeasuredict.keys() and args.redo=="":
 			fmeasure=fmeasuredict[str(t)]
 		else:	
+			if subsimmatrix=={}:
+				#compute sub simmatrix
+				subsimmatrix=ComputeSubSim(datasetname,records,simmatrix)
+				if subsimmatrix=={}:
+					isError=True	
+					break
 			#compute fmeasure
 			neighbordict = LoadNeighbors(records.keys(),subsimmatrix,t)	
 			points=LoadPoints(neighbordict,records)
@@ -302,178 +336,13 @@ def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
 		fmeasures.append(fmeasure)
 		t=round(t+step,4)
 		print("F-measure: " + str(fmeasure))
-	prediction_datasetname['cut-off']=optthreshold
-	prediction_datasetname['confidence']=bestFmeasure
-	prediction_datasetname['sequence number']=len(records)
-	prediction_datasetname['group number']=len(classes)
-	prediction_datasetname['fmeasures']=fmeasuredict
-	return thresholds,fmeasures,optthreshold,bestFmeasure
-
-#def GetHigherPositionList(classificationfilename,positionlist,ranklist,higherclassificationpos,predictiontype):
-#	higherpositionlist=[]
-#	if predictiontype=="global":
-#		higherpositionlist=[0]*len(positionlist)
-#	elif "," in higherclassificationpos:	
-#		positions=higherclassificationpos.split(",")
-#		for pos in positions:
-#			higherpositionlist.append(int(pos))
-#	elif higherclassificationpos !="":
-#		higherpositionlist.append(int(higherclassificationpos))
-#	elif predictiontype=="local":
-#		classificationfile=open(classificationfilename)
-#		header=classificationfile.readline()
-#		classificationfile.close()
-#		texts=header.rstrip().split("\t")
-#		p_s=0
-#		p_g=0
-#		p_f=0
-#		p_o=0
-#		p_c=0
-#		p_p=0
-#		p_k=0
-#		i=0
-#		for text in texts:
-#			if text.lower()=="species":
-#				p_s=i
-#			elif text.lower()=="genus":
-#				p_g=i	
-#			elif text.lower()=="family":
-#				p_f=i	
-#			elif text.lower()=="order":
-#				p_o=i	
-#			elif text.lower()=="class":
-#				p_c=i	
-#			elif text.lower()=="phylum":
-#				p_p=i	
-#			elif text.lower()=="kingdom":
-#				p_k=i	
-#			i=i+1	
-#		for pos in positionlist:
-#			higherpos=0
-#			if pos==p_s:
-#				higherpos=p_g
-#			elif pos==p_g:
-#				higherpos=p_f
-#			elif pos==p_f:
-#				higherpos=p_o
-#			elif pos==p_o:
-#				higherpos=p_c
-#			elif pos==p_c:
-#				higherpos=p_p
-#			elif pos==p_p:
-#				higherpos=p_k	
-#			higherpositionlist.append(higherpos)	 
-#	return higherpositionlist
-
-#def GetHigherPositions(classificationfilename,pos):
-#	higherpositionlist=[]
-#	classificationfile=open(classificationfilename)
-#	header=classificationfile.readline()
-#	classificationfile.close()
-#	texts=header.rstrip().split("\t")
-#	p_s=-1
-#	p_g=-1
-#	p_f=-1
-#	p_o=-1
-#	p_c=-1
-#	p_p=-1
-#	p_k=-1
-#	i=0
-#	for text in texts:
-#		if text.lower()=="species":
-#			p_s=i
-#		elif text.lower()=="genus":
-#			p_g=i	
-#		elif text.lower()=="family":
-#			p_f=i	
-#		elif text.lower()=="order":
-#			p_o=i	
-#		elif text.lower()=="class":
-#			p_c=i	
-#		elif text.lower()=="phylum":
-#			p_p=i	
-#		elif text.lower()=="kingdom":
-#			p_k=i	
-#		i=i+1	
-#	level=0	
-#	if pos==p_s:
-#		level=5
-#	elif pos==p_g:
-#		level=4
-#	elif pos==p_f:
-#		level=3
-#	elif pos==p_o:
-#		level=2
-#	elif pos==p_c:
-#		level=1
-#	if level >4:
-#		higherpositionlist.append(p_g)	 
-#	if level >3:
-#		higherpositionlist.append(p_f)	 		
-#	if level >2:
-#		higherpositionlist.append(p_o)	 	
-#	if level >1:
-#		higherpositionlist.append(p_c)	 	
-#	if level >0:
-#		higherpositionlist.append(p_p)	 
-#	return higherpositionlist
-
-#def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos):
-#	datasets={}
-#	#load classification
-#	allseqids=[]
-#	classificationfile= open(classificationfilename)
-#	higherclassnames=[]
-#	classnames=[]
-#	for line in classificationfile:
-#		if line.startswith("#"):
-#			continue 		
-#		texts=line.split("\t")
-#		seqid=texts[0].replace(">","").rstrip()
-#		classname=""
-#		higherclassname=""
-#		if pos < len(texts):
-#			classname=texts[pos].rstrip()
-#		if higherpos > 0:
-#			if higherpos < len(texts):
-#				higherclassname=texts[higherpos].rstrip()	
-#		else:
-#			higherclassname="All"
-#		if classname != "" and higherclassname !="":
-#			allseqids.append(seqid)
-#			higherclassnames.append(higherclassname)
-#		if not classname in classnames:
-#			classnames.append(classname)
-#	classificationfile.close()
-#	for seqid in seqrecords.keys():
-#		if seqid in allseqids:
-#			higherclassname=higherclassnames[allseqids.index(seqid)]
-#			if not higherclassname in datasets.keys():
-#				datasets.setdefault(higherclassname,{})
-#			datasets[higherclassname][seqid]=seqrecords[seqid]	
-#	return datasets
-
-#def GenerateDatasets(seqrecords,classificationfilename,pos,predictiontype):
-#	alldatasets={}
-#	if predictiontype=="local":		
-#		higherpositionlist=GetHigherPositions(classificationfilename,pos)
-#		for higherpos in higherpositionlist:
-#			datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos)
-#			alldatasets.update(datasets)
-#		return alldatasets	
-#	else:
-#		alldatasets.setdefault("All",{})
-#		classificationfile= open(classificationfilename)
-#		for line in classificationfile:
-#			texts=line.rstrip().split("\t")
-#			seqid=texts[0].replace(">","")
-#			classname=""
-#			if pos < len(texts):
-#				classname=texts[pos].rstrip()	
-#			if classname != "" and seqid in seqrecords.keys():
-#				alldatasets["All"][seqid]=seqrecords[seqid]
-#		classificationfile.close()
-#	return alldatasets
+	if isError==False:	
+		prediction_datasetname['cut-off']=optthreshold
+		prediction_datasetname['confidence']=bestFmeasure
+		prediction_datasetname['sequence number']=len(records)
+		prediction_datasetname['group number']=len(classes)
+		prediction_datasetname['fmeasures']=fmeasuredict
+	return thresholds,fmeasures,optthreshold,bestFmeasure,isError
 
 def GetPositionList(classificationfilename,classificationpos):
 	positionlist=[]
@@ -727,11 +596,6 @@ if __name__ == "__main__":
 						if not (pos in positionlist):
 							positionlist.append(pos)
 							ranklist.append(rank)
-#	#load higher classification positions for loading the datasets for prediction
-#	higherpositionlist=GetHigherPositionList(classificationfilename,positionlist,ranklist,higherclassificationpos,predictiontype)
-#	if len(higherpositionlist)!=len(positionlist):
-#		print("Please give a list of higher positions (-hp) for loading the datasets for the prediction.")
-#		sys.exit()	
 	thresholdlist=[]
 	intrathresholdlist=[]
 	fmeasurelist=[]
@@ -754,8 +618,6 @@ if __name__ == "__main__":
 					continue
 				elif fastafilename != datasetdict["fasta filename"] and classificationfilename!=datasetdict["classification filename"]:
 					continue
-#				if predictiontype=="global" and datasetname !="All":
-#					continue
 				seqno=datasetdict['sequence number']
 				groupno=datasetdict['group number']			
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno=LoadPredictionAtPos(datasetdict)
@@ -767,13 +629,8 @@ if __name__ == "__main__":
 					features.append(rank)
 					datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")		
 		else:
-			#predicting
-			#higherpos=higherpositionlist[i]
-			#datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos)
 			datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)
 			for datasetname in datasets.keys():
-#				if predictiontype=="global" and datasetname !="All":
-#					continue
 				records=datasets[datasetname]
 				seqno=len(records)
 				#load classification at given positions 	
@@ -790,19 +647,20 @@ if __name__ == "__main__":
 				bestFmeasure=0
 				groupno=len(classes)
 				print("Predicting optimal threshold to separate sequences at the " + rank + " level for " + datasetname)
-				thresholds,fmeasures,optthreshold,bestFmeasure=Predict(datasetname,datasetdict,records,classes,simmatrix)	
-				datasetdict['fasta filename']=fastafilename
-				datasetdict['classification filename']=classificationfilename
-				datasetdict['classification position']=pos
-				if not (datasetname in prediction_datasets.keys()):
-					prediction_datasets[datasetname]=datasetdict		
-				if not (groupno < minGroupNo or seqno < minSeqNo):	#for visualization
-					thresholdlist.append(thresholds)
-					fmeasurelist.append(fmeasures)
-					optthresholds.append(optthreshold)
-					bestFmeasures.append(bestFmeasure)
-					features.append(rank)
-					datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")
+				thresholds,fmeasures,optthreshold,bestFmeasure,isError=Predict(datasetname,datasetdict,records,classes,simmatrix)	
+				if isError==False:
+					datasetdict['fasta filename']=fastafilename
+					datasetdict['classification filename']=classificationfilename
+					datasetdict['classification position']=pos
+					if not (datasetname in prediction_datasets.keys()):
+						prediction_datasets[datasetname]=datasetdict		
+					if not (groupno < minGroupNo or seqno < minSeqNo):	#for visualization
+						thresholdlist.append(thresholds)
+						fmeasurelist.append(fmeasures)
+						optthresholds.append(optthreshold)
+						bestFmeasures.append(bestFmeasure)
+						features.append(rank)
+						datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")
 			if not rank in predictiondict.keys():	
 				predictiondict[rank] = prediction_datasets 
 		i=i+1
@@ -820,8 +678,6 @@ if __name__ == "__main__":
 			prediction_datasets=predictiondict[rank]
 			for datasetname in prediction_datasets.keys():
 				prediction_datasetname=prediction_datasets[datasetname]
-#				if predictiontype=="global" and datasetname !="All":
-#					continue
 				thresholds,fmeasures,optthreshold,bestFmeasure,feature,seqno,groupno=LoadPredictionAtPos(prediction_datasetname)
 				if not (groupno < minGroupNo or seqno < minSeqNo):	#for visualization
 					thresholdlist.append(thresholds)
@@ -853,4 +709,5 @@ if __name__ == "__main__":
 			print("The prediction plot is saved in the file " + localfigoutput + ".")	
 		else:
 			print("Please check the parameters.")		
+	print("Please check the file " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log for the prediction.")		
 	
