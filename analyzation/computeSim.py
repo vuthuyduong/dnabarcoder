@@ -33,6 +33,9 @@ mincoverage=args.mincoverage
 minsim=args.minsim
 outputpath=args.out
 
+if not os.path.exists(outputpath):
+	os.system("mkdir " + outputpath)	
+	
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))] 
 
@@ -52,11 +55,6 @@ def SaveSim(simmatrix,simfilename,ms):
 
 def ComputeSim(fastafilename,mincoverage,minsim):
 	#scorematrix = [[0 for x in range(len(seqrecords))] for y in range(len(seqrecords))] 
-	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-	simmatrix={}
-	for seqid in seqrecords.keys():
-		simmatrix.setdefault(seqid,{})
-		simmatrix[seqid][seqid]=1
 #	simfilename=GetBase(fastafilename) + ".sim"
 #	simfile=open(simfilename,"w")
 	#blast
@@ -66,6 +64,12 @@ def ComputeSim(fastafilename,mincoverage,minsim):
 	if mincoverage >=300:
 		blastcommand = "blastn -query " + fastafilename + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
 	os.system(blastcommand)
+	
+	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	simmatrix={}
+	for seqid in seqrecords.keys():
+		simmatrix.setdefault(seqid,{})
+		simmatrix[seqid][seqid]=1
 	
 	#read blast output
 	blastoutputfile = open("out.txt")
