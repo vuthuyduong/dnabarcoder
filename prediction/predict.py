@@ -126,6 +126,28 @@ def SaveSim(simmatrix,simfilename):
 	simfile.close()
 	
 def ComputeSim(fastafilename,seqrecords,mincoverage):
+	blastoutput = fastafilename + ".blast.out"		
+	blastdb=fastafilename + ".db"		
+	#blast
+	print("Comparing the sequences of " + fastafilename + " using Blast...")
+	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out " + blastdb
+	print(makedbcommand)
+	os.system(makedbcommand)
+	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	if mincoverage >=400:
+		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	print(blastcommand)
+	os.system(blastcommand)
+	if not os.path.exists(blastoutput):
+		print("Cannot compare the sequences of " + fastafilename + " using Blast...")
+		logfile=open(GetWorkingBase((os.path.basename(args.input))) + ".predict.log","w")
+		logfile.write("Cannot compare the sequences of " + fastafilename + " using Blast...")
+		logfile.write("Make BLAST database command: " + makedbcommand + "\n")
+		logfile.write("No output for the BLAST command: " + blastcommand + "\n")
+		logfile.write("Please rerun prediction for " + os.path.basename(fastafilename) + ".")
+		logfile.close()
+		return {}
+	print("Reading Blast results of " + fastafilename + "...")
 	simmatrix={}
 	for seqid1 in seqrecords.keys():
 		simmatrix.setdefault(seqid1,{})
@@ -134,26 +156,6 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 				simmatrix[seqid1][seqid2]=1
 			elif len(seqrecords.keys()) < args.maxSimMatrixSize: #load full matrix	
 				simmatrix[seqid1][seqid2]=0
-	blastoutput = fastafilename + ".blast.out"		
-	blastdb=fastafilename + ".db"		
-	#blast
-	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out " + blastdb
-	os.system(makedbcommand)
-	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
-	if mincoverage >=400:
-		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
-	print("Comparing the sequences of " + fastafilename + " using Blast...")
-	print(blastcommand)
-	os.system(blastcommand)
-	if not os.path.exists(blastoutput):
-		print("Cannot compare the sequences of " + fastafilename + " using Blast...")
-		logfile=open(GetWorkingBase((os.path.basename(args.input))) + ".predict.log","w")
-		logfile.write("Make BLAST database command: " + makedbcommand + "\n")
-		logfile.write("No output for the BLAST command: " + blastcommand + "\n")
-		logfile.write("Please rerun prediction for " + os.path.basename(fastafilename) + ".")
-		logfile.close()
-		return {}
-	print("Reading Blast results of " + fastafilename + "...")
 	#read blast output
 	blastoutputfile = open(blastoutput)
 	score=0
@@ -629,6 +631,8 @@ if __name__ == "__main__":
 					features.append(rank)
 					datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")		
 		else:
+			if os.path.exists(GetWorkingBase((os.path.basename(args.input))) + ".predict.log"):		
+				os.system("rm " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log")
 			datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)
 			for datasetname in datasets.keys():
 				records=datasets[datasetname]
@@ -708,6 +712,7 @@ if __name__ == "__main__":
 			PlotResults(optthresholds,bestFmeasures,features,datasetnames,localfigoutput)
 			print("The prediction plot is saved in the file " + localfigoutput + ".")	
 		else:
-			print("Please check the parameters.")		
-	print("Please check the file " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log for the prediction.")		
+			print("Please check the parameters.")	
+	if os.path.exists(GetWorkingBase((os.path.basename(args.input))) + ".predict.log"):		
+		print("Please check the file " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log for the prediction.")		
 	
