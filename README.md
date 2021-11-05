@@ -94,25 +94,19 @@ The last component of dnabarcode is to classify a dataset against a reference/ba
 
 ../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -mc 400
 
-- Using a global similarity cutoff, use the following command:
-
-../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -cutoff 0.97 -mc 400
-
-- Using lobal similarity cutoffs, please use the following command:
-
-../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -cutoffs dnabarcoder/moldITS.cutoffs -mc 400
-
-- If there exists a file of classified sequences by BLAST or other tools, we can assign the classified sequences with the predicted cut-offs as follows:
-
-../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -mc 400
-
-- We can also assign the sequences at a specific taxonomic level. For example, at the species level:
+To assign the sequences from the classified sequences, using the following commands:
 
 Globally:
 
 ../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 -mc 400
 
 Locally:
+
+../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -mc 400
+
+The result will be saved in dnabarcoder/SH.moldITS_BLAST.assigned. 
+
+Only assigning at the species level:
 
 ../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -rank species -mc 400
 
@@ -123,8 +117,6 @@ The result will be saved in dnabarcoder/SH.moldITS_BLAST.species.assigned.
 ../../dnabarcoder.py accuracy -i dnabarcoder/SH.moldITS_BLAST.species.assigned -c SH.current.classification -r moldITS.current.classification
 
 -To visualize the classification/assignment results with Krona:
-
-../../dnabarcoder.py krona -i dnabarcoder/SH.moldITS_BLAST.classified -c moldITS.current.classification
 
 ../../dnabarcoder.py krona -i dnabarcoder/SH.moldITS_BLAST.assigned -c moldITS.current.classification
 
