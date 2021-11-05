@@ -18,7 +18,7 @@ from Bio import SeqIO
 import random
 import multiprocessing
 parser=argparse.ArgumentParser(prog='assign.py',  
-							   usage="%(prog)s [options] -i fastafile -p prediction -r referencefastafilename -c classificationfile -mp minproba -mc mincoverage -cutoffs cutoffsfile -o output",
+							   usage="%(prog)s [options] -i classified file -f the fasta file -r referencefastafilename -c classificationfile -mp minproba -mc mincoverage -cutoffs cutoffsfile -o output",
 							   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -544,20 +544,17 @@ def GetAssignment(refid,classificationdict,bestscore,cutoffs,cutoff,globalconfid
 #	mincutoffs["kingdom"]={"cut-off":args.minkingdomcutoff,"confidence":args.minconfidence,"sequence number":args.minseqno,"group number": args.mingroupno}
 #	return mincutoffs
 
-def Assign(classeswithsequences,classificationdict,testclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqids,seqdict,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages,maxseqno,outputname,classificationreportfilename):
-	classificationlevel=GetLevel(classificationrank)
+def Assign(classeswithsequences,classificationdict,testclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqids,seqdict,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages,maxseqno,outputname):
+	#classificationlevel=GetLevel(classificationrank)
 	output=open(outputname,"w")
-	classificationreportfile=open(classificationreportfilename,"w")
+	#classificationreportfile=open(classificationreportfilename,"w")
 	output.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
-	classificationreportfile.write("SequenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
+	#classificationreportfile.write("SequenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
 	i=0
 	given_labels=[]
 	assigned_labels=[]
 	unclassifiedseqids=[]
 	count=0
-	averagecutoffs={}
-#	if cutoffs!={}:
-#		averagecutoffs=GetAverageCutoffs(cutoffs)
 	for seqid in seqids:
 		proba =1
 		if i<len(probas):
@@ -569,9 +566,9 @@ def Assign(classeswithsequences,classificationdict,testclassificationdict,minpro
 		bestscore=0
 		sim=0
 		coverage=0
-		refid=""
+		refid=refids[i]
 		if  i<len(probas) and proba >= minprobaforBlast:
-			if len(refids)==0:
+			if refid=="":
 				if seqid in seqdict.keys():
 					reffilename,numberofsequences=CreateFastaFile(predictedname,classeswithsequences,maxseqno)
 					refid,bestscore,sim,coverage=ComputeBestLocalBLASTScore(seqdict[seqid],reffilename,mincoverage)
@@ -584,11 +581,11 @@ def Assign(classeswithsequences,classificationdict,testclassificationdict,minpro
 			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,classificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank)			
 			if sys.version_info[0] < 3:
 				predictedname=unicode(predictedname,'latin1')
-			if level>=classificationlevel and level !=-1:
-				cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
-				classificationreportfile.write(seqid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
-			else:
-				unclassifiedseqids.append(seqid)	
+#			if level>=classificationlevel and level !=-1:
+#				cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
+#				classificationreportfile.write(seqid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
+#			else:
+#				unclassifiedseqids.append(seqid)	
 		if seqid in classificationdict.keys():
 			giventaxa=classificationdict[seqid]['classification']
 			giventaxa=giventaxa.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
@@ -601,9 +598,11 @@ def Assign(classeswithsequences,classificationdict,testclassificationdict,minpro
 		if predictedname!="" and predictedname!="unidentified":			
 			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 			count=count+1
+		else:
+			unclassifiedseqids.append(seqid)	
 		i=i+1
 	output.close()
-	classificationreportfile.close()
+	#classificationreportfile.close()
 	return count,given_labels,assigned_labels,unclassifiedseqids
 	
 def LoadPrediction(predictionfilename):
@@ -651,18 +650,38 @@ def LoadPrediction(predictionfilename):
 	for line in predictionfile:
 		texts=line.rstrip().split("\t")
 		seqids.append(texts[p_id])
-		labels.append(texts[p_l])
-		pred_labels.append(texts[p_pl])
-		pred_classifications.append(texts[p_c])
+		label=""
+		if p_l >=0 and p_l < len(texts):
+			label=texts[p_l]
+		labels.append(label)
+		pred_label=""
+		if p_pl >=0 and p_pl < len(texts):
+			pred_label=texts[p_l]
+		pred_labels.append(pred_label)
+		pred_classification=""
+		if p_c >=0 and p_c < len(texts):
+			pred_classification=texts[p_c]
+		pred_classifications.append(pred_classification)
 		proba=1
 		if p_p >=0 and p_p <len(texts):
 			proba=float(texts[p_p])
 		probas.append(proba)
-		if p_r>0:
-			refids.append(texts[p_r])
-			bestscores.append(float(texts[p_bs]))
-			sims.append(float(texts[p_s]))
-			coverages.append(float(texts[p_co]))
+		refid=""
+		if p_r>0 and p_r<len(texts):
+			refid=texts[p_r]
+		refids.append(refid)
+		score=0
+		if p_bs>0 and p_bs<len(texts):
+			score=float(texts[p_bs])
+		bestscores.append(score)
+		sim=0
+		if p_s>0 and p_s<len(texts):
+			sim=float(texts[p_s])
+		sims.append(sim)
+		cov=""
+		if p_co>0 and p_co<len(texts):
+			cov=float(texts[p_co])
+		coverages.append(cov)
 	return seqids,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages
 	
 def GetClassificationpos(pred_labels,classificationfilename):
@@ -821,7 +840,7 @@ if __name__ == "__main__":
 		outputname=GetWorkingBase(prefix) + "." + classificationrank + ".assigned"
 	if outputname==predictionfilename:
 		outputname=outputname+".assigned"
-	classificationreportfilename=GetBase(outputname) + ".classification"
+	#classificationreportfilename=GetBase(outputname) + ".classification"
 	unclassifiedfastafilename=GetBase(outputname)  + ".unclassified.fasta"	
 	#load prediction
 	seqids,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages=LoadPrediction(predictionfilename)	
@@ -834,9 +853,10 @@ if __name__ == "__main__":
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)
-	count,given_labels,assigned_labels,unclassifiedseqids=Assign(classes,classificationdict,testclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqids,seqrecords,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages,maxseqno,outputname,classificationreportfilename)
+	count,given_labels,assigned_labels,unclassifiedseqids=Assign(classes,classificationdict,testclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqids,seqrecords,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages,maxseqno,outputname)
 	print("Number of assigned sequences: " + str(count))
-	print("The results are saved in file  " + outputname + " and " + classificationreportfilename + ".")
+	print("The results are saved in file  " + outputname)
+	#print("The results are saved in file  " + outputname + " and " + classificationreportfilename + ".")
 	unclassifiedseqrecords=[]
 	if len(unclassifiedseqids) > 0:
 		for seqid in unclassifiedseqids:
