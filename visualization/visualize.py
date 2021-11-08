@@ -16,7 +16,7 @@ import json
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 
-parser=argparse.ArgumentParser(prog='dnabarcodes_visualize.py',  
+parser=argparse.ArgumentParser(prog='visualize.py',  
 							   usage="%(prog)s [options] -i fastafile -c classificationfilename -p classificationposition",
 							   description='''Script that visualizes the dna sequences based on a given classification. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
@@ -31,7 +31,7 @@ parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum 
 parser.add_argument('-coord','--coordinates', help='A file containing coordinates of the sequences, computed by LargeVis. If these coordinates will be computed if this file is not given.')
 parser.add_argument('-dim','--dimension', type=int, default=3,help='The dimension 2D or 3D for visualization.')
 parser.add_argument('-kneigh','--kneigbors', type=int, default=150,help='The k-neighbors number for visualization.')
-parser.add_argument('-ms','--minsim', type=float, default=0.5, help='The minimum similarity for visualization.')
+parser.add_argument('-ms','--minsim', type=float, default=0, help='The minimum similarity for visualization.')
 parser.add_argument('-method','--visualizationmethod', default="", help='The visualization method. There are two methods to be selected: dive and plot.')
 #parser.add_argument('-lim','--lim', type=int, default=50, help='The lim for visualization.')
 parser.add_argument('-size','--size', type=float, default=1, help='The size of the dot.')
