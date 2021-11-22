@@ -29,13 +29,15 @@ Command:     overview     	                 Get an overview of the dataset
              variation                       Compute sequence variation
              sim                             Compute similarity matrix	                          
              visualize                       Visualize the sequences
+             tree                            Create a phylogenetic tree of the sequences			 
              cluster                         Cluster the sequences
              predict                         Predict similarity cut-offs for the sequences
              remove                          Remove similar sequences of the same complexes based on a give threshold
-             classify                        Classify the sequences with a given cutoff or with the predicted cutoffs
-             assign                          Assign the classified sequences based on a cutoff or the predicted cutoffs
+             search                          Search for best matches of the sequences against a file of reference sequences
+             classify                        Classify the sequences to the group of their best match if the score is greater than the given cutoff
+             verify                          Verify the assigned sequences based on the phylogenetic tree branch lengths			 
              krona                           Visualize classification results using Krona
-             accuracy                        Compute accuracy for classification results
+             evaluate                        Compute accuracy for classification results
 			       
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
         """ #% version
@@ -190,6 +192,29 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		else:
 			print(help)
 			sys.exit(1)	
+	elif sys.argv[1] == 'tree':
+		help = """
+Usage:       dnabarcoder %s <arguments>
+version:     %s
+
+Description: The script visualizes the sequences based on BLAST similarity 
+    
+Arguments:   -i, --input             	   Fasta file of Dna sequences, required
+             -c, --classification    	   The taxonomic classification file in tab delimited format 
+             -p, --classificationpos       The classification positions for coloring the sequences             
+             -o, --out                     The output folder, default= "dnabarcoder"			 
+Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
+		""" # % (sys.argv[1], version)
+		arguments = sys.argv[2:]
+		if len(arguments) > 1:
+			cmd = os.path.join(path, 'visualization', 'maketree.py')
+			arguments.insert(0, cmd)
+			exe = sys.executable
+			arguments.insert(0, exe)
+			subprocess.call(arguments)
+		else:
+			print(help)
+			sys.exit(1)				
 	elif sys.argv[1] == 'cluster':
 		help = """
 Usage:       dnabarcoder %s <arguments>
@@ -276,7 +301,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		else:
 			print(help)
 			sys.exit(1)				
-	elif sys.argv[1] == 'classify':
+	elif sys.argv[1] == 'search':
 		help = """
 Usage:       dnabarcoder %s <arguments>
 version:     %s
@@ -286,18 +311,13 @@ Description: The script classifies a fasta file of sequences against a reference
 Arguments:   -i, --input             	        Fasta file of Dna sequences to be classified, required       
              -r, --reference                    Fasta file of reference sequences, required    			 
              -mc, --mincoverage                 Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
-             -c, --classification    	        The taxonomic classification file in tab delimited format 			 
-             -cutoffs, --cutoffs                The similarity cutoffs file predicted by dnabarcoder predict if exists
-             -cutoff, --cutoff                  The similarity cutoff, default=0, only used if the similarity cutoffs file is not given
-             -confidence, --confidence          The confidence of the similarity cutoff if exists
-             -rank, --rank                      The rank to classify the sequences, default=""
              -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
              -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'classification', 'classify.py')
+			cmd = os.path.join(path, 'classification', 'search.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -305,12 +325,12 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		else:
 			print(help)
 			sys.exit(1)				
-	elif sys.argv[1] == 'assign':
+	elif sys.argv[1] == 'classify':
 		help = """
 Usage:       dnabarcoder %s <arguments>
 version:     %s
 
-Description: The script assigns classified sequences based on local cutoffs or a given global cutoff. For a sequence, a BLAST similarity score to the sequences of the predicted group is computed. The sequence is assigned if the BLAST similarity score is greater or equal than the similarity cut-off
+Description: The script classifies the sequences to their best match based on local cutoffs or a given global cutoff. For a sequence, a BLAST similarity score to the sequences of the predicted group is computed. The sequence is assigned if the BLAST similarity score is greater or equal than the similarity cut-off
     
 Arguments:   -i, --input             	        The file of classified sequences, required
              -f, --fasta                        The fasta file of classified sequences, required    
@@ -332,7 +352,35 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 	
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'classification', 'assign.py')
+			cmd = os.path.join(path, 'classification', 'classify.py')
+			arguments.insert(0, cmd)
+			exe = sys.executable
+			arguments.insert(0, exe)
+			subprocess.call(arguments)
+		else:
+			print(help)
+			sys.exit(1)		
+	elif sys.argv[1] == 'verify':
+		help = """
+Usage:       dnabarcoder %s <arguments>
+version:     %s
+
+Description: The script assigns classified sequences based on local cutoffs or a given global cutoff. For a sequence, a BLAST similarity score to the sequences of the predicted group is computed. The sequence is assigned if the BLAST similarity score is greater or equal than the similarity cut-off
+    
+Arguments:   -i, --input             	        The file of classified sequences, required
+             -f, --fasta                        The fasta file of classified sequences, required    
+             -r, --reference                    The fasta file of reference sequences, required    			 
+             -m, --maxseqno                     Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected, default=0
+             -c, --classification    	        The taxonomic classification file in tab delimited format 			 
+             -rank, --rank                      The rank to classify the sequences, default=""
+             -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
+             -o, --out                          The output folder, default= "dnabarcoder"			 
+Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
+		""" # % (sys.argv[1], version)
+	
+		arguments = sys.argv[2:]
+		if len(arguments) > 1:
+			cmd = os.path.join(path, 'classification', 'verify.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -362,7 +410,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		else:
 			print(help)
 			sys.exit(1)	
-	elif sys.argv[1] == 'metrics':
+	elif sys.argv[1] == 'evaluate':
 		help = """
 Usage:       dnabarcoder %s <arguments>
 version:     %s
@@ -377,7 +425,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)		
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'classification', 'computeMetrics.py')
+			cmd = os.path.join(path, 'classification', 'evaluate.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
