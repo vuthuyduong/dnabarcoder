@@ -92,7 +92,7 @@ def GetRankClassification(level,classification):
 	if level >=0 and kingdom!="unidentified":
 		newclassification="k__" + kingdom +";p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
 	if level >=1 and phylum!="unidentified":
-		classification="k__" + kingdom +";p__"+phylum +";c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+		newclassification="k__" + kingdom +";p__"+phylum +";c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"
 	if level >=2 and bioclass!="unidentified":
 		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass+";o__unidentified;f__unidentified;g__unidentified;s__unidentified"
 	if level >=3 and order!="unidentified":
@@ -355,7 +355,6 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 			if maxconfidence < confidence:
 				maxconfidence =confidence
 				bestcutoff=localcutoff
-				
 	return [bestcutoff,maxconfidence]
 
 def GetCutoffs(classification,cutoffs):
