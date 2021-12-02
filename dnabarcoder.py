@@ -32,6 +32,7 @@ Command:     overview     	                 Get an overview of the dataset
              tree                            Create a phylogenetic tree of the sequences			 
              cluster                         Cluster the sequences
              predict                         Predict similarity cut-offs for the sequences
+             local                           Compute local similarity cut-offs for the sequences			 
              remove                          Remove similar sequences of the same complexes based on a give threshold
              search                          Search for best matches of the sequences against a file of reference sequences
              classify                        Classify the sequences to the group of their best match if the score is greater than the given cutoff
@@ -294,6 +295,33 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
 			cmd = os.path.join(path, 'prediction', 'predict.py')
+			arguments.insert(0, cmd)
+			exe = sys.executable
+			arguments.insert(0, exe)
+			subprocess.call(arguments)
+		else:
+			print(help)
+			sys.exit(1)		
+	elif sys.argv[1] == 'local':
+		help = """
+Usage:       dnabarcoder %s <arguments>
+version:     %s
+
+Description: The script predicts similarity cut-offs for sequence identification
+    
+Arguments:   -i, --input             	        the cutoffs file, required       
+             -c, --classification    	        The taxonomic classification file in tab delimited format 			 		            
+			 -minGroupNo,--minimumgroupnumber   The minimum number of groups for prediction, default=10
+             -minSeqNo,--minimumsequencenumber  The minimum number of sequences for prediction, default=50	
+             -redo,--redo                       Redo the prediction if redo !="", default=""		
+             -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
+             -o, --out                          The output folder, default= "dnabarcoder"			 
+Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
+
+		""" # % (sys.argv[1], version)
+		arguments = sys.argv[2:]
+		if len(arguments) > 1:
+			cmd = os.path.join(path, 'prediction', 'computeLocalCutoffs.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
