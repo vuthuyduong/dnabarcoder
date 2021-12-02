@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-# FILE: computeBestCutoffs.py
+# FILE: computeLocalCutoffs.py
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2021
-#from sklearn.model_selection import StratifiedKFold
-#from sklearn.preprocessing import StandardScaler
 import sys
 if sys.version_info[0] >= 3:
 	unicode = str
@@ -23,7 +21,7 @@ parser=argparse.ArgumentParser(prog='computeLocalCutoffs.py',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
-parser.add_argument('-i','--input',required=True, help='the classified file')
+parser.add_argument('-i','--input',required=True, help='the cutoffs file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
