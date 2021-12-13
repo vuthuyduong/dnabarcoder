@@ -21,7 +21,7 @@ default_help = """
 Usage:       dnabarcoder <command> <arguments>
 version:     %s
 
-Description: dnabarcoder is a tool for the analyzation, visualization, classification, and predictions of similarity cut-offs for dna barcodes
+Description: dnabarcoder is a tool for the analysis, visualization, classification, and predictions of similarity cut-offs for dna barcodes
     
 Command:     overview     	                 Get an overview of the dataset 
              length                          Compute length distribution
@@ -58,7 +58,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'analyzation', 'overview.py')
+			cmd = os.path.join(path, 'analysis', 'overview.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -80,7 +80,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'analyzation', 'computeLengthDistribution.py')
+			cmd = os.path.join(path, 'analysis', 'computeLengthDistribution.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -105,7 +105,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'analyzation', 'computeDistribution.py')
+			cmd = os.path.join(path, 'analysis', 'computeDistribution.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -131,7 +131,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'analyzation', 'computeVariation.py')
+			cmd = os.path.join(path, 'analysis', 'computeVariation.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -154,7 +154,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'analyzation', 'computeSim.py')
+			cmd = os.path.join(path, 'analysis', 'computeSim.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -313,7 +313,6 @@ Arguments:   -i, --input             	        the cutoffs file, required
              -c, --classification    	        The taxonomic classification file in tab delimited format 			 		            
 			 -minGroupNo,--minimumgroupnumber   The minimum number of groups for prediction, default=10
              -minSeqNo,--minimumsequencenumber  The minimum number of sequences for prediction, default=50	
-             -redo,--redo                       Redo the prediction if redo !="", default=""		
              -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
              -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
