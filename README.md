@@ -90,39 +90,43 @@ The prediction will be saved in the json file dnabarcoder/filamentousfungalITS.p
 
 The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs predicted for the reference dataset.
 
-- To classify the SH.fasta file, use the following command:
+- To search for the best match of the sequences in the UNITErelease.fasta file, use the following command:
 
-../../dnabarcoder.py classify -i SH.fasta -r moldITS.fasta -c moldITS.classification -mc 400
+../../dnabarcoder.py classify -i UNITErelease.fasta -r filamentousfungalITS.fasta -mc 400
 
-To assign the sequences from the classified sequences, using the following commands:
+The result is saved in the file dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch
+
+To classify the UNITE sequences based on best matches, using the following commands:
 
 Globally:
 
-../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 -mc 400
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 -mc 400
+
+Here 0.994 is the global similarity cut-off for sequence identification at the species level. The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.0994.classified. 
 
 Locally:
 
-../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -mc 400
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs -mc 400
 
-The result will be saved in dnabarcoder/SH.moldITS_BLAST.assigned. 
+The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.classified. 
 
-Only assigning at the species level:
+Only classify at the species level:
 
-../../dnabarcoder.py assign -i dnabarcoder/SH.moldITS_BLAST.classified -f SH.fasta -r moldITS.fasta -c moldITS.current.classification -cutoffs dnabarcoder/moldITS.cutoffs -rank species -mc 400
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs -mc 400 -rank species
 
-The result will be saved in dnabarcoder/SH.moldITS_BLAST.species.assigned. 
+The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.classified. 
 
 - To compute classification/assigment accuracy and precision, use the following commands:
 
-../../dnabarcoder.py accuracy -i dnabarcoder/SH.moldITS_BLAST.species.assigned -c SH.current.classification -r moldITS.current.classification
+../../dnabarcoder.py accuracy -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.classified -c UNITErelease.current.classification -r filamentousfungalITS.current.classification
 
 -To visualize the classification/assignment results with Krona:
 
-../../dnabarcoder.py krona -i dnabarcoder/SH.moldITS_BLAST.assigned -c moldITS.current.classification
+../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.classified -c filamentousfungalITS.current.classification
 
 ## Data
 
-The mold ITS barcode dataset was released in Vu et al. (2019), while the SH.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The moldITS.current.classification and SH.current.classification were updated from [Mycobank](https://www.mycobank.org/).
+The filamentousfungalITS barcode dataset was released in Vu et al. (2019), while the UNITErelease.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The filamentousfungalITS.current.classification and UNITErelease.current.classification were updated from [Mycobank](https://www.mycobank.org/).
 
 ## Contact person 
 
