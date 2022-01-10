@@ -124,6 +124,10 @@ The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.
 
 ../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.classified -c filamentousfungalITS.current.classification
 
+-To verify the classification results based on phylogenic trees at the species level:
+
+../../dnabarcoder.py verify -i dnabarcoder/NITErelease.filamentousfungalITS_BLAST.classified -c filamentousfungalITS.current.classification -r filamentousfungalITS.fasta -f UNITErelease.fasta -rank species
+
 ## Data
 
 The filamentousfungalITS barcode dataset was released in Vu et al. (2019), while the UNITErelease.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The filamentousfungalITS.current.classification and UNITErelease.current.classification were updated from [Mycobank](https://www.mycobank.org/).
