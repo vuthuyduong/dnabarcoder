@@ -6,7 +6,7 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 
 ## Dependencies:
 
-- BLASTn, used for DNA sequence comparisons
+- [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi), used for DNA sequence comparisons
 - [Matplot](https://matplotlib.org/), used for the visualization of the results
 - [Krona](https://github.com/marbl/Krona/wiki), optional for visualizing classifications
 - [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optinal for visualization
