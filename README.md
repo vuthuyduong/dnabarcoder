@@ -6,8 +6,12 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 
 ## Dependencies:
 
-- BLAST for DNA sequence comparison
-- [LARGEVIS](https://github.com/rugantio/LargeVis-python3), only for DNA sequence visualization
+- BLASTn, used for DNA sequence comparisons
+- Matplot, used for the visualization of the results
+- [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optinal for visualization
+- DiVE, optional for visualization
+- IQtree, optional for verification
+- Clustalo, opional for verification
 
 ## Analyzation
 
@@ -98,13 +102,13 @@ The result is saved in the file dnabarcoder/UNITErelease.filamentousfungalITS_BL
 
 To classify the UNITE sequences based on best matches, using the following commands:
 
-Globally:
+ - Globally, based on only one similarity cut-off:
 
 ../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 -mc 400
 
 Here 0.994 is the global similarity cut-off for sequence identification at the species level. The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.0994.classified. 
 
-Locally:
+- Locally, based on the similarity cut-off predicted for the best match:
 
 ../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs -mc 400
 
@@ -124,7 +128,7 @@ The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.
 
 ../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.classified -c filamentousfungalITS.current.classification
 
--To verify the classification results based on phylogenic trees at the species level:
+- To verify the classification results based on phylogenic trees at the species level:
 
 ../../dnabarcoder.py verify -i dnabarcoder/NITErelease.filamentousfungalITS_BLAST.classified -c filamentousfungalITS.current.classification -r filamentousfungalITS.fasta -f UNITErelease.fasta -rank species
 
