@@ -13,7 +13,7 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 - IQtree, optional for verification
 - Clustalo, opional for verification
 
-## Analyzation
+## Analysis
 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. 
 
