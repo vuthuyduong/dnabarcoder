@@ -7,12 +7,12 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 ## Dependencies:
 
 - BLASTn, used for DNA sequence comparisons
-- Matplot, used for the visualization of the results
-- Krona, optional for visualizing classifications
+- [Matplot](https://matplotlib.org/), used for the visualization of the results
+- [Krona](https://github.com/marbl/Krona/wiki), optional for visualizing classifications
 - [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optinal for visualization
-- DiVE, optional for visualization
-- IQtree, optional for verification
-- Clustalo, opional for verification
+- [DiVE](https://nlesc.github.io/DiVE), optional for visualization
+- [IQtree](http://www.iqtree.org/), optional for verification
+- [Clustalo](http://www.clustal.org/omega/), opional for verification
 
 ## Analysis
 
