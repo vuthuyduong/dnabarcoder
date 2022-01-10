@@ -8,6 +8,7 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 
 - BLASTn, used for DNA sequence comparisons
 - Matplot, used for the visualization of the results
+- Krona, optional for visualizing classifications
 - [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optinal for visualization
 - DiVE, optional for visualization
 - IQtree, optional for verification
