@@ -31,8 +31,8 @@ parser.add_argument('-s','--step', type=float, default=0.001, help='the step to 
 parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-hp','--higherclassificationpositions', default="", help='The prediction is based on the whole dataset if hp="". Otherwise it will be predicted based on different datasets obtained at the higher classifications, separated by ",".')
-parser.add_argument('-minGroupNo','--minimumgroupnumber', type=int, default=10, help='The minimum number of groups needed for prediction.')
-parser.add_argument('-minSeqNo','--minimumsequencenumber', type=int, default=50, help='The minimum number of sequences needed for prediction.')
+parser.add_argument('-minGroupNo','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
+parser.add_argument('-minSeqNo','--minseqno', type=int, default=50, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 #parser.add_argument('-type','--predictiontype', default="global", help='The type of prediction. There are three options for prediction type: global, local and all.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
@@ -49,8 +49,8 @@ mincoverage=args.mincoverage
 outputfolder=args.out
 simfilename=args.simfilename
 higherclassificationpos=args.higherclassificationpositions
-minGroupNo=args.minimumgroupnumber
-minSeqNo=args.minimumsequencenumber
+minGroupNo=args.mingroupno
+minSeqNo=args.minseqno
 #predictiontype=args.predictiontype
 prefix=args.prefix
 outputpath=args.out
@@ -280,12 +280,15 @@ def isfloat(value):
     return False
 
 def ComputeSubSim(datasetname,records,simmatrix):
-	subsimmatrix={}
+#	if datasetname=="All":
+#		return simmatrix
+#	subsimmatrix={}
 	if simmatrix!={}:
-		for seqid1 in records.keys():
-			subsimmatrix.setdefault(seqid1,{})
-			for seqid2 in records.keys():
-				subsimmatrix[seqid1][seqid2]=simmatrix[seqid1][seqid2]		
+#		for seqid1 in records.keys():
+#			subsimmatrix.setdefault(seqid1,{})
+#			for seqid2 in records.keys():
+#				subsimmatrix[seqid1][seqid2]=simmatrix[seqid1][seqid2]	
+		return simmatrix
 	else:
 		#save sequence records to a fasta file
 		subfastafilename=GetWorkingBase(datasetname) + ".fasta"
@@ -573,6 +576,8 @@ if __name__ == "__main__":
 	#load or compute simmatrix
 	if endthreshold >=threshold and endthreshold >0:
 		if os.path.exists(simfilename):
+			#question=input("Do you want to load the similarity matrix from the file " + simfilename + " (yes/no)?")
+			#if question=="yes":
 			print("Loading similarity matrix " + simfilename)
 			simmatrix=LoadSim(simfilename)
 		elif higherclassificationpos=="":	#predict globally
@@ -612,9 +617,12 @@ if __name__ == "__main__":
 		prediction_datasets={}
 		if rank in predictiondict.keys():
 			prediction_datasets=predictiondict[rank]
+		datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)	
 		if step==0 or (endthreshold < threshold) or (endthreshold==0 and threshold==0):
 			#load existing prediction
 			for datasetname in prediction_datasets.keys():
+				if not datasetname in datasets.keys():
+					continue 
 				datasetdict=prediction_datasets[datasetname]
 				if not ("fasta filename" in datasetdict.keys() and "classification filename" in datasetdict.keys()):
 					continue
@@ -624,16 +632,17 @@ if __name__ == "__main__":
 				groupno=datasetdict['group number']			
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno=LoadPredictionAtPos(datasetdict)
 				if not (seqno < minGroupNo or seqno < minSeqNo):	#for visualization
-					thresholdlist.append(thresholds)
-					fmeasurelist.append(fmeasures)
-					optthresholds.append(optthreshold)
-					bestFmeasures.append(bestFmeasure)
-					features.append(rank)
-					datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")		
+					if (higherclassificationpos=="" and datasetname == "All") or (higherclassificationpos!=""):	
+						thresholdlist.append(thresholds)
+						fmeasurelist.append(fmeasures)
+						optthresholds.append(optthreshold)
+						bestFmeasures.append(bestFmeasure)
+						features.append(rank)
+						datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")			
 		else:
 			if os.path.exists(GetWorkingBase((os.path.basename(args.input))) + ".predict.log"):		
 				os.system("rm " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log")
-			datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)
+			#datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)
 			for datasetname in datasets.keys():
 				records=datasets[datasetname]
 				seqno=len(records)
@@ -696,7 +705,7 @@ if __name__ == "__main__":
 	if len(positionlist) == 1:
 		globalfigoutput=GetBase(outputname) + "." + str(positionlist[0]) + ".global.png"
 		localfigoutput=GetBase(outputname) + "." + str(positionlist[0]) + ".local.png"
-	elif len(positionlist) > 1 or len(positionlist) == 1: 	
+	else: 	
 		globalfigoutput=GetBase(outputname) + ".global.png"
 		barplotfigoutput=GetBase(outputname) + ".local.png"
 	if higherclassificationpos=="":	
