@@ -629,9 +629,9 @@ if __name__ == "__main__":
 				elif fastafilename != datasetdict["fasta filename"] and classificationfilename!=datasetdict["classification filename"]:
 					continue
 				seqno=datasetdict['sequence number']
-				groupno=datasetdict['group number']			
+				groupno=datasetdict['group number']		
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno=LoadPredictionAtPos(datasetdict)
-				if not (seqno < minGroupNo or seqno < minSeqNo):	#for visualization
+				if not (groupno < minGroupNo or seqno < minSeqNo):	#for visualization
 					if (higherclassificationpos=="" and datasetname == "All") or (higherclassificationpos!=""):	
 						thresholdlist.append(thresholds)
 						fmeasurelist.append(fmeasures)
