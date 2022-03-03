@@ -15,26 +15,28 @@ import multiprocessing
 import json
 
 parser=argparse.ArgumentParser(prog='predict.py', 
-							   usage="%(prog)s [options] -i fastafile -c classificationfile -p classificationposition -st startingthreshold -et endthreshold -s step",
+							   usage="%(prog)s [options] -i fastafile -c classificationfile -p classificationposition -st startingthreshold -et endthreshold -s step -ml minalignmentlength",
 							   description='''Script that predicts an optimal threshold to separate the sequences based on the given classification''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+parser.add_argument('-prefix','--prefix', default="", help='the prefix of output filenames.')
+parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
+parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
 parser.add_argument('-p','--classificationpositions', default="", help='the classification positions for the prediction, separated by ",".')
 parser.add_argument('-st','--startingthreshold', type=float, default=0, help='starting threshold')
 parser.add_argument('-et','--endthreshold', type=float, default=0, help='ending threshold')
 parser.add_argument('-s','--step', type=float, default=0.001, help='the step to be increased for the threshold after each step of the prediction.')
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-hp','--higherclassificationpositions', default="", help='The prediction is based on the whole dataset if hp="". Otherwise it will be predicted based on different datasets obtained at the higher classifications, separated by ",".')
-parser.add_argument('-minGroupNo','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
-parser.add_argument('-minSeqNo','--minseqno', type=int, default=50, help='The minimum number of sequences needed for prediction.')
-parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
-#parser.add_argument('-type','--predictiontype', default="global", help='The type of prediction. There are three options for prediction type: global, local and all.')
+parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
+parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
+parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
+parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
 
 
@@ -45,14 +47,15 @@ classificationpos=args.classificationpositions
 threshold = args.startingthreshold
 endthreshold=args.endthreshold
 step=args.step
-mincoverage=args.mincoverage
+mincoverage=args.minalignmentlength
 outputfolder=args.out
 simfilename=args.simfilename
 higherclassificationpos=args.higherclassificationpositions
 minGroupNo=args.mingroupno
 minSeqNo=args.minseqno
-#predictiontype=args.predictiontype
+#taxa=args.taxa
 prefix=args.prefix
+label=args.label
 outputpath=args.out
 redo=args.redo
 
@@ -65,11 +68,15 @@ nproc=multiprocessing.cpu_count()
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]  
 	
-def GetWorkingBase(filename):
-	basename=os.path.basename(filename)
-	if "." in basename:
-		basename=basename[:-(len(basename)-basename.rindex("."))] 
-	path=outputpath + "/" + basename
+#def GetWorkingBase(filename):
+#	basename=os.path.basename(filename)
+#	if "." in basename:
+#		basename=basename[:-(len(basename)-basename.rindex("."))] 
+#	path=outputpath + "/" + basename
+#	return path
+	
+def GetWorkingBase(filename): 
+	path=outputpath + "/" + filename
 	return path
 
 class PointDef:
@@ -369,7 +376,12 @@ def GetPositionList(classificationfilename,classificationpos):
 	classificationfile.close()
 	return positionlist,ranklist
 	
-def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos):
+def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos,taxa):
+	taxalist=[]
+	if "," in taxa:
+		taxalist=taxa.split(",")
+	elif taxa!="":
+		taxalist.append(taxa)
 	datasets={}
 	classificationfile= open(classificationfilename)
 	for line in classificationfile:
@@ -383,20 +395,22 @@ def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpo
 			classname=texts[pos].rstrip()
 		if higherpos > 0:
 			if higherpos < len(texts):
-				higherclassname=texts[higherpos].rstrip()	
+				higherclassname=texts[higherpos].rstrip()
+		if (len(taxalist) >0) and higherclassname!="" and not (higherclassname in taxalist) :
+			continue
 		if classname != "" and higherclassname !="" and classname != "unidentified" and higherclassname !="unidentified" and seqid in seqrecords.keys():
 			if not higherclassname in datasets.keys():
-				datasets.setdefault(higherclassname,{})
+					datasets.setdefault(higherclassname,{})
 			datasets[higherclassname][seqid]=seqrecords[seqid]	
 	classificationfile.close()
 	return datasets
 
-def GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos):
+def GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos,taxa):
 	alldatasets={}
 	if higherclassificationpos !="":		
 		higherpositionlist,higherranklist=GetPositionList(classificationfilename,higherclassificationpos)
 		for higherpos in higherpositionlist:
-			datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos)
+			datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos,taxa)
 			alldatasets.update(datasets)
 		return alldatasets	
 	else:
@@ -429,8 +443,9 @@ def LoadPredictionAtPos(prediction_datasetname):
 	groupno=prediction_datasetname['group number']
 	fmeasuredict=prediction_datasetname['fmeasures']
 	for t in fmeasuredict.keys():
-		thresholds.append(float(t))
-		fmeasures.append(fmeasuredict[t])
+		if float(t)>=args.startingthreshold and ((float(t)<=args.endthreshold and args.endthreshold>0) or args.endthreshold==0):
+			thresholds.append(float(t))
+			fmeasures.append(fmeasuredict[t])
 	#sorting
 	keydict = dict(zip(fmeasures,thresholds))
 	fmeasures.sort(key=keydict.get)
@@ -503,9 +518,9 @@ def GetTaxa(classificationfilename,pos,highertaxon):
 	classificationfile.close()
 	return taxa
 	
-def PlotPrediction(thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,figoutput):
-	fig, ax = plt.subplots(figsize=(3,3)) 
-	if len(thresholdlist) >1:
+def PlotPrediction(datasetname,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,figoutput):
+	fig, ax = plt.subplots(figsize=(4,3)) 
+	if len(thresholdlist) >5:
 		fig, ax = plt.subplots(figsize=(6,3))
 	ax.set_xlabel("Cut-off")
 	ax.set_ylabel('F-measure')
@@ -520,13 +535,13 @@ def PlotPrediction(thresholdlist,fmeasurelist,optthresholds,bestFmeasures,featur
 		labels.append(features[i] + " cut-off for " + datasetnames[i] + ": "  + str(round(optthresholds[i],4)))
 		ax.text(round(optthreshold,4), 0.97, round(bestFmeasure,4), transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[i])
 		i=i+1
-	ax.set_title("Predicting similarity cut-offs for sequence identification")	
-	plt.legend(labels, loc="top left", bbox_transform=plt.gcf().transFigure)
+	ax.set_title(datasetname + ": predicting similarity cut-offs for sequence identification")	
+	plt.legend(labels, loc="lower left", bbox_transform=plt.gcf().transFigure,prop={'style': args.labelstyle})
 	plt.tight_layout()
 	plt.savefig(figoutput, dpi = 500)
 	plt.show()	
 	
-def PlotResults(optthresholds,bestFmeasures,features,datasetnames,localfigoutput):
+def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfigoutput):
 	#sort all according to increasing order of optthresholds
 	if len(optthresholds)==0:
 		return
@@ -549,12 +564,12 @@ def PlotResults(optthresholds,bestFmeasures,features,datasetnames,localfigoutput
 	ax.set_ylabel('Cut-off',color='b')
 	ax2.set_ylabel("F-measure",color="r")
 	if len(set(features))==1:
-		ax.set_title(features[0] + " cut-offs and F-measures predicted for different groups")
+		ax.set_title(prefix + ": " + features[0] + " cut-offs and F-measures predicted for different groups")
 	else:
-		ax.set_title("Cut-offs and F-measures predicted for different groups")
+		ax.set_title(prefix + ": cut-offs and F-measures predicted for different groups")
 	
 	ax.set_xticks(x)
-	ax.set_xticklabels(labels,rotation=90)
+	ax.set_xticklabels(labels,rotation=90, style=args.labelstyle)
 	ax.legend()
 	plt.tight_layout()
 	plt.savefig(localfigoutput, dpi = 500)
@@ -575,6 +590,7 @@ if __name__ == "__main__":
 	simmatrix={}
 	#load or compute simmatrix
 	if endthreshold >=threshold and endthreshold >0:
+		print(simfilename)
 		if os.path.exists(simfilename):
 			#question=input("Do you want to load the similarity matrix from the file " + simfilename + " (yes/no)?")
 			#if question=="yes":
@@ -617,7 +633,7 @@ if __name__ == "__main__":
 		prediction_datasets={}
 		if rank in predictiondict.keys():
 			prediction_datasets=predictiondict[rank]
-		datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)	
+		datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos,args.taxa)	
 		if step==0 or (endthreshold < threshold) or (endthreshold==0 and threshold==0):
 			#load existing prediction
 			for datasetname in prediction_datasets.keys():
@@ -680,10 +696,10 @@ if __name__ == "__main__":
 	#save prediction and cut-offs for classification and identification
 	if len(positionlist) >0:	
 		if len(predictiondict.keys())>0:
-			outputwithoutfmeasures=GetBase(outputname) + ".cutoffs"	
+			outputwithoutfmeasures=GetBase(outputname) + ".cutoffs.json"	
 			SavePrediction(predictiondict,outputname,outputwithoutfmeasures)
 			#SaveCutoffs(predictiondict,outputcutoffs)
-			print("Only cutoffs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", respectively.")
+			print("Only cutoffs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", respectively. If you wish to predict also for clades with less numbers of sequences and groups, please reset minSeqNo and minGroupNo.")
 			print("The prediction and cutoffs are saved in the files " + outputname + " and " + outputwithoutfmeasures + ".")
 	else:
 		#load existing prediction for plotting
@@ -708,20 +724,25 @@ if __name__ == "__main__":
 	else: 	
 		globalfigoutput=GetBase(outputname) + ".global.png"
 		barplotfigoutput=GetBase(outputname) + ".local.png"
-	if higherclassificationpos=="":	
+	if higherclassificationpos=="" or len(thresholdlist)==1:
 		if len(thresholdlist) >0:
-			#plot all predictions			
-			PlotPrediction(thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,globalfigoutput)	
+			#plot all predictions
+			if label=="":
+				label=prefix
+			PlotPrediction(label,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,globalfigoutput)	
 			print("The prediction plot is saved in the file " + globalfigoutput + ".")
 		else:
 			print("Please check the parameters.")
 	else:	
 		if len(optthresholds) >0:
 			#barplot the prediction results only
-			PlotResults(optthresholds,bestFmeasures,features,datasetnames,localfigoutput)
+			if label=="":
+				label=prefix
+			PlotResults(label,optthresholds,bestFmeasures,features,datasetnames,localfigoutput)
 			print("The prediction plot is saved in the file " + localfigoutput + ".")	
 		else:
 			print("Please check the parameters.")	
 	if os.path.exists(GetWorkingBase((os.path.basename(args.input))) + ".predict.log"):		
 		print("Please check the file " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log for the prediction.")		
+	
 	

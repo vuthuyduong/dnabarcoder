@@ -14,7 +14,7 @@ parser=argparse.ArgumentParser(prog='removeComplexes.py',
    )
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-t','--cutoff', type=float, default=1, help='The threshold for the classification.')
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
 parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
@@ -24,7 +24,7 @@ parser.add_argument('-sim','--simfilename', help='The similarity matrix of the s
 args=parser.parse_args()
 fastafilename= args.input
 threshold=args.cutoff
-mincoverage = args.mincoverage
+mincoverage = args.minalignmentlength
 classificationfilename=args.classification
 classificationpos=args.classificationpos
 outputpath=args.out

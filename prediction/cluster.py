@@ -15,17 +15,17 @@ parser=argparse.ArgumentParser(prog='cluster.py',
 
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-t','--cutoff', type=float, default=0.97, help='The threshold (cutoff) for the classification.')
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
 parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
-
+parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 
 args=parser.parse_args()
 fastafilename= args.input
 threshold=args.cutoff
-mincoverage = args.mincoverage
+mincoverage = args.minalignmentlength
 classificationfilename=args.classification
 classificationpos=args.classificationpos
 simfilename=args.simfilename
@@ -84,45 +84,88 @@ def GetSeqIndex(seqname,seqlist):
 #	simfile.close()		
 #	
 	
+#def LoadSim(simfilename):
+#	simmatrix = {} #we use dictionary to reduce the memory constraints 
+#	simfile = open(simfilename)
+#	for line in simfile:
+#		numbers=line.rstrip().split(" ")
+#		i=numbers[0]
+#		j=numbers[1]
+#		if i not in simmatrix.keys():
+#			simmatrix.setdefault(i, {})
+#		if j not in simmatrix[i].keys():
+#			simmatrix[i].setdefault(j, 0)
+#		if float(numbers[2]) > simmatrix[i][j]:
+#			simmatrix[i][j]=float(numbers[2])
+#	simfile.close()		
+#	return simmatrix
+	
 def LoadSim(simfilename):
 	simmatrix = {} #we use dictionary to reduce the memory constraints 
 	simfile = open(simfilename)
+	seqids=[]
 	for line in simfile:
 		numbers=line.rstrip().split(" ")
 		i=numbers[0]
 		j=numbers[1]
+		seqids.append(i)
+		seqids.append(j)
 		if i not in simmatrix.keys():
 			simmatrix.setdefault(i, {})
-		if j not in simmatrix[i].keys():
-			simmatrix[i].setdefault(j, 0)
-		if float(numbers[2]) > simmatrix[i][j]:
-			simmatrix[i][j]=float(numbers[2])
+		simmatrix[i][j]=float(numbers[2])
+	seqids=list(set(seqids))	
+	for seqid1 in seqids:
+		if not (seqid1 in simmatrix.keys()):
+			simmatrix.setdefault(seqid1, {})
+			simmatrix[seqid1][seqid1]=1	
+		if len(seqids) < args.maxSimMatrixSize: #load full matrix	
+			for seqid2 in seqids:
+				if not seqid2 in simmatrix[seqid1].keys():
+					#simmatrix[seqid1].setdefault(seqid2,0)
+					simmatrix[seqid1][seqid2]=0
 	simfile.close()		
 	return simmatrix
-
+	
 def SaveSim(simmatrix,simfilename):
 	simfile=open(simfilename,"w")
 	for i in simmatrix.keys():
 		for j in simmatrix[i].keys():
 			simfile.write(str(i) + " " + str(j) + " " + str(simmatrix[i][j]) + "\n")
-	simfile.close()
+	simfile.close()	
 	
 def ComputeSim(fastafilename,seqrecords,mincoverage):
-	#simmatrix = [[0 for x in range(len(seqrecords))] for y in range(len(seqrecords))] 
-	simmatrix={}
-	for seqid in seqrecords.keys():
-		simmatrix.setdefault(seqid,{})
-		simmatrix[seqid][seqid]=1
+	blastoutput = fastafilename + ".blast.out"		
+	blastdb=fastafilename + ".db"		
 	#blast
-	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out db"
+	print("Comparing the sequences of " + fastafilename + " using Blast...")
+	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out " + blastdb
+	print(makedbcommand)
 	os.system(makedbcommand)
-	blastcommand = "blastn -query " + fastafilename + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
-	if mincoverage >=300:
-		blastcommand = "blastn -query " + fastafilename + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	if mincoverage >=400:
+		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	print(blastcommand)
 	os.system(blastcommand)
-	
+	if not os.path.exists(blastoutput):
+		print("Cannot compare the sequences of " + fastafilename + " using Blast...")
+		logfile=open(GetWorkingBase((os.path.basename(args.input))) + ".predict.log","w")
+		logfile.write("Cannot compare the sequences of " + fastafilename + " using Blast...")
+		logfile.write("Make BLAST database command: " + makedbcommand + "\n")
+		logfile.write("No output for the BLAST command: " + blastcommand + "\n")
+		logfile.write("Please rerun prediction for " + os.path.basename(fastafilename) + ".")
+		logfile.close()
+		return {}
+	print("Reading Blast results of " + fastafilename + "...")
+	simmatrix={}
+	for seqid1 in seqrecords.keys():
+		simmatrix.setdefault(seqid1,{})
+		for seqid2 in seqrecords.keys():
+			if seqid1==seqid2:
+				simmatrix[seqid1][seqid2]=1
+			elif len(seqrecords.keys()) < args.maxSimMatrixSize: #load full matrix	
+				simmatrix[seqid1][seqid2]=0
 	#read blast output
-	blastoutputfile = open("out.txt")
+	blastoutputfile = open(blastoutput)
 	score=0
 	for line in blastoutputfile:
 		if line.rstrip()=="":
@@ -130,8 +173,6 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		words = line.split("\t")
 		i = words[0].rstrip()
 		j = words[1].rstrip()
-#		i = seqids.index(queryid)
-#		j = seqids.index(refid)
 		pos1 = int(words[6])
 		pos2 = int(words[7])
 		iden = float(words[2]) 
@@ -139,16 +180,23 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		coverage=abs(pos2-pos1)
 		score=sim
 		if coverage < mincoverage:
-			score=float(score * coverage)/mincoverage	
-		if j in simmatrix[i].keys():
+			score=float(score * coverage)/mincoverage
+		if len(seqrecords.keys()) < args.maxSimMatrixSize: #the full sim matrix has been loaded 
 			if simmatrix[i][j] < score:
 				simmatrix[i][j]=round(score,4)
 				simmatrix[j][i]=round(score,4)
-		else:
-			simmatrix[i][j]=round(score,4)
-			simmatrix[j][i]=round(score,4)
+		else:		
+			if j in simmatrix[i].keys():
+				if simmatrix[i][j] < score:
+					simmatrix[i][j]=round(score,4)
+					simmatrix[j][i]=round(score,4)
+			else:
+				simmatrix[i][j]=round(score,4)
+				simmatrix[j][i]=round(score,4)	
 		#simmatrix[j][i]=score
-	os.system("rm out.txt")
+	os.system("rm " + blastoutput)
+	os.system("rm " + blastdb + "*")
+	#os.system("rm " + blastdb + ".*")
 	return simmatrix
 
 #def LoadNeighbors(seqrecords,simmatrix,threshold):
@@ -165,22 +213,25 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 #	#os.system("rm out.txt")
 #	return neighborlist
 
-def LoadNeighbors(seqids,simmatrix,threshold):
+def LoadNeighbors(seqids,subsimmatrix,threshold):
 	neighbordict={}
 	for seqid in seqids:
 		neighbordict.setdefault(seqid, [])
-	for i in seqids:
-		for j in seqids:
-			if not j in simmatrix[i].keys():
-				continue
-			if simmatrix[i][j] >= threshold:
-				if (j not in neighbordict[i]):
+	if len(subsimmatrix.keys()) < args.maxSimMatrixSize:	 #the full matrix has been loaded
+		for i in seqids:
+			for j in seqids:
+				if subsimmatrix[i][j] >= threshold:
 					neighbordict[i].append(j)
-				if (i not in neighbordict[j]):
 					neighbordict[j].append(i)
+	else:
+		for i in seqids:
+			for j in seqids:
+				if j in subsimmatrix[i].keys():
+					if subsimmatrix[i][j] >= threshold:
+						neighbordict[i].append(j)
+						neighbordict[j].append(i)					
 	#os.system("rm out.txt")
 	return neighbordict
-
 
 def LoadPoints(neigbordict,seqrecords):
 	points={}
@@ -203,8 +254,8 @@ def Cluster(points,clusters):
 			cluster = ClusterDef(len(clusters),[])
 			cluster.pointids.append(pointid)
 			ExpandCluster(points[pointid], cluster,points)
-			clusters.append(cluster)
-		
+			clusters.append(cluster)			
+			
 def ComputeFmeasure(classes,clusters):
 	#compute F-measure
 	f=0
@@ -305,6 +356,7 @@ if __name__ == "__main__":
 		fmeasure=ComputeFmeasure(classes,clusters)
 		print("Threshold\tFmeasure")
 		print(str(threshold) + "\t" + str(fmeasure))
+	print("Saving clusters...")	
 	SaveClusters(clusters,seqrecords,classification,outputname)
 	print("The clustering result is saved in file " + outputname + ".")
 
