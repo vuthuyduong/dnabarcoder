@@ -16,11 +16,13 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 
 ## Analysis
 
-The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. 
+The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. All outputs will be saved in an output folder, dnabarcoder is given as default.
 
 - To get an overview of the moldITS.fasta dataset:
 
 ../../dnabarcoder.py overview -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification
+
+The output is given in the file dnabarcoder/filamentousfungalITS.overview
 
 - To see the distribution of the barcode lengths:
 
@@ -40,26 +42,30 @@ If we want to visualize the distribution of the sequences with Krona, then we ca
 
 - To get sequence variation with different taxonomic groups:
 
-../../dnabarcoder.py variation -i moldITS.fasta -c moldITS.current.classification -p 3,4,5,6,7  -mc 400
+../../dnabarcoder.py variation -i moldITS.fasta -c moldITS.current.classification -p 3,4,5,6,7  -ml 400
 
-Here the minimum BLAST alignment length mc is set to 400 as 95% of the barcodes have a length of more than 400bp.
+Here the minimum BLAST alignment length ml is set to 400 as 95% of the barcodes have a length of more than 400bp. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50.
 
 - To compute a similarity matrix for the barcodes:
 
-../../dnabarcoder.py sim -i filamentousfungalITS.fasta -mc 400
+../../dnabarcoder.py sim -i filamentousfungalITS.fasta -ml 400
+
+The output is given in the file dnabarcoder/filamentousfungalITS.sim
 
 ## Visualization
 
 The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
 Together with sequence distribution and variation, visu-alization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
 
-../../dnabarcoder.py visualize -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -p 3 -mc 400
+../../dnabarcoder.py visualize -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -p 3 -ml 400 -sim dnabarcoder/filamentousfungalITS.sim
+
+If the simmatrix is not given, dnabarcoder will compute it and save it in the file dnabarcoder/filamentousfungalITS.sim.
 
 Here the sequences are colored by on the taxa at the position 3 (the class level) in the classification file. 
 
 We can also visualize the sequences using [DIVE](https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
 
-../../dnabarcoder.py visualize -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -p 3 -mc 400 -method dive
+../../dnabarcoder.py visualize -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -p 3 -ml 400 -method dive
 
 ## Prediction
 
@@ -67,29 +73,48 @@ The third component is to cluster and predict a similarity cut-off for sequence 
 
 - To predict a global similarity cut-off at the genus level of the moldITS dataset for example, use the followig command:
 
-../../dnabarcoder.py predict -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -mc 400
+../../dnabarcoder.py predict -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -ml 400
+
+The prediction is saved in the file dnabarcoder/filamentousfungalITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/filamentousfungalITS.cutoffs.json and a tab delimited format file dnabarcoder/filamentousfungalITS.cutoffs.json.txt
 
 - To predict local similarity cut-offs at the genus level of the filamentousfungalITS dataset for example, use the followig command:
 
-../../dnabarcoder.py predict -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5,4,3,2 -mc 400
+../../dnabarcoder.py predict -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5,4,3,2 -ml 400
 
-The prediction will be saved in the json file dnabarcoder/filamentousfungalITS.predicted and the cut-offs will be saved in the json file dnabarcoder/filamentousfungalITS.cutoffs
+We can also predict the local cutoffs at a given rank individually:
+
+../../dnabarcoder.py predict -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5 -ml 400
+
+or in a given taxa:
+
+../../dnabarcoder.py predict -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -st 0.7 -et 1 -s 0.001 -p 6 -hp 5 -ml 400 -taxa Ascomycota
+
 
 - To predict global and local similarity cut-offs for the moldITS dataset at the species level, we first need to remove sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
 
-../../dnabarcoder.py remove -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -p 7 -sim dnabarcoder/moldITS.sim -mc 400 -t 1
+../../dnabarcoder.py remove -i filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -p 7 -sim dnabarcoder/moldITS.sim -ml 400 -t 1
 
-Here t is the threshold or cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/filamentousfungalITS.diff.fasta dna dnabarcoder/filamentousfungalITS.similar
+Here t is the threshold or cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/filamentousfungalITS.species.diff.fasta dna dnabarcoder/filamentousfungalITS.similar
 
 -To predict global similarity cut-off for species identification of the moldITS dataset:
 
-../../dnabarcoder.py -i filamentousfungalITS.diff.fasta -c filamentousfungalITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -mc 400 -sim dnabarcoder/filamentousfungalITS.sim -prefix filamentousfungalITS
+../../dnabarcoder.py predict -i filamentousfungalITS.diff.fasta -c filamentousfungalITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -ml 400 -sim dnabarcoder/filamentousfungalITS.sim -prefix filamentousfungalITS
 
--To predict local similarity cut-offs for species identification of the moldITS dataset:
+The prefix is to save the prediction and the predicted cutoffs in files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/filamentousfungalITS.cutoffs.json and dnabarcoder/filamentousfungalITS.cutoffs.json.txt.
 
-../../dnabarcoder.py -i filamentousfungalITS.diff.fasta -c filamentousfungalITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -hp 6,5,4,3,2 -mc 400 -sim dnabarcoder/filamentousfungalITS.sim -prefix moldITS 
+-To predict local similarity cut-offs for species identification of the filamentousfungalITS dataset:
 
-The prediction will be saved in the json file dnabarcoder/filamentousfungalITS.predicted and the cut-offs will be saved in the json file dnabarcoder/filamentousfungalITS.cutoffs
+../../dnabarcoder.py predict -i filamentousfungalITS.diff.fasta -c filamentousfungalITS.current.classification -st 0.9 -et 1 -s 0.001 -p 7 -hp 6,5,4,3,2 -ml 400 -sim dnabarcoder/filamentousfungalITS.sim -prefix moldITS 
+
+The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/filamentousfungalITS.cutoffs.json and dnabarcoder/filamentousfungalITS.cutoffs.json.txt.
+
+
+To compute the best cutoffs:
+
+../../dnabarcoder.py best -i dnabarcoder/filamentousfungalITS.cutoffs.json -c filamentousfungalITS.current.classification
+
+The best similarity cut-offs are saved in json and text format files dnabarcoder/filamentousfungalITS.cutoffs.best.json and dnabarcoder/filamentousfungalITS.cutoffs.best.txt.
+
 
 ## Classification/Assigment
 
@@ -97,7 +122,7 @@ The last component of dnabarcode is to classify a dataset against a reference/ba
 
 - To search for the best match of the sequences in the UNITErelease.fasta file, use the following command:
 
-../../dnabarcoder.py classify -i UNITErelease.fasta -r filamentousfungalITS.fasta -mc 400
+../../dnabarcoder.py classify -i UNITErelease.fasta -r filamentousfungalITS.fasta -ml 400
 
 The result is saved in the file dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch
 
@@ -105,19 +130,19 @@ To classify the UNITE sequences based on best matches, using the following comma
 
  - Globally, based on only one similarity cut-off:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 -mc 400
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
 
 Here 0.994 is the global similarity cut-off for sequence identification at the species level. The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.0994.classified. 
 
 - Locally, based on the similarity cut-off predicted for the best match:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs -mc 400
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs 
 
 The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.classified. 
 
 Only classify at the species level:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs -mc 400 -rank species
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.bestmatch -f UNITErelease.fasta -r filamentousfungalITS.fasta -c filamentousfungalITS.current.classification -cutoffs dnabarcoder/filamentousfungalITS.cutoffs  -rank species
 
 The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.classified. 
 
