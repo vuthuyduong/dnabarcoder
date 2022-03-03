@@ -29,8 +29,9 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
 parser.add_argument('-p','--classificationpos', help='the classification positions for computing sequence variation.')
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The number of labels to be displayed.')
+parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
 parser.add_argument('-method','--visualizationmethod', default="plot", help='The visualization method. There are two methods to be selected: krona and plot.')
-
+parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 
 args=parser.parse_args()
 referencename= args.input
@@ -39,15 +40,20 @@ jsonvariationfilename =args.out
 labelno=args.numberofdisplayedlabels
 method=args.visualizationmethod
 outputpath=args.out
+prefix=args.prefix
+
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
 def GetBase(filename):
-	return filename[:-(len(filename)-filename.rindex("."))]
+	if not ("." in filename):
+		return filename
+	return filename[:-(len(filename)-filename.rindex("."))] 
 
 def GetWorkingBase(filename):
 	basename=os.path.basename(filename)
-	basename=basename[:-(len(basename)-basename.rindex("."))] 
+	if "." in basename:
+		basename=basename[:-(len(basename)-basename.rindex("."))] 
 	path=outputpath + "/" + basename
 	return path
 
@@ -94,11 +100,18 @@ def SaveDistributionInTabFormat(output,classification):
 	values = classification.values() 
 	total= sum(values)
 	sorted_classification = sorted(classification.items(), key=lambda x: x[1], reverse=True)
+	i=0
+	count=0
 	for item in sorted_classification:
 		classname=item[0]
 		seqno=item[1]
 		percentage=round(seqno*100/total,2)
 		outputfile.write(classname + "\t" + str(seqno) + "\t" + str(percentage) + "\n")
+		if i<args.numberofdisplayedlabels:
+			count=count+seqno
+		i=i+1
+	percentage=round(count*100/total,2)
+	print("The first " + str(args.numberofdisplayedlabels) + " groups of " + output + " consist of " + str(count) + "/" + str(total) + " (" +  str(percentage) + "%) sequences")	
 	outputfile.close()
 	
 def PlotPieChart(figoutput,title,classification,displayed):
@@ -138,11 +151,11 @@ def PlotPieChart(figoutput,title,classification,displayed):
 	#pie chart
 	fig, ax = plt.subplots(figsize=(3,3))
 	#ax.pie(seqnos, startangle = 90, wedgeprops = { 'linewidth': 2, "edgecolor" :"k" }) #autopct='%.2f'
-	#ax.set_title
+	ax.set_title
 	ax.pie(seqnos,colors=colors,startangle = 90) #autopct='%.2f'
 	#plt.title(title , horizontalalignment='center')
 	plt.gca().axis("equal")
-	plt.legend(displayedlabels,  loc="lower right", bbox_transform=plt.gcf().transFigure)#bbox_to_anchor=(1,1)
+	plt.legend(displayedlabels,  loc="lower right", bbox_transform=plt.gcf().transFigure,prop={'style': args.labelstyle})#bbox_to_anchor=(1,1)
 	plt.rcParams['font.size'] = 6.0
 	plt.tight_layout()
 	#plt.subplots_adjust(left=0.1, bottom=0.1, right=0.5)
@@ -155,6 +168,7 @@ def PlotNestedPieCharts(figoutput,title,classificationlist,labels):
 	# create a figure with two subplots
 	#pie chart
 	fig, ax = plt.subplots(figsize=(3,3))
+	ax.set_title(title)
 	size = 0.1
 	r=1
 	i=0
@@ -204,7 +218,7 @@ def PlotNestedPieCharts(figoutput,title,classificationlist,labels):
 		i=i+1	
 	#plt.title(title, horizontalalignment='center')
 	plt.gca().axis("equal")
-	plt.legend(displayedlabels,  loc="lower right", bbox_transform=plt.gcf().transFigure)#bbox_to_anchor=(1,1)
+	plt.legend(displayedlabels,  loc="lower right", bbox_transform=plt.gcf().transFigure,prop={'style': args.labelstyle})#bbox_to_anchor=(1,1)
 	plt.rcParams['font.size'] = 6.0
 	plt.tight_layout()
 	plt.savefig(figoutput, dpi = 500)
@@ -227,6 +241,9 @@ path=sys.argv[0]
 path=path[:-(len(path)-path.rindex("/")-1)]
 displayed=True
 poslist=[]
+
+if prefix=="":
+	prefix=GetBase(os.path.basename(referencename))
 
 if args.classificationpos==None or args.classificationpos=="":
 	classificationfile=open(classificationfilename)
@@ -253,27 +270,27 @@ if method!="krona":
 	classificationlist=[]
 	labels=[]
 	for classificationposition in poslist:
-		jsonfilename = GetWorkingBase(referencename) + "." + str(classificationposition) + ".distribution"
+		jsonfilename = GetWorkingBase(prefix) + "." + str(classificationposition) + ".distribution"
 		figoutput=GetBase(jsonfilename) + ".distribution.png" 
 		#Load classes, classification:
 		classification,feature= LoadClassification(referenceIDs,referencerecords,classificationfilename, [classificationposition])
 		title=""
 		if feature=="":
-			title="The distribution of the the sequences of the groups at position " + str(classificationposition)
+			title= prefix + ": the distribution of the the sequences of the groups at position " + str(classificationposition)
 		elif feature.lower()== "species":
-			title="The distribution of the sequences at the species level"		
+			title=prefix + ": the distribution of the sequences at the species level"		
 		elif feature.lower()== "genus":
-			title="The distribution of the sequences at the genus level"	
+			title=prefix + ": the distribution of the sequences at the genus level"	
 		elif feature.lower()== "family":
-			title="The distribution of the sequences at the family level"	
+			title=prefix + ": the distribution of the sequences at the family level"	
 		elif feature.lower()== "order":
-			title="The distribution of the sequences at the order level"	
+			title=prefix + ": the distribution of the sequences at the order level"	
 		elif feature.lower()== "class":
-			title="The distribution of the sequences at the class level"	
+			title=prefix + ": the distribution of the sequences at the class level"	
 		elif feature.lower()== "phylum":
-			title="The distribution of the sequences at the phylum level"	
+			title=prefix + ": the distribution of the sequences at the phylum level"	
 		elif feature.lower()== "kingdom":
-			title="The distribution of the sequences at the kingdom level"	
+			title=prefix + ": the distribution of the sequences at the kingdom level"	
 		#save classification	
 		SaveDistributionInTabFormat(jsonfilename + ".txt",classification)	
 		newclassification=classification.copy()
@@ -284,13 +301,13 @@ if method!="krona":
 		print("The results are saved in the json file  " + jsonfilename + " and tab file " + jsonfilename + ".txt. The figure is saved in " + figoutput + "."  )	
 	if len(poslist)>1:
 		jsonfilename=""
-		jsonfilename = GetWorkingBase(referencename) + ".distribution"
+		jsonfilename = GetWorkingBase(prefix) + ".distribution"
 		figoutput=jsonfilename + ".png" 
 		print("The figure of the variations of all groups are saved in file " + figoutput + ".")
-		title="The distribution of the sequences"
+		title=prefix + ": the distribution of the sequences"
 		PlotNestedPieCharts(figoutput,title,classificationlist,labels)
 else:
-	kronareport = GetWorkingBase(referencename) + ".krona.report"
+	kronareport = GetWorkingBase(prefix) + ".krona.report"
 	kronahtml=GetBase(kronareport) + ".html"
 	classification,feature= LoadClassification(referenceIDs,referencerecords,classificationfilename, poslist)
 	KronaPieCharts(classification,kronareport,kronahtml)

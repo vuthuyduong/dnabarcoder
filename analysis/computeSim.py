@@ -11,8 +11,6 @@ if sys.version_info[0] >= 3:
 import os, argparse
 import multiprocessing
 from Bio import SeqIO
-import numpy as np
-from scipy.spatial import distance
 
 nproc=multiprocessing.cpu_count()
 
@@ -24,12 +22,12 @@ parser=argparse.ArgumentParser(prog='computeSim.py',
 
 parser.add_argument('-i','--input', required=True, help='the fasta file')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.') 
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
-parser.add_argument('-ms','--minsim', type=float, default=0, help='The minimum similarity that will be saved for the output.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
+parser.add_argument('-ms','--minsim', type=float, default=0, help='The minimum similarity score that will be saved for the output.')
 
 args=parser.parse_args()
 fastafilename= args.input
-mincoverage=args.mincoverage
+mincoverage=args.minalignmentlength
 minsim=args.minsim
 outputpath=args.out
 
