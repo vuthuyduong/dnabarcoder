@@ -206,6 +206,9 @@ def LoadPrediction(predictionfilename):
 	p_cutoff=-1
 	p_confidence=-1
 	p_numberofrefsequences=-1
+	p_branchlength=-1
+	p_maxbranchlength=-1
+	p_averagebranchlength=-1
 	predictionfile=open(predictionfilename)
 	headers=next(predictionfile)
 	i=0
@@ -240,6 +243,12 @@ def LoadPrediction(predictionfilename):
 			p_t=i	
 		if "number of reference sequences" in header.lower():
 			p_numberofrefsequences=i
+		if "branch length" in header.lower():
+			p_branchlength=i
+		if "max branch length" in header.lower():
+			p_maxbranchlength=i	
+		if "average branch length" in header.lower():
+			p_averagebranchlength=i	
 		i=i+1	
 	for line in predictionfile:
 		texts=line.rstrip().split("\t")
@@ -304,6 +313,18 @@ def LoadPrediction(predictionfilename):
 		if p_numberofrefsequences>0 and p_numberofrefsequences<len(texts):
 			numberofrefsequences=texts[p_numberofrefsequences]
 		predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+		branchlength=0
+		if p_branchlength>0 and p_branchlength<len(texts):
+			branchlength=texts[p_branchlength]
+		predictiondict[seqid]["branchlength"]=branchlength
+		maxbranchlength=0
+		if p_maxbranchlength>0 and p_maxbranchlength<len(texts):
+			maxbranchlength=texts[p_maxbranchlength]
+		predictiondict[seqid]["maxbranchlength"]=maxbranchlength
+		averagebranchlength=0
+		if p_averagebranchlength>0 and p_averagebranchlength<len(texts):
+			averagebranchlength=texts[p_averagebranchlength]
+		predictiondict[seqid]["averagebranchlength"]=averagebranchlength
 		
 	return predictiondict
 
@@ -339,15 +360,21 @@ def verifyBasedOnBranchLengths(seqid,treefilename):
 	names = lookup_by_names(tree)
 	max_length=0
 	length=0
+	average=0
+	n=0
 	for name in names:
 		clade=names[name]
 		if name==seqid:
 			length=clade.branch_length
 		else:
+			average=average + clade.branch_length
+			n=n+1
 			if clade.branch_length > max_length:
 				max_length=clade.branch_length
 	verified=(length<=max_length) and (len(names) >=3)
-	return verified
+	if n>0:
+		average=round(average/n,2)
+	return verified,length,max_length,average
 
 def PrintTree(treefilename,redo):
 	svgfilename=GetWorkingBase(fastafilename) + ".tree.svg"
@@ -421,6 +448,9 @@ def Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
 		rank=predictiondict[seqid]["rank"]
 		treefilename=predictiondict[seqid]["treefilename"]
 		numberofrefsequences=predictiondict[seqid]["numberofrefsequences"]
+		branchlength=predictiondict[seqid]["branchlength"]
+		maxbranchlength=predictiondict[seqid]["maxbranchlength"]
+		averagebranchlength=predictiondict[seqid]["averagebranchlength"]
 		#if sys.version_info[0] < 3:
 			#predictedname=unicode(predictedname,'latin1')
 		verifiedlabel=""
@@ -435,7 +465,7 @@ def Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
 						treefilename= CreateTree(treefastafilename,redo)
 				verified=False		
 				if 	os.path.exists(treefilename):	
-					verified=verifyBasedOnBranchLengths(seqid,treefilename)
+					verified,branchlength,maxbranchlength,averagebrachlength=verifyBasedOnBranchLengths(seqid,treefilename)
 				else:
 					notree_count=notree_count+1
 				if verified==True:
@@ -444,14 +474,17 @@ def Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
 		predictiondict[seqid]["verifiedlabel"]=verifiedlabel
 		predictiondict[seqid]["treefilename"]=treefilename		
 		predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+		predictiondict[seqid]["branchlength"]=branchlength
+		predictiondict[seqid]["maxbranchlength"]=maxbranchlength
+		predictiondict[seqid]["averagebranchlength"]=averagebranchlength
 	return count,notree_count,total
 
 def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilename):
 	classificationreportfile=open(classificationreportfilename,"w")
 	outputfile=open(output,"w")
 	notverifiedoutputfile=open(notverifiedoutput,"w")
-	notverifiedoutputfile.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\n")
-	outputfile.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\n")
+	notverifiedoutputfile.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	outputfile.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
 	classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
 	for seqid in predictiondict.keys():
 		prediction=predictiondict[seqid]
@@ -469,14 +502,17 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		coverage=prediction["coverage"]
 		verifiedlabel=prediction["verifiedlabel"]
 		numberofrefsequences=prediction["numberofrefsequences"]
+		branchlength=prediction["branchlength"]
+		maxbranchlength=prediction["maxbranchlength"]
+		averagebranchlength=prediction["averagebranchlength"]
 		if verifiedlabel!="" and verifiedlabel!="unidentified":			
-			outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\n")			
+			outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
 			cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 			if refid==seqid:
 				refid=""
 			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
 		elif verifyingrank!="" and verifyingrank==rank:
-			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\n")			
+			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
 	classificationreportfile.close()
 	outputfile.close()	
 	notverifiedoutputfile.close()	

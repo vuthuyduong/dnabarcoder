@@ -29,7 +29,7 @@ parser.add_argument('-r','--reference', default="", help='the reference fasta fi
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-mp','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum coverage required for the identitiy of the BLAST comparison.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-m','--maxseqno', type=int, default=0, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-cutoff','--cutoff', type=float, default=0,help='The cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 parser.add_argument('-confidence','--confidence', type=float,default=0,help='The confidence of the cutoff to assign the sequences to predicted taxa')
@@ -53,7 +53,7 @@ predictionfilename=args.input
 fastafilename= args.fasta
 referencefastafilename= args.reference
 minprobaforBlast=args.minproba
-mincoverage = args.mincoverage
+mincoverage = args.minalignmentlength
 cutoff=args.cutoff
 classificationfilename=args.classification
 classificationrank=args.classificationrank
@@ -325,19 +325,82 @@ def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
 	os.system("rm " + queryname)
 	return bestrefid,bestlocalscore,bestlocalsim,bestlocalcoverage
 
+def GetLevel(rank):
+	level=-1
+	if rank=="species":	
+		level=6
+	elif rank=="genus":	
+		level=5
+	elif rank=="family":	
+		level=4
+	elif rank=="order":	
+		level=3
+	elif rank=="class":	
+		level=2
+	elif rank=="phylum":
+		level=1
+	elif rank=="kingdom":
+		level=0	
+	return level
+
+
+def GetHigherTaxa(rank,classification):
+	highertaxa=[]
+	taxa=classification.split(";")
+	species=""
+	genus=""
+	family=""
+	order=""
+	bioclass=""
+	phylum=""
+	kingdom=""
+	for taxon in taxa:
+		if taxon.startswith("k__"):
+			kingdom=taxon.replace("k__","")
+		if taxon.startswith("p__"):
+			phylum=taxon.replace("p__","")	
+		if taxon.startswith("c__"):
+			bioclass=taxon.replace("c__","")	
+		if taxon.startswith("o__"):
+			order=taxon.replace("o__","")	
+		if taxon.startswith("f__"):
+			family=taxon.replace("f__","")	
+		if taxon.startswith("g__"):
+			genus=taxon.replace("g__","")	
+		if taxon.startswith("s__"):
+			species=taxon.replace("s__","")	
+	level=GetLevel(rank)	
+	if level >=6 and species!="" and species!="unidentified":
+		highertaxa.append(species)
+	if level >=5 and genus!="" and genus!="unidentified":
+		highertaxa.append(genus)
+	if level >=4 and family!="" and family!="unidentified":
+		highertaxa.append(family)	
+	if level >=3 and order!="" and order!="unidentified":
+		highertaxa.append(order)	
+	if level >=2 and bioclass!="" and bioclass!="unidentified":
+		highertaxa.append(bioclass)	
+	if level >=1 and phylum!="" and phylum!="unidentified":
+		highertaxa.append(phylum)
+	if level >=0 and kingdom!="" and kingdom!="unidentified":
+		highertaxa.append(kingdom)
+	return highertaxa
+
 def GetCutoffAndConfidence(rank,classification,cutoffs):
 	if not rank in cutoffs.keys():
 		return [0,0]
-	cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
-	taxa=cleanclassification.split(";")
-	taxa.append("All") 
+	#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
+	#taxa=cleanclassification.split(";")
+	#taxa.append("All") 
+	highertaxa=GetHigherTaxa(rank,classification)
+	highertaxa.append("All") 
 	localcutoff=0
 	seqno=0
 	groupno=0
 	datasets=cutoffs[rank]
 	maxconfidence=0
 	bestcutoff=0
-	for highertaxonname in taxa:
+	for highertaxonname in highertaxa:
 		if not highertaxonname in datasets.keys():
 			continue
 		if "cut-off" in datasets[highertaxonname].keys():
@@ -355,6 +418,7 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 			if maxconfidence < confidence:
 				maxconfidence =confidence
 				bestcutoff=localcutoff
+				break
 	return [bestcutoff,maxconfidence]
 
 def GetCutoffs(classification,cutoffs):
@@ -391,24 +455,6 @@ def GetCutoffs(classification,cutoffs):
 	taxacutoffs["phylum"]=GetCutoffAndConfidence("phylum",classification,cutoffs)
 	taxacutoffs["kingdom"]=GetCutoffAndConfidence("kingdom",classification,cutoffs)
 	return taxacutoffs,kingdom,phylum,bioclass,order,family,genus,species
-
-def GetLevel(rank):
-	level=-1
-	if rank=="species":	
-		level=6
-	elif rank=="genus":	
-		level=5
-	elif rank=="family":	
-		level=4
-	elif rank=="order":	
-		level=3
-	elif rank=="class":	
-		level=2
-	elif rank=="phylum":
-		level=1
-	elif rank=="kingdom":
-		level=0	
-	return level
 
 def GetAssignment(refid,classificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank):
 	confidence=globalconfidence

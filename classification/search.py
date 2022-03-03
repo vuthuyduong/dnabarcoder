@@ -19,21 +19,21 @@ nproc=multiprocessing.cpu_count()
 #from keras.utils import np_utils
 
 parser=argparse.ArgumentParser(prog='search.py',  
-							   usage="%(prog)s [options] -i fastafile -r referencefastafile -mc mincoverage ",
+							   usage="%(prog)s [options] -i fastafile -r referencefastafile -ml minalignmentlength ",
 							   description='''Script that classifies the sequences of the fasta files using BLAST with a cut-off value or the cut-off values given in the cutoffs file. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the fasta file to be classified.')
 parser.add_argument('-r','--reference', required=True, help='the reference fasta file.')
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 
 args=parser.parse_args()
 testdataset= args.input
 traindataset = args.reference
-mincoverage = args.mincoverage
+mincoverage = args.minalignmentlength
 
 prefix=args.prefix
 outputpath=args.out
