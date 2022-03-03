@@ -9,14 +9,10 @@ if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
 from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import cohen_kappa_score
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
-import json
-from Bio import SeqIO
-import random
-import multiprocessing
+
 parser=argparse.ArgumentParser(prog='evaluate.py',  
 							   usage="%(prog)s [options] -i predictionfile -c classification",
 							   description='''Script that visualizes using Krona and computes metrices for the classification results.''',
