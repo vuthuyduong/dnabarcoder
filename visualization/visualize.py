@@ -27,7 +27,7 @@ parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
 parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification positions for the prediction.')
 parser.add_argument('-sim','--simfilename', help='The similarity file if exists, othter it will be computed.')
-parser.add_argument('-mc','--mincoverage', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-coord','--coordinates', help='A file containing coordinates of the sequences, computed by LargeVis. If these coordinates will be computed if this file is not given.')
 parser.add_argument('-dim','--dimension', type=int, default=3,help='The dimension 2D or 3D for visualization.')
 parser.add_argument('-kneigh','--kneigbors', type=int, default=150,help='The k-neighbors number for visualization.')
@@ -36,6 +36,8 @@ parser.add_argument('-method','--visualizationmethod', default="", help='The vis
 #parser.add_argument('-lim','--lim', type=int, default=50, help='The lim for visualization.')
 parser.add_argument('-size','--size', type=float, default=1, help='The size of the dot.')
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The size of the dot.')
+parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
+parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -43,7 +45,7 @@ simfilename=args.simfilename
 coordfilename=args.coordinates
 classificationfilename=args.classification
 classificationpos=args.classificationpos
-mincoverage=args.mincoverage
+mincoverage=args.minalignmentlength
 minsim=args.minsim
 dim=args.dimension
 kneigh=args.kneigbors
@@ -51,17 +53,26 @@ method=args.visualizationmethod
 size=args.size
 numberofdisplayedlabels=args.numberofdisplayedlabels
 outputpath=args.out
+prefix=args.prefix
+label=args.label
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)	
 
 
 def GetBase(filename):
+	if not ("." in filename):
+		return filename
 	return filename[:-(len(filename)-filename.rindex("."))] 
 
-def GetWorkingBase(filename):
-	basename=os.path.basename(filename)
-	basename=basename[:-(len(basename)-basename.rindex("."))] 
+#def GetWorkingBase(filename):
+#	basename=os.path.basename(filename)
+#	if "." in basename:
+#		basename=basename[:-(len(basename)-basename.rindex("."))] 
+#	path=outputpath + "/" + basename
+#	return path
+
+def GetWorkingBase(basename):
 	path=outputpath + "/" + basename
 	return path
 
@@ -188,17 +199,22 @@ def LoadFullClassification(seqids,classificationfilename):
 
 def LoadClassification(seqids,classificationfilename,classificationpos):
 	labels=[""]*len(seqids)
+	rank=""
 	if classificationfilename!=None:
 		classificationfile=open(classificationfilename)
+		i=0
 		for line in classificationfile:
 			seqid = line.split("\t")[0].replace(">","")
+			if i==0:
+				rank=line.replace("\n","").split("\t")[classificationpos]
 			if seqid in seqids:
 				labels[seqids.index(seqid)]=line.replace("\n","").split("\t")[classificationpos]
+			i=i+1	
 		classificationfile.close()				
 	else:
 		for i in range(0,len(seqids)):
 			labels[i]=str(i)
-	return labels
+	return labels, rank
 
 def LoadCoordinates(coorfilename):
 	coordfile=open(coordfilename)
@@ -251,8 +267,8 @@ def VisualizeUsingDiVE(base,seqids,classificationfilename,coorfilename):
 	print("The DiVE file is created as " + jsonfilename + ".")
 	os.system("firefox " + base + "DiVE/index.html");
 	
-def Plot(seqids,coordfilename,classificationfilename,classificationpos,size,output):
-	labels = LoadClassification(seqids,classificationfilename,classificationpos)
+def Plot(prefix,seqids,coordfilename,classificationfilename,classificationpos,size,output):
+	labels,rank = LoadClassification(seqids,classificationfilename,classificationpos)
 	seqNo,dim,coordinates=LoadCoordinates(coordfilename)
 	all_data = {}
 	cmap = plt.get_cmap("tab20c")
@@ -284,14 +300,18 @@ def Plot(seqids,coordfilename,classificationfilename,classificationpos,size,outp
 		colors1=cmap(numpy.arange(len(all_data)-n1)) 
 		colors=numpy.concatenate((colors,colors1), axis=0)
 	 #Set1, primse 
-	fig, ax = plt.subplots(figsize=(6,3)) 
+	fig, ax = plt.subplots(figsize=(4,3)) 
+	if prefix=="":
+		ax.set_title("Sequence distribution \n at the " + rank + " level.",loc='left')
+	else:
+		ax.set_title(prefix + ": sequence distribution \n at the " + rank + " level.",loc='left')
 	labels=[]
 	if dim==2:
 		# Hide grid lines
-		ax.grid(False)
+		#ax.grid(False)
 		# Hide axes ticks
-		ax.set_xticks([])
-		ax.set_yticks([])
+		#ax.set_xticks([])
+		#ax.set_yticks([])
 		for color, item in zip(colors, sorted_data):
 			x = [t[0] for t in item[1][1]]
 			y = [t[1] for t in item[1][1]]
@@ -305,12 +325,13 @@ def Plot(seqids,coordfilename,classificationfilename,classificationpos,size,outp
 			labels.append(label)	
 	elif dim==3:
 		ax = plt.axes(projection='3d')
+		ax.set_title(prefix + ": visualization of the sequences \n at the " + rank + " level.", loc='left')
 		# Hide grid lines
-		ax.grid(False)
+		#ax.grid(False)
 		# Hide axes ticks
-		ax.set_xticks([])
-		ax.set_yticks([])
-		ax.set_zticks([])
+		#ax.set_xticks([])
+		#ax.set_yticks([])
+		#ax.set_zticks([])
 		for color, item in zip(colors, sorted_data):
 			x = [t[0] for t in item[1][1]]
 			y = [t[1] for t in item[1][1]]
@@ -324,8 +345,9 @@ def Plot(seqids,coordfilename,classificationfilename,classificationpos,size,outp
 			ax.plot3D(x, y, z, '.', color = color, markersize = size)
 			labels.append(label)	
 			#ax.scatter3D(x, y, z, '.', color = color)
-			ax.axis('off')
+			#ax.axis('off')
 	leg=fig.legend(labels[0:numberofdisplayedlabels],loc='best')
+	#leg=fig.legend(labels[0:numberofdisplayedlabels],loc='lower left')
 	i=0
 	for text in leg.get_texts():
 		color= colors[i]
@@ -334,13 +356,15 @@ def Plot(seqids,coordfilename,classificationfilename,classificationpos,size,outp
 			color="black"
 		plt.setp(text, color = color)
 		i=i+1
-#	plt.xlim(-lim, lim)
-#	plt.ylim(-lim, lim)
+	#plt.xlim(-lim, lim)
+    #plt.ylim(-lim, lim)
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(output, dpi = 500)
 	plt.show()		
 if __name__ == "__main__":
 	#load sequences
+	if prefix=="":
+		prefix=GetBase(os.path.basename(fastafilename))
 	base = sys.argv[0][0: sys.argv[0].rindex("/")+1]
 	seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
 	seqids=[]
@@ -348,10 +372,10 @@ if __name__ == "__main__":
 		seqids.append(rec.id)
 	if coordfilename==None:
 		if simfilename==None or simfilename=="":			
-			simfilename=GetWorkingBase(fastafilename)  + ".sim"
+			simfilename=GetWorkingBase(prefix)  + ".sim"
 			simfilename_minsim=""
 			if minsim >0:
-				simfilename_minsim=GetWorkingBase(fastafilename)  + "." + str(int(round(minsim*100,0))) + ".sim"
+				simfilename_minsim=GetWorkingBase(prefix)  + "." + str(int(round(minsim*100,0))) + ".sim"
 			else:
 				simfilename_minsim=simfilename
 		else:
@@ -389,8 +413,10 @@ if __name__ == "__main__":
 	if method.lower()=="dive":
 		VisualizeUsingDiVE(base,seqids,classificationfilename,coordfilename)		
 	else:
-		output=GetWorkingBase(coordfilename)  + ".visualization.png"
-		Plot(seqids,coordfilename,classificationfilename,classificationpos,size,output)
+		output=GetWorkingBase(prefix)  + "." + str(classificationpos) + ".visualization.png"
+		if label=="":
+			label=prefix
+		Plot(label,seqids,coordfilename,classificationfilename,classificationpos,size,output)
 		print("The visualization is saved in " + output + ".")
 			
 
