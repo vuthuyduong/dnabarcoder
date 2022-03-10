@@ -17,7 +17,8 @@ parser.add_argument('-t','--cutoff', type=float, default=1, help='The threshold 
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
-parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
+#parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
+parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for loading the complexes.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 
 
@@ -26,7 +27,8 @@ fastafilename= args.input
 threshold=args.cutoff
 mincoverage = args.minalignmentlength
 classificationfilename=args.classification
-classificationpos=args.classificationpos
+#classificationpos=args.classificationpos
+rank=args.classificationrank
 outputpath=args.out
 simfilename=args.simfilename
 if not os.path.exists(outputpath):
@@ -274,11 +276,30 @@ def SaveClusters(clusters,seqrecords,classes,classification,output,outputfastafi
 			outputfastafile.write(">"+seqrecord.description+"\n")
 			outputfastafile.write(str(seqrecord.seq)+"\n")
 	outputfastafile.close()	
+
+def GetPosition(classificationfilename,rank):
+	pos=-1
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	if rank in texts:
+		pos=texts.index(rank)
+	else:
+		print("The rank " + rank + " is not given in the classification." )
+		isError=True
+	return pos,isError
+	
 if __name__ == "__main__":
 	outputfastafilename=GetWorkingBase(fastafilename) + ".diff.fasta"	
 	outputname=GetWorkingBase(fastafilename) + ".similar"
 	allseqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 	sys.setrecursionlimit(len(allseqrecords)*2)
+	classificationpos,isError=GetPosition(classificationfilename,rank)
+	if isError==True:
+		sys.exit()
 	seqrecords,classes,classification=LoadClasses(allseqrecords,classificationfilename,classificationpos)
 	if len(seqrecords)==0:
 		print("No classification names are available for the sequences at the position " + str(classificationpos) + str("."))

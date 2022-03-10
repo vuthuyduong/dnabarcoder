@@ -28,6 +28,7 @@ parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the c
 #parser.add_argument('-minSeqNo','--minseqno', type=int, default=50, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 #arser.add_argument('-minGroupNo','--mingroupno', type=int, default=10, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+parser.add_argument('-savebestcutoffsascutoffs','--savebestcutoffsascutoffs', default="yes", help='the prefix of output filenames')
 
 args=parser.parse_args()
 classificationfilename=args.classification
@@ -215,6 +216,8 @@ def GetLevel(rank):
 
 def GetHigherTaxa(rank,classification):
 	highertaxa=[]
+	if classification=="":
+		return highertaxa
 	taxa=classification.split(";")
 	species=""
 	genus=""
@@ -256,38 +259,41 @@ def GetHigherTaxa(rank,classification):
 	return highertaxa
 
 def GetCutoffAndConfidence(rank,classification,cutoffs):
-	if (not rank in cutoffs.keys()) or classification=="":
-		return 0,0,""
 	highertaxa=GetHigherTaxa(rank,classification)
 	highertaxa.append("All") 
-	cutoff=0
-	confidence=0
-	seqno=0
-	groupno=0
+	#seqno=0
+	#groupno=0
 	datasets=cutoffs[rank]
 	maxconfidence=0
 	bestcutoff=0
+	bestminalignmentlength=0
 	besttaxon=""
 	for highertaxonname in highertaxa:
 		if not highertaxonname in datasets.keys():
 			continue
+		cutoff=0
 		if "cut-off" in datasets[highertaxonname].keys():
 			cutoff=datasets[highertaxonname]["cut-off"]
+		confidence=0
 		if "confidence" in datasets[highertaxonname].keys():
 			confidence=datasets[highertaxonname]["confidence"]
-		if "sequence number" in datasets[highertaxonname].keys():
-			seqno=datasets[highertaxonname]["sequence number"]	
-		if "group number" in datasets[highertaxonname].keys():
-			groupno=datasets[highertaxonname]["group number"]	
+		minalignmentlength=0	
+		if "min alignment length" in datasets[highertaxonname].keys():
+			minalignmentlength=datasets[highertaxonname]["min alignment length"]		
+#		if "sequence number" in datasets[highertaxonname].keys():
+#			seqno=datasets[highertaxonname]["sequence number"]	
+#		if "group number" in datasets[highertaxonname].keys():
+#			groupno=datasets[highertaxonname]["group number"]	
 		#if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
 		#if not (groupno < minGroupNo or seqno < minSeqNo):	
 		if maxconfidence < confidence:
 			maxconfidence =confidence
 			bestcutoff=cutoff
+			bestminalignmentlength=minalignmentlength
 			besttaxon=highertaxonname	
-	return bestcutoff,maxconfidence,besttaxon
+	return bestcutoff,maxconfidence,besttaxon,bestminalignmentlength
 
-def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
+def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
 	count=0
 	total=0
 	count1=0
@@ -298,17 +304,26 @@ def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,prob
 			dataset=datasets[datasetname]
 			cutoff=dataset["cut-off"]
 			confidence=dataset["confidence"]
+			minalignmentlength=0
+			if "min alignment length" in dataset.keys():
+				minalignmentlength=dataset["min alignment length"]
+			bestcutoff=cutoff
+			maxconfidence=confidence
+			bestminalignmentlength=minalignmentlength
+			besttaxon=datasetname
 			dataset["original cut-off"]=cutoff
 			dataset["original confidence"]=confidence
 			dataset["dataset with max confidence"]=datasetname
+			dataset["original min alignment length"]=minalignmentlength
 			if datasetname !="All":
 				total=total +1	
 			if datasetname in classificationdict.keys():
 				classification=classificationdict[datasetname]["classification"]
-				bestcutoff,maxconfidence,besttaxon=GetCutoffAndConfidence(rank,classification,cutoffs)					
-				dataset["cut-off"]=bestcutoff
-				dataset["confidence"]=maxconfidence
-				dataset["dataset with max confidence"]=besttaxon
+				bestcutoff,maxconfidence,besttaxon,bestminalignmentlength=GetCutoffAndConfidence(rank,classification,cutoffs)					
+			dataset["cut-off"]=bestcutoff
+			dataset["confidence"]=maxconfidence
+			dataset["dataset with max confidence"]=besttaxon
+			dataset["min alignment length"]=bestminalignmentlength
 	#save in json			
 	with open(jsonoutputname,"w") as json_file:
 		if sys.version_info[0] >= 3:
@@ -319,42 +334,34 @@ def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,prob
 	textfile=open(txtoutputname,"w")
 	problematicfile=open(problematicoutputname,"w")
 	problematicfile1=open(problematicoutputname1,"w")
-	textfile.write("Rank\tDataset\toriginal cut-off\toriginal confidence\tDataset with max. confidence\tcut-off\tconfidence\tsequence number\tgroup number\tfasta filename\tclassification filename\tclassification position\tHigher taxon\n")
-	problematicfile.write("Rank\tDataset\toriginal cut-off\toriginal confidence\tDataset with max. confidence\tcut-off\tconfidence\tsequence number\tgroup number\tfasta filename\tclassification filename\tclassification position\tHigher taxon\n")
-	problematicfile1.write("Rank\tDataset\toriginal cut-off\toriginal confidence\tDataset with max. confidence\tcut-off\tconfidence\tsequence number\tgroup number\tfasta filename\tclassification filename\tclassification position\tHigher taxon\n")
-	cutoff=0
-	confidence=0
-	highertaxon=""
-	originalcutoff=0
-	originalconfidence=0
-	SeqNo=0
-	GroupNo=0
-	fastafilename=""
-	classificationfilename=""
-	classificationposition=-1
+	textfile.write("Rank\tDataset\toriginal cut-off\toriginal confidence\toriginal min alignment length\tDataset with max. confidence\tcut-off\tconfidence\tmin alignment length\tsequence number\tgroup number\tfasta filename\tclassification filename\n")
+	problematicfile.write("Rank\tDataset\toriginal cut-off\toriginal confidence\toriginal min alignment length\tDataset with max. confidence\tcut-off\tconfidence\tmin alignment length\tsequence number\tgroup number\tfasta filename\tclassification filename\n")
+	problematicfile1.write("Rank\tDataset\toriginal cut-off\toriginal confidence\toriginal min alignment length\tDataset with max. confidence\tcut-off\tconfidence\tmin alignment length\tsequence number\tgroup number\tfasta filename\tclassification filename\n")
 	globaltotal=0
 	globalcount=0
 	for rank in cutoffs.keys():
 		datasets=cutoffs[rank]
-		globalcutoff=0
+		#globalcutoff=0
 		globalconfidence=0
 		if "All" in datasets.keys():
 			dataset=datasets["All"]
-			globalcutoff= dataset["cut-off"]
+			#globalcutoff= dataset["cut-off"]
 			globalconfidence=dataset["confidence"]
 		for datasetname in datasets.keys():
 			dataset=datasets[datasetname]
 			cutoff=dataset["cut-off"]
 			confidence=dataset["confidence"]
+			minalignmentlength=dataset["min alignment length"]
 			originalcutoff=dataset["original cut-off"]
 			originalconfidence=dataset["original confidence"]
+			originalminalignmentlength=dataset["original min alignment length"]
 			highertaxon=dataset["dataset with max confidence"]
 			SeqNo=dataset["sequence number"]
 			GroupNo=dataset["group number"]
 			fastafilename=dataset["fasta filename"]
 			classificationfilename=dataset["classification filename"]
-			classificationposition=dataset["classification position"]
-			textfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\t"+str(classificationposition)+"\n")
+			#classificationposition=dataset["classification position"]
+			textfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t" + str(minalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")
 			if datasetname=="All":
 				continue
 			datasetname_rank=""
@@ -366,10 +373,98 @@ def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,prob
 				total1=total1+1
 			if confidence > originalconfidence and cutoff != originalcutoff:
 				count=count+1
-				problematicfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\t"+str(classificationposition)+"\n")
+				problematicfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t" + str(minalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")
 				if datasetname_level==level - 1:
 					count1=count1+1
-					problematicfile1.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\t"+str(classificationposition)+"\n")		
+					problematicfile1.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t" + str(minalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")		
+			if originalconfidence >= globalconfidence:
+				globalcount=globalcount+1
+			globaltotal=globaltotal+1				
+	textfile.close()		
+	problematicfile.close()
+	problematicfile1.close()
+	return count,total,count1,total1,globaltotal,globalcount
+
+def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
+	count=0
+	total=0
+	count1=0
+	total1=0
+	for rank in cutoffs.keys():
+		datasets=cutoffs[rank]
+		for datasetname in datasets.keys():
+			dataset=datasets[datasetname]
+			originalcutoff=dataset["cut-off"]
+			originalconfidence=dataset["confidence"]
+			originalminalignmentlength=0
+			if "min alignment length" in dataset.keys():
+				originalminalignmentlength=dataset["min alignment length"]
+			bestcutoff=originalcutoff
+			maxconfidence=originalconfidence
+			bestminalignmentlength=originalminalignmentlength
+			besttaxon=datasetname
+			if datasetname !="All":
+				total=total +1	
+			if datasetname in classificationdict.keys():
+				classification=classificationdict[datasetname]["classification"]
+				bestcutoff,maxconfidence,besttaxon,bestminalignmentlength=GetCutoffAndConfidence(rank,classification,cutoffs)					
+			dataset["best cut-off"]=bestcutoff
+			dataset["max confidence"]=maxconfidence
+			dataset["dataset with max confidence"]=besttaxon
+			dataset["best min alignment length"]=bestminalignmentlength
+	#save in json			
+	with open(jsonoutputname,"w") as json_file:
+		if sys.version_info[0] >= 3:
+			json.dump(cutoffs,json_file,indent=2)
+		else:
+			json.dump(cutoffs,json_file,encoding='latin1',indent=2)
+	#save as tab. format
+	textfile=open(txtoutputname,"w")
+	problematicfile=open(problematicoutputname,"w")
+	problematicfile1=open(problematicoutputname1,"w")
+	textfile.write("Rank\tDataset\tcut-off\tconfidence\tmin alignment length\tDataset with max. confidence\tbest cut-off\tmax confidence\tbest min alignment length\tsequence number\tgroup number\tfasta filename\tclassification filename\n")
+	problematicfile.write("Rank\tDataset\tcut-off\tconfidence\tmin alignment length\tDataset with max. confidence\tbest cut-off\tmax confidence\tbest min alignment length\tsequence number\tgroup number\tfasta filename\tclassification filename\n")
+	problematicfile1.write("Rank\tDataset\tcut-off\tconfidence\tmin alignment length\tDataset with max. confidence\tcut-off\tconfidence\tmin alignment length\tsequence number\tgroup number\tfasta filename\tclassification filename\n")
+	globaltotal=0
+	globalcount=0
+	for rank in cutoffs.keys():
+		datasets=cutoffs[rank]
+		#globalcutoff=0
+		globalconfidence=0
+		if "All" in datasets.keys():
+			dataset=datasets["All"]
+			#globalcutoff= dataset["cut-off"]
+			globalconfidence=dataset["confidence"]
+		for datasetname in datasets.keys():
+			dataset=datasets[datasetname]
+			bestcutoff=dataset["best cut-off"]
+			maxconfidence=dataset["max confidence"]
+			bestminalignmentlength=dataset["best min alignment length"]
+			originalcutoff=dataset["cut-off"]
+			originalconfidence=dataset["confidence"]
+			originalminalignmentlength=dataset["min alignment length"]
+			highertaxon=dataset["dataset with max confidence"]
+			SeqNo=dataset["sequence number"]
+			GroupNo=dataset["group number"]
+			fastafilename=dataset["fasta filename"]
+			classificationfilename=dataset["classification filename"]
+			#classificationposition=dataset["classification position"]
+			textfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(bestcutoff)+"\t"+str(maxconfidence)+ "\t" + str(bestminalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")
+			if datasetname=="All":
+				continue
+			datasetname_rank=""
+			if datasetname in classificationdict.keys():
+				datasetname_rank=classificationdict[datasetname]["rank"]
+			datasetname_level=GetLevel(datasetname_rank)
+			level=GetLevel(rank)
+			if datasetname_level==level - 1:
+				total1=total1+1
+			if maxconfidence > originalconfidence and bestcutoff != originalcutoff:
+				count=count+1
+				problematicfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(bestcutoff)+"\t"+str(maxconfidence)+ "\t" + str(bestminalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")
+				if datasetname_level==level - 1:
+					count1=count1+1
+					problematicfile1.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(bestcutoff)+"\t"+str(maxconfidence)+ "\t" + str(bestminalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")		
 			if originalconfidence >= globalconfidence:
 				globalcount=globalcount+1
 			globaltotal=globaltotal+1				
@@ -390,7 +485,10 @@ if __name__ == "__main__":
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)
 	classificationdict= LoadClassification(classificationfilename)
-	count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1)
+	if args.savebestcutoffsascutoffs=="yes":
+		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1)
+	else:
+		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1)
 	if globaltotal >0:
 		print("The best similarity cut-offs are saved in json and text format files " + jsonoutputname + " and " + txtoutputname + ".")
 	print("The number of taxa having higher or equal prediction confidence than the global confidence: " + str(globalcount) + "/" + str(globaltotal) + " (" + str(round(globalcount*100/globaltotal,2)) +"%).")

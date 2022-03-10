@@ -17,8 +17,9 @@ parser.add_argument('-i','--input', required=True, help='the fasta file to be cl
 parser.add_argument('-t','--cutoff', type=float, default=0.97, help='The threshold (cutoff) for the classification.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', help='the classification file in tab. format.')
-parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
+parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
+#parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
+parser.add_argument('-rank','--classificationrank', default="", help='the classification rank to evaluate the clustering result.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 
@@ -27,7 +28,8 @@ fastafilename= args.input
 threshold=args.cutoff
 mincoverage = args.minalignmentlength
 classificationfilename=args.classification
-classificationpos=args.classificationpos
+rank=args.classificationrank
+#classificationpos=args.classificationpos
 simfilename=args.simfilename
 outputpath=args.out
 if not os.path.exists(outputpath):
@@ -63,42 +65,6 @@ def GetSeqIndex(seqname,seqlist):
 			return i
 		i = i + 1
 	return -1
-
-#def LoadSim(simfilename,n):
-#	simmatrix = [[0 for x in range(n)] for y in range(n)] 
-#	simfile = open(simfilename)
-#	for line in simfile:
-#		numbers=line.rstrip().split(" ")
-#		i=int(numbers[0])
-#		j=int(numbers[1])
-#		if float(numbers[2]) > simmatrix[i][j]:
-#			simmatrix[i][j]=float(numbers[2])
-#	simfile.close()		
-#	return simmatrix
-#
-#def SaveSim(simmatrix,simfilename):
-#	simfile=open(simfilename,"w")
-#	for i in range(0,len(simmatrix)):
-#		for j in range(0,len(simmatrix)):
-#			simfile.write(str(i) + " " + str(j) + " " + str(simmatrix[i][j]) + "\n")
-#	simfile.close()		
-#	
-	
-#def LoadSim(simfilename):
-#	simmatrix = {} #we use dictionary to reduce the memory constraints 
-#	simfile = open(simfilename)
-#	for line in simfile:
-#		numbers=line.rstrip().split(" ")
-#		i=numbers[0]
-#		j=numbers[1]
-#		if i not in simmatrix.keys():
-#			simmatrix.setdefault(i, {})
-#		if j not in simmatrix[i].keys():
-#			simmatrix[i].setdefault(j, 0)
-#		if float(numbers[2]) > simmatrix[i][j]:
-#			simmatrix[i][j]=float(numbers[2])
-#	simfile.close()		
-#	return simmatrix
 	
 def LoadSim(simfilename):
 	simmatrix = {} #we use dictionary to reduce the memory constraints 
@@ -198,20 +164,6 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 	os.system("rm " + blastdb + "*")
 	#os.system("rm " + blastdb + ".*")
 	return simmatrix
-
-#def LoadNeighbors(seqrecords,simmatrix,threshold):
-#	neighborlist=[]
-#	for i in range(len(seqrecords)):
-#		neighborlist.append([])
-#	for i in range(0,len(seqrecords)-1):
-#		for j in range(i+1,len(seqrecords)):
-#				if simmatrix[i][j] >= threshold:
-#					if (j not in neighborlist[i]):
-#						neighborlist[i].append(j)
-#					if (i not in neighborlist[j]):
-#						neighborlist[j].append(i)
-#	#os.system("rm out.txt")
-#	return neighborlist
 
 def LoadNeighbors(seqids,subsimmatrix,threshold):
 	neighbordict={}
@@ -322,6 +274,21 @@ def SaveClusters(clusters,seqrecords,classification,output):
 				givenclassname=classification[id]
 			outputfile.write(str(cluster.id) + "\t" + seqrecord.description + "\t" + givenclassname + "\t" + classname + "\n")		
 	outputfile.close()
+	
+def GetPosition(classificationfilename,rank):
+	pos=-1
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	if rank in texts:
+		pos=texts.index(rank)
+	else:
+		print("The rank " + rank + " is not given in the classification." )
+		isError=True
+	return pos,isError
 
 if __name__ == "__main__":
 	outputname=GetWorkingBase(fastafilename) + ".clustered"	
@@ -333,8 +300,10 @@ if __name__ == "__main__":
 	classes = []
 	classnames = []
 	classification=[]
-	if classificationfilename!=None:
-		classes,classification=LoadClasses(seqrecords.keys(),classificationfilename,classificationpos)
+	if classificationfilename!="":
+		classificationpos,isError=GetPosition(classificationfilename,rank)
+		if isError==False:
+			classes,classification=LoadClasses(seqrecords.keys(),classificationfilename,classificationpos)
 	#load similarity matrix
 	#simmatrix = [[0 for x in range(len(seqrecords))] for y in range(len(seqrecords))]
 	simmatrix={} 
