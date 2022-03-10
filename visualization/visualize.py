@@ -17,7 +17,7 @@ import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='visualize.py',  
-							   usage="%(prog)s [options] -i fastafile -c classificationfilename -p classificationposition",
+							   usage="%(prog)s [options] -i fastafile -c classificationfilename -rank classificationprank",
 							   description='''Script that visualizes the dna sequences based on a given classification. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -25,7 +25,8 @@ parser=argparse.ArgumentParser(prog='visualize.py',
 parser.add_argument('-i','--input', required=True, help='the fasta file')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
-parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification positions for the prediction.')
+#parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification positions for the prediction.')
+parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for coloring the sequences.')
 parser.add_argument('-sim','--simfilename', help='The similarity file if exists, othter it will be computed.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-coord','--coordinates', help='A file containing coordinates of the sequences, computed by LargeVis. If these coordinates will be computed if this file is not given.')
@@ -44,7 +45,8 @@ fastafilename= args.input
 simfilename=args.simfilename
 coordfilename=args.coordinates
 classificationfilename=args.classification
-classificationpos=args.classificationpos
+#classificationpos=args.classificationpos
+rank=args.classificationrank
 mincoverage=args.minalignmentlength
 minsim=args.minsim
 dim=args.dimension
@@ -75,25 +77,6 @@ def GetBase(filename):
 def GetWorkingBase(basename):
 	path=outputpath + "/" + basename
 	return path
-
-#def LoadSim(simfilename,n):
-#	simmatrix = [[0 for x in range(n)] for y in range(n)] 
-#	simfile = open(simfilename)
-#	for line in simfile:
-#		numbers=line.rstrip().split(" ")
-#		i=int(numbers[0])
-#		j=int(numbers[1])
-#		if float(numbers[2]) > simmatrix[i][j]:
-#			simmatrix[i][j]=float(numbers[2])
-#	simfile.close()		
-#	return simmatrix
-#
-#def SaveSim(simmatrix,simfilename):
-#	simfile=open(simfilename,"w")
-#	for i in range(0,len(simmatrix)):
-#		for j in range(0,len(simmatrix)):
-#			simfile.write(str(i) + " " + str(j) + " " + str(simmatrix[i][j]) + "\n")
-#	simfile.close()
 
 def LoadSim(simfilename,n):
 	simmatrix = {} #we use dictionary to reduce the memory constraints 
@@ -361,6 +344,22 @@ def Plot(prefix,seqids,coordfilename,classificationfilename,classificationpos,si
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(output, dpi = 500)
 	plt.show()		
+	
+def GetPosition(classificationfilename,rank):
+	pos=-1
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	if rank in texts:
+		pos=texts.index(rank)
+	else:
+		print("The rank " + rank + " is not given in the classification." )
+		isError=True
+	return pos,isError
+	
 if __name__ == "__main__":
 	#load sequences
 	if prefix=="":
@@ -413,6 +412,7 @@ if __name__ == "__main__":
 	if method.lower()=="dive":
 		VisualizeUsingDiVE(base,seqids,classificationfilename,coordfilename)		
 	else:
+		classificationpos,isError=GetPosition(classificationfilename,rank)
 		output=GetWorkingBase(prefix)  + "." + str(classificationpos) + ".visualization.png"
 		if label=="":
 			label=prefix
