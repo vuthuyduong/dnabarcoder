@@ -17,7 +17,7 @@ import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='computeVariation.py',  
-							   usage="%(prog)s [options] -i fastafile -c classificationfilename -p classificationposition -mc mincoverage  -o output",
+							   usage="%(prog)s [options] -i fastafile -c classificationfilename -ranks classificationranks -ml minalignmentlength  -o output",
 							   description='''Script that computes the median and minimum similarity scores within the groups. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -26,7 +26,7 @@ parser.add_argument('-i','--input', required=True, help='the fasta file to be cl
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
-parser.add_argument('-p','--classificationpos', help='the classification position to load the classification.')
+parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks to compute variation, separated by ",".')
 parser.add_argument('-m','--maxSeqNo', type=int, default=0, help='The maximum number of randomly selected sequences of each class to be computed in the case the groups are too big.')
 parser.add_argument('-plt','--plottype', default="boxplot", help='The type of plots. There are two options: boxplot and plot.')
 parser.add_argument('-sim','--simfilename', default="", help='The similarity matrix of the sequences if exists.')
@@ -73,12 +73,10 @@ def LoadClassification(seqIDs,seqrecords,classificationfilename,pos):
 	classification=[""]*len(seqIDs)
 	classes=[]
 	classnames=[]
-	rank=""
 	if classificationfilename == "":
-		return classification,classes,classnames,rank
+		return classification,classes,classnames
 	records= open(classificationfilename)
-	headers=next(records)
-	rank=headers.rstrip().split("\t")[pos]
+	next(records)
 	for line in records:
 		elements=line.split("\t")
 		seqid = elements[0].replace(">","").rstrip()
@@ -97,7 +95,8 @@ def LoadClassification(seqIDs,seqrecords,classificationfilename,pos):
 				seqs=[]
 				seqs.append(seqrecords[index])
 				classes.append(seqs)
-	return classification,classes,classnames,rank
+	records.close()			
+	return classification,classes,classnames
 
 def LoadSim(simfilename):
 	simmatrix = {} #we use dictionary to reduce the memory constraints 
@@ -132,48 +131,6 @@ def GetSeqIndex(seqname,seqrecords):
 			return i
 		i = i + 1
 	return -1
-
-#def ComputeBLASTscoreMatrix(fastafilename,records,mincoverage):
-#	scorematrix = [[0 for x in range(len(records))] for y in range(len(records))] 
-#	seqids=[]
-#	for rec in records:
-#		seqids.append(rec.id)
-#	#blast
-#	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out db"
-#	os.system(makedbcommand)
-#	blastcommand = "blastn -query " + fastafilename + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
-#	if mincoverage >=400:
-#		blastcommand = "blastn -query " + fastafilename + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
-#	os.system(blastcommand)
-#	
-#	#read blast output
-#	if not os.path.isfile("out.txt"):
-#		return scorematrix
-#	blastoutputfile = open("out.txt")
-#	refid = ""
-#	score=0
-#	queryid=""
-#	for line in blastoutputfile:
-#		if line.rstrip()=="":
-#			continue
-#		words = line.split("\t")
-#		queryid = words[0].rstrip()
-#		refid = words[1].rstrip()
-#		i = seqids.index(queryid)
-#		j = seqids.index(refid)
-#		pos1 = int(words[6])
-#		pos2 = int(words[7])
-#		iden = float(words[2]) 
-#		sim=float(iden)/100
-#		coverage=abs(pos2-pos1)
-#		score=sim
-#		if coverage < mincoverage:
-#			score=float(score * coverage)/mincoverage
-#		if scorematrix[i][j] < score:
-#			scorematrix[i][j]=score
-#			scorematrix[j][i]=score
-#	os.system("rm out.txt")
-#	return scorematrix
 
 def ComputeSim(fastafilename,seqrecords,mincoverage):
 	blastoutput = fastafilename + ".blast.out"		
@@ -301,22 +258,6 @@ def ComputeVariations(variationfilename,classes,classnames,mincoverage,simmatrix
 	return variations
 
 def EvaluateVariation(taxonname,sequences,mincoverage,simmatrix):
-#	thresholds=[]
-#	minthresholds=[] 
-#	for i in range(0,10):
-#		n=int(len(sequences)/10)
-#		selectedindexes=random.sample(range(0, len(sequences)), k=n)
-#		selectedsequences=[]
-#		for index in selectedindexes:
-#			selectedsequences.append(sequences[index])
-#		fastafilename=taxonname.replace(" ","_") + ".fasta"
-#		SeqIO.write(selectedsequences,fastafilename,"fasta")
-#		threshold,minthreshold=ComputeVariation(fastafilename,mincoverage)
-#		os.system("rm " + fastafilename)
-#		thresholds.append(threshold)
-#		minthresholds.append(minthreshold)
-#	threshold = np.median(np.array(thresholds))
-#	minthreshold =  np.min(np.array(minthresholds))
 	selectedindexes=random.sample(range(0, len(sequences)), k=maxSeqNo)
 	selectedsequences=[]
 	for index in selectedindexes:
@@ -567,32 +508,43 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	plt.savefig(figoutput, dpi = 500)
 	plt.show()		
 
-	
+def GetPositionList(classificationfilename,ranks):
+	ranklist=[]	
+	if "," in ranks:
+		ranklist=ranks.split(",")
+	elif ranks !="":
+		ranklist.append(ranks)
+	positionlist=[]
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	for rank in ranklist:
+		if rank in texts:
+			pos=texts.index(rank)
+			positionlist.append(pos)
+		else:
+			print("The rank " + rank + " is not given in the classification." )
+			isError=True
+	return positionlist,ranklist,isError
+
 ##############################################################################
 # MAIN
 ##############################################################################
 path=sys.argv[0]
 path=path[:-(len(path)-path.rindex("/")-1)]
-displayed=True
-poslist=[]
+
 if prefix=="":
 	prefix=GetBase(os.path.basename(referencename))
-
-if args.classificationpos==None or args.classificationpos=="":
-	classificationfile=open(classificationfilename)
-	firstline=classificationfile.readline()
-	classificationfile.close()
-	rankNo=len(firstline.split("\t"))
-	for i in range(1,rankNo):
-		poslist.append(i)
-	displayed=False
-elif "," in args.classificationpos:
-	texts=args.classificationpos.split(",")
-	for t in texts:
-		poslist.append(int(t))
-	displayed=False	
-else:
-	poslist.append(int(args.classificationpos))
+	
+positionlist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
+if isError==True:
+	sys.exit()
+displayed=False
+if len(positionlist)==1:
+	displayed=True
 #load similarity matrix
 simmatrix={}	
 if os.path.exists(simfilename):
@@ -605,24 +557,16 @@ for seq in referencerecords:
 	referenceIDs.append(seq.id)
 variationlist=[]
 labels=[]
-rank=""
-for classificationposition in poslist:
+i=0
+for classificationposition in positionlist:
+	rank=ranklist[i]
 	jsonvariationfilename = GetWorkingBase(prefix) + "." + str(classificationposition) + ".variation"
 	figoutput=GetBase(jsonvariationfilename) + ".variation.png" 
 	#Load classes, classification:
-	referenceclassification,classes,classnames,rank= LoadClassification(referenceIDs,referencerecords,classificationfilename, classificationposition)
+	referenceclassification,classes,classnames= LoadClassification(referenceIDs,referencerecords,classificationfilename, classificationposition)
+	rank=rank.lower()
 	if rank=="":
 		rank="groups at position " + str(classificationposition)
-	elif rank.lower()== "family":
-		rank="families"
-	elif rank.lower()== "order":
-		rank="orders"
-	elif rank.lower()== "class":
-		rank="classes"
-	elif rank.lower()== "phylum":
-		rank="phyla"
-	elif rank.lower()== "kingdom":
-		rank="kingdoms"		
 	variations={}
 	if not os.path.exists(jsonvariationfilename):
 		variations=ComputeVariations(jsonvariationfilename,classes,classnames,mincoverage,simmatrix)
@@ -638,10 +582,11 @@ for classificationposition in poslist:
 		else:	
 			BoxPlot(prefix,figoutput,variations,rank,displayed)
 	variationlist.append(variations)
-	labels.append(rank)		
+	labels.append(rank)	
+	i=i+1	
 if label=="":
 	label=prefix	
-if len(poslist)>1:
+if len(positionlist)>1:
 	jsonvariationfilename = GetWorkingBase(prefix) + ".variation"
 	figoutput=jsonvariationfilename + ".png" 
 if plottype=="plot":

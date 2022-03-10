@@ -30,7 +30,7 @@ def GetWorkingBase(filename):
 	path=outputpath + "/" + basename
 	return path
 
-def ReportAtLevel(level,seqids):
+def ReportAtLevel(level,seqids,higherlevel):
 	if level <0:
 		return 0,0,0
 	classificationfile = open(classificationfilename)
@@ -39,6 +39,7 @@ def ReportAtLevel(level,seqids):
 	seqNumbers=[]
 	seqNo=0
 	count=0
+	highertaxa={}
 	for line in classificationfile:
 		count=count+1
 		words=line.split("\t")
@@ -47,20 +48,33 @@ def ReportAtLevel(level,seqids):
 			continue
 		if level >=  len(words):
 			continue
-		name=line.split("\t")[level].rstrip()
-		if name=="" or name=="unidentified" or ("uncultured" in name) or ("_sp_" in name):
+		texts=line.split("\t")
+		taxon=""
+		highertaxon=""
+		if level >-1:
+			taxon=texts[level].rstrip()
+		if higherlevel >-1:	
+			highertaxon=texts[higherlevel].rstrip()
+		if taxon=="" or taxon=="unidentified" or ("uncultured" in taxon) or ("_sp_" in taxon):
 			continue
-		if name in taxa:
-			i=taxa.index(name)
-			seqNumbers[i]=seqNumbers[i]+1
-			seqNo=seqNo+1
-		elif name !="":
-			taxa.append(name)
-			seqNumbers.append(1)	
-			seqNo=seqNo+1
+		seqNo=seqNo+1
+		if not (taxon in taxa):
+			taxa.append(taxon)
+		if highertaxon!="":
+			if not (highertaxon in highertaxa.keys()):
+				highertaxa.setdefault(highertaxon,[])
+			if not (taxon in highertaxa[highertaxon]):
+				highertaxa[highertaxon].append(taxon)
 	numberoftaxa=len(taxa)		
 	classificationfile.close()
-	return numberoftaxa,seqNo,count
+	return numberoftaxa,seqNo,count,highertaxa
+
+def SaveOverview(rank,taxa,outputname):
+	outfile=open(outputname,"w")
+	outfile.write("Taxon\t"+ rank + " number\n")
+	for taxon in taxa.keys():
+		outfile.write(taxon + "\t" + str(len(taxa[taxon])) + "\n")
+	outfile.close()
 
 ######MAIN
 outputfilename=""
@@ -80,6 +94,7 @@ p_f=-1
 p_o=-1
 p_c=-1
 p_p=-1
+p_k=-1
 words=header.split("\t")
 i=0
 for word in words:
@@ -97,12 +112,13 @@ for word in words:
 		p_p=i	
 	i=i+1           
 outputfile=open(outputfilename,"w")
-speciesnumber,speciesseqnumber,count=ReportAtLevel(p_s,seqids)
-genusnumber,genusseqnumber,count=ReportAtLevel(p_g,seqids)
-familynumber,familyseqnumber,count=ReportAtLevel(p_f,seqids)
-ordernumber,orderseqnumber,count=ReportAtLevel(p_o,seqids)
-classnumber,classseqnumber,count=ReportAtLevel(p_c,seqids)
-phylumnumber,phylumseqnumber,count=ReportAtLevel(p_p,seqids)
+seqnumber,seqnumber,count,species=ReportAtLevel(0,seqids,p_s)
+speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(p_s,seqids,p_g)
+genusnumber,genusseqnumber,count,families=ReportAtLevel(p_g,seqids,p_f)
+familynumber,familyseqnumber,count,orders=ReportAtLevel(p_f,seqids,p_o)
+ordernumber,orderseqnumber,count,classes=ReportAtLevel(p_o,seqids,p_c)
+classnumber,classseqnumber,count,phyla=ReportAtLevel(p_c,seqids,p_p)
+phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(p_p,seqids,p_k)
 if len(seqids) >0:
 	count=len(seqids)
 print("Number of sequences: " + str(count))
@@ -121,6 +137,18 @@ outputfile.write("Family" + "\t" + str(familynumber) + "\t" + str(familyseqnumbe
 outputfile.write("Order" + "\t" + str(ordernumber) + "\t" + str(orderseqnumber) + "\n")
 outputfile.write("Class" + "\t" + str(classnumber) + "\t" + str(classseqnumber) + "\n")
 outputfile.write("Phylum" + "\t" + str(phylumnumber) + "\t" + str(phylumseqnumber) + "\n")
-
 outputfile.close()
 print("The overview is saved in  file " + outputfilename + ".")
+SaveOverview("sequence",species,outputfilename + ".species")
+print("The overview at the species level is saved in  file " + outputfilename + ".species")
+SaveOverview("species",genera,outputfilename + ".genus")
+print("The overview at the genus level is saved in  file " + outputfilename + ".genus")
+SaveOverview("genus",families,outputfilename + ".family")
+print("The overview at the family level is saved in  file " + outputfilename + ".family")
+SaveOverview("family",orders,outputfilename + ".order")
+print("The overview at the order level is saved in  file " + outputfilename + ".order")
+SaveOverview("order",classes,outputfilename + ".class")
+print("The overview at the class level is saved in  file " + outputfilename + ".class")
+SaveOverview("class",phyla,outputfilename + ".phylum")
+print("The overview at the phylum level is saved in  file " + outputfilename + ".phylum")
+

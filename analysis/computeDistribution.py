@@ -12,14 +12,12 @@ import json
 import random
 import matplotlib.pyplot as plt
 plt.rc('font',size=6)
-from matplotlib.patches import Polygon
-import matplotlib.gridspec as gridspec
-import numpy as np
+
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='computeDistribution.py',  
-							   usage="%(prog)s [options] -i fastafile -c classificationfilename -p classificationposition  -o output",
+							   usage="%(prog)s [options] -i fastafile -c classificationfilename -ranks classificationranks  -o output",
 							   description='''Script that computes the distribution of the sequences based on given classification. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -27,7 +25,7 @@ parser=argparse.ArgumentParser(prog='computeDistribution.py',
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', help='the classification file in tab. format.')
-parser.add_argument('-p','--classificationpos', help='the classification positions for computing sequence variation.')
+parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks to compute distribution, separated by ",".')
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The number of labels to be displayed.')
 parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
 parser.add_argument('-method','--visualizationmethod', default="plot", help='The visualization method. There are two methods to be selected: krona and plot.')
@@ -234,6 +232,28 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	print(command)
 	os.system(command)
 	os.system("firefox " + kronahtml) 
+	
+def GetPositionList(classificationfilename,ranks):
+	ranklist=[]	
+	if "," in ranks:
+		ranklist=ranks.split(",")
+	elif ranks !="":
+		ranklist.append(ranks)
+	positionlist=[]
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	for rank in ranklist:
+		if rank in texts:
+			pos=texts.index(rank)
+			positionlist.append(pos)
+		else:
+			print("The rank " + rank + " is not given in the classification." )
+			isError=True
+	return positionlist,ranklist,isError
 ##############################################################################
 # MAIN
 ##############################################################################
@@ -245,21 +265,12 @@ poslist=[]
 if prefix=="":
 	prefix=GetBase(os.path.basename(referencename))
 
-if args.classificationpos==None or args.classificationpos=="":
-	classificationfile=open(classificationfilename)
-	firstline=classificationfile.readline()
-	classificationfile.close()
-	featureNo=len(firstline.split("\t"))
-	for i in range(1,featureNo):
-		poslist.append(i)
-	displayed=False
-elif "," in args.classificationpos:
-	texts=args.classificationpos.split(",")
-	for t in texts:
-		poslist.append(int(t))
-	displayed=False	
-else:
-	poslist.append(int(args.classificationpos))
+poslist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
+if isError==True:
+	sys.exit()
+displayed=False
+if len(poslist)==1:
+	displayed=True
 	
 #load train seq records
 referencerecords =  list(SeqIO.parse(referencename, "fasta"))
