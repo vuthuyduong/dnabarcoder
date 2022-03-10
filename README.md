@@ -14,7 +14,7 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 - [IQtree](http://www.iqtree.org/), optional for verification
 - [Clustalo](http://www.clustal.org/omega/), opional for verification
 
-## Analysis
+## Analysis and Visualization
 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. All outputs will be saved in an output folder, dnabarcoder is given as default.
 
@@ -51,8 +51,6 @@ Here the minimum BLAST alignment length ml is set to 400 as 95% of the barcodes 
 ../../dnabarcoder.py sim -i CBSITS.fasta -ml 400
 
 The output is given in the file dnabarcoder/CBSITS.sim
-
-## Visualization
 
 The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
 Together with sequence distribution and variation, visu-alization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
@@ -116,7 +114,7 @@ To compute the best cutoffs:
 The best similarity cut-offs are saved in json and text format files dnabarcoder/CBSITS.cutoffs.best.json and dnabarcoder/CBSITS.cutoffs.best.txt.
 
 
-## Classification/Assigment
+## Classification and Verification
 
 The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs predicted for the reference dataset.
 
