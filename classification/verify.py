@@ -8,12 +8,12 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import cohen_kappa_score
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
-import json
+#from sklearn.metrics import precision_recall_fscore_support
+#from sklearn.metrics import cohen_kappa_score
+#from sklearn.metrics import matthews_corrcoef
+#from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import accuracy_score
+#import json
 from Bio import SeqIO
 from Bio import Phylo
 import pylab
@@ -22,7 +22,7 @@ import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='verify.py',  
-							   usage="%(prog)s [options] -i classified file -f the fasta file -r referencefastafilename -c classificationfile -mp minproba -mc mincoverage -cutoffs cutoffsfile -o output",
+							   usage="%(prog)s [options] -i classified file -f the fasta file -r referencefastafilename -c classificationfile -o output",
 							   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )

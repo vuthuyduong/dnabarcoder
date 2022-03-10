@@ -8,11 +8,11 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import cohen_kappa_score
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
+#from sklearn.metrics import precision_recall_fscore_support
+#from sklearn.metrics import cohen_kappa_score
+#from sklearn.metrics import matthews_corrcoef
+#from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import accuracy_score
 import json
 from Bio import SeqIO
 import random
@@ -36,8 +36,8 @@ parser.add_argument('-confidence','--confidence', type=float,default=0,help='The
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
-parser.add_argument('-minseqno','--minseqno', type=int, default=50, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 
 #parser.add_argument('-minconfidence','--minconfidence', type=float,default=0,help='The minimum confidence to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 #parser.add_argument('-minspeciescutoff','--minspeciescutoff', type=float, default=0, help='the minimum species cut-off to assign sequences. Only needed when the cutoffs file is given.')
@@ -566,7 +566,7 @@ def Assign(classeswithsequences,refclassificationdict,testclassificationdict,pre
 			if sys.version_info[0] < 3:
 				predictedname=unicode(predictedname,'latin1')
 		if seqid in refclassificationdict.keys():
-			giventaxa=classificationdict[seqid]['classification']
+			giventaxa=refclassificationdict[seqid]['classification']
 			giventaxa=giventaxa.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
 			giventaxonname=giventaxa.split(";")[level]		
 		if giventaxonname!="" and giventaxonname!="unidentified":	
@@ -763,7 +763,7 @@ if __name__ == "__main__":
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
-			cutoffs = json.load(cutoffsfile)	
+			cutoffs = json.load(cutoffsfile)		
 	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclasses,refclassificationdict,testclassificationdict,predictedclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqids,seqrecords,labels,pred_labels,pred_classifications,probas,refids,bestscores,sims,coverages,maxseqno,outputname,classificationreportfilename)
 	print("Number of classified sequences: " + str(count))
 	#print("The results are saved in file  " + outputname)
@@ -784,8 +784,9 @@ if __name__ == "__main__":
 #		CalculateClassificationMetrics(given_labels,pred_labels,reftaxa,reportname)
 	#Compute classification metrices
 	#making krona report
-	kronareport = GetBase(outputname) + ".krona.report"
-	kronahtml=GetBase(kronareport) + ".html"
-	classificationdict= LoadClassificationForKronaReport(outputname)
-	KronaPieCharts(classificationdict,kronareport,kronahtml)
-	print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".") 
+	if count > 0:
+		kronareport = GetBase(outputname) + ".krona.report"
+		kronahtml=GetBase(kronareport) + ".html"
+		classificationdict= LoadClassificationForKronaReport(outputname)
+		KronaPieCharts(classificationdict,kronareport,kronahtml)
+		print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".") 
