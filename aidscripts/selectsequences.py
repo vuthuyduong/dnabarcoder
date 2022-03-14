@@ -12,17 +12,17 @@ nproc=multiprocessing.cpu_count()
 #from keras.utils import np_utils
 
 parser=argparse.ArgumentParser(prog='selectsequences.py', 
-							   usage="%(prog)s [options] -i fastafile -c classificationfile -t taxa -o output",
+							   usage="%(prog)s [options] -i fastafile -c classificationfile -rank species -t taxa -o output",
 							   description='''Script that selects the sequences for of the given taxa. The taxon names in the taxa are separated by ","''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the fasta file')
-parser.add_argument('-o','--out', help='The fasta output file containing the sequences of the given taxa.') #optional
+parser.add_argument('-o','--out', required=True, help='The fasta output file containing the sequences of the given taxa.') #optional
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-t','--taxa', default="", help='the taxa for the selection, separated by ","')
 parser.add_argument('-n','--number', type=int, default=0, help='the maximum number of the sequences to be selected')
-parser.add_argument('-p','--classificationposition', type=int, default=0, help='the classification positions for the selection.')
+parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for the selection.')
 parser.add_argument('-l','--length', type=int, default=0, help='the required minimum length.')
 
 args=parser.parse_args()
@@ -32,7 +32,7 @@ taxa=args.taxa
 output=args.out
 n=args.number
 l=args.length
-classificationpos=int(args.classificationposition)
+classificationrank=args.classificationrank
 
 #fastafilename=sys.argv[1]
 #taxa=sys.argv[2] #separated by ;
@@ -57,7 +57,7 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos):
 		elements=line.rstrip().split("\t")
 		seqid = elements[0].replace(">","").rstrip()
 		classname=""
-		if classificationpos < len(elements):
+		if classificationpos >=0 and classificationpos < len(elements):
 			classname=elements[classificationpos]
 		if classname=="" or classname=="unidentified":
 			continue
@@ -72,7 +72,28 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos):
 			classnames.append(classname)
 	return seqids,classnames
 
+def GetPosition(classificationfilename,rank):
+	pos=-1
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	if rank in texts:
+		pos=texts.index(rank)
+	else:
+		print("The rank " + rank + " is not given in the classification." )
+		isError=True
+	return pos,isError
+
 #####main###
+classificationpos=-1
+if classificationfilename!="":
+	classificationpos,isError=GetPosition(classificationfilename,classificationrank)
+if isError==True:
+	print("The given classification rank is not given in the classification file.")
+	os.sys.exit()	
 seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos)
 seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
