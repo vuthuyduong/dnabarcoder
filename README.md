@@ -26,7 +26,7 @@ The output is given in the file dnabarcoder/CBSITS.overview. The overview at the
 
 - To see the distribution of the barcode lengths:
 
-../../dnabarcoder.py length -i CBSlITS.fasta -l 100
+../../dnabarcoder.py length -i CBSITS.fasta -l 100
 
 Here l is the interval length. Analyzing sequence lengths is important to decide the minimum BLAST alignment length ml. 
 
