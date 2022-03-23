@@ -6,7 +6,6 @@ import sys
 import numpy as np
 import os, argparse
 from Bio import SeqIO
-import json
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 #from keras.utils import np_utils
@@ -22,6 +21,7 @@ parser.add_argument('-o','--out', help='The fasta output file containing the seq
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
 parser.add_argument('-t','--taxa', default="", help='the taxa for the selection, separated by ",". If taxa="", all the sequences with the ids given in the classification file will be removed from the input file.')
 parser.add_argument('-rank','--classificationrank', default="", help='If the value of the classification rank is not empty, the sequences will be removed.')
+parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -29,6 +29,7 @@ classificationfilename=args.classification
 taxa=args.taxa
 output=args.out
 classificationrank=args.classificationrank
+seqidpos=args.sequenceidposition
 
 #fastafilename=sys.argv[1]
 #taxa=sys.argv[2]
@@ -38,7 +39,7 @@ classificationrank=args.classificationrank
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 
-def SelectSeqIds(classificationfilename,taxa,classificationpos):
+def SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos):
 	if not os.path.exists(classificationfilename):
 		return [],[]
 	taxalist=[]
@@ -48,15 +49,6 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos):
 	elif taxa!="" and taxa!="unidentified":
 		taxalist.append(taxa)
 	classificationfile=open(classificationfilename)
-	header=next(classificationfile)
-	texts=header.split("\t")
-	seqidpos=0
-	i=0
-	for text in texts:
-		text=text.rstrip()
-		if ("sequence id" in text.lower()) or ("sequenceid" in text.lower()) or ("seqid" in text.lower()) or ("seq id" in text.lower()):
-			seqidpos=i
-		i=i+1	
 	seqids=[]
 	for line in classificationfile:
 		elements=line.rstrip().split("\t")
@@ -96,7 +88,7 @@ def GetPosition(classificationfilename,rank):
 classificationpos=-1
 if classificationfilename!="":
 	classificationpos,isError=GetPosition(classificationfilename,classificationrank)	
-seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos)
+seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos)
 seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
 for seqrec in seqrecords:

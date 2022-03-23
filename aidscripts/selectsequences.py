@@ -24,6 +24,7 @@ parser.add_argument('-t','--taxa', default="", help='the taxa for the selection,
 parser.add_argument('-n','--number', type=int, default=0, help='the maximum number of the sequences to be selected')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for the selection.')
 parser.add_argument('-l','--length', type=int, default=0, help='the required minimum length.')
+parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -33,6 +34,7 @@ output=args.out
 n=args.number
 l=args.length
 classificationrank=args.classificationrank
+seqidpos=args.sequenceidposition
 
 #fastafilename=sys.argv[1]
 #taxa=sys.argv[2] #separated by ;
@@ -42,7 +44,7 @@ classificationrank=args.classificationrank
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 
-def SelectSeqIds(classificationfilename,taxa,classificationpos):
+def SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos):
 	if not os.path.exists(classificationfilename):
 		return [],[]
 	taxalist=[]
@@ -53,14 +55,6 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos):
 		taxalist.append(taxa)
 	classificationfile= open(classificationfilename)
 	header=next(classificationfile)
-	texts=header.split("\t")
-	seqidpos=0
-	i=0
-	for text in texts:
-		text=text.rstrip()
-		if ("sequence id" in text.lower()) or ("sequenceid" in text.lower()) or ("seqid" in text.lower()) or ("seq id" in text.lower()):
-			seqidpos=i
-		i=i+1	
 	seqids=[]
 	for line in classificationfile:
 		elements=line.rstrip().split("\t")
@@ -87,7 +81,7 @@ def GetPosition(classificationfilename,rank):
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
-	texts=header.split("\t")
+	texts=header.rstrip().split("\t")
 	isError=False
 	if rank in texts:
 		pos=texts.index(rank)
@@ -103,7 +97,7 @@ if classificationfilename!="":
 if isError==True:
 	print("The given classification rank is not given in the classification file.")
 	os.sys.exit()	
-seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos)
+seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos)
 seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
 selectedclassnames={}
