@@ -16,11 +16,14 @@ parser=argparse.ArgumentParser(prog='overview.py',
 parser.add_argument('-i','--input', default="", help='the fasta input file.')
 parser.add_argument('-c','--classification', required=True, help='The taxonomic classification file.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
 classificationfilename= args.classification
 outputpath=args.out
+seqidpos=args.sequenceidposition
+
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
@@ -94,12 +97,9 @@ p_o=-1
 p_c=-1
 p_p=-1
 p_k=-1
-p_seqid=0
 words=header.split("\t")
 i=0
 for word in words:
-	if ("seqid" in word.rstrip().lower()) or ("sequenceid" in word.rstrip().lower()) or ("seq id" in word.rstrip().lower()) or ("sequence id" in word.rstrip().lower()):
-		p_seqid=i	
 	if word.rstrip().lower()=="species":
 		p_s=i
 	if word.rstrip().lower()=="genus":
@@ -114,13 +114,13 @@ for word in words:
 		p_p=i	
 	i=i+1           
 outputfile=open(outputfilename,"w")
-seqnumber,seqnumber,count,species=ReportAtLevel(p_seqid,seqids,p_s,p_seqid)
-speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(p_s,seqids,p_g,p_seqid)
-genusnumber,genusseqnumber,count,families=ReportAtLevel(p_g,seqids,p_f,p_seqid)
-familynumber,familyseqnumber,count,orders=ReportAtLevel(p_f,seqids,p_o,p_seqid)
-ordernumber,orderseqnumber,count,classes=ReportAtLevel(p_o,seqids,p_c,p_seqid)
-classnumber,classseqnumber,count,phyla=ReportAtLevel(p_c,seqids,p_p,p_seqid)
-phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(p_p,seqids,p_k,p_seqid)
+seqnumber,seqnumber,count,species=ReportAtLevel(seqidpos,seqids,p_s,seqidpos)
+speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(p_s,seqids,p_g,seqidpos)
+genusnumber,genusseqnumber,count,families=ReportAtLevel(p_g,seqids,p_f,seqidpos)
+familynumber,familyseqnumber,count,orders=ReportAtLevel(p_f,seqids,p_o,seqidpos)
+ordernumber,orderseqnumber,count,classes=ReportAtLevel(p_o,seqids,p_c,seqidpos)
+classnumber,classseqnumber,count,phyla=ReportAtLevel(p_c,seqids,p_p,seqidpos)
+phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(p_p,seqids,p_k,seqidpos)
 if len(seqids) >0:
 	count=len(seqids)
 print("Number of sequences: " + str(count))
