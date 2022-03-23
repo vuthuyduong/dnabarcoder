@@ -30,20 +30,19 @@ def GetWorkingBase(filename):
 	path=outputpath + "/" + basename
 	return path
 
-def ReportAtLevel(level,seqids,higherlevel):
+def ReportAtLevel(level,seqids,higherlevel,seqidpos):
 	if level <0:
 		return 0,0,0
 	classificationfile = open(classificationfilename)
 	next(classificationfile)
 	taxa=[]
-	seqNumbers=[]
 	seqNo=0
 	count=0
 	highertaxa={}
 	for line in classificationfile:
 		count=count+1
 		words=line.split("\t")
-		seqid=words[0].replace(".1","").replace(">","")
+		seqid=words[seqidpos].replace(".1","").replace(">","")
 		if len(seqids) > 0 and (seqid not in seqids):
 			continue
 		if level >=  len(words):
@@ -95,9 +94,12 @@ p_o=-1
 p_c=-1
 p_p=-1
 p_k=-1
+p_seqid=0
 words=header.split("\t")
 i=0
 for word in words:
+	if ("seqid" in word.rstrip().lower()) or ("sequenceid" in word.rstrip().lower()) or ("seq id" in word.rstrip().lower()) or ("sequence id" in word.rstrip().lower()):
+		p_seqid=i	
 	if word.rstrip().lower()=="species":
 		p_s=i
 	if word.rstrip().lower()=="genus":
@@ -112,13 +114,13 @@ for word in words:
 		p_p=i	
 	i=i+1           
 outputfile=open(outputfilename,"w")
-seqnumber,seqnumber,count,species=ReportAtLevel(0,seqids,p_s)
-speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(p_s,seqids,p_g)
-genusnumber,genusseqnumber,count,families=ReportAtLevel(p_g,seqids,p_f)
-familynumber,familyseqnumber,count,orders=ReportAtLevel(p_f,seqids,p_o)
-ordernumber,orderseqnumber,count,classes=ReportAtLevel(p_o,seqids,p_c)
-classnumber,classseqnumber,count,phyla=ReportAtLevel(p_c,seqids,p_p)
-phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(p_p,seqids,p_k)
+seqnumber,seqnumber,count,species=ReportAtLevel(p_seqid,seqids,p_s,p_seqid)
+speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(p_s,seqids,p_g,p_seqid)
+genusnumber,genusseqnumber,count,families=ReportAtLevel(p_g,seqids,p_f,p_seqid)
+familynumber,familyseqnumber,count,orders=ReportAtLevel(p_f,seqids,p_o,p_seqid)
+ordernumber,orderseqnumber,count,classes=ReportAtLevel(p_o,seqids,p_c,p_seqid)
+classnumber,classseqnumber,count,phyla=ReportAtLevel(p_c,seqids,p_p,p_seqid)
+phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(p_p,seqids,p_k,p_seqid)
 if len(seqids) >0:
 	count=len(seqids)
 print("Number of sequences: " + str(count))
