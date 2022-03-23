@@ -51,11 +51,20 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos):
 		taxalist=taxa.split(",")
 	elif taxa!="" and taxa!="unidentified":
 		taxalist.append(taxa)
-	classificationfile= list(open(classificationfilename, "r"))
+	classificationfile= open(classificationfilename)
+	header=next(classificationfile)
+	texts=header.split("\t")
+	seqidpos=0
+	i=0
+	for text in texts:
+		text=text.rstrip()
+		if ("sequence id" in text.lower()) or ("sequenceid" in text.lower()) or ("seqid" in text.lower()) or ("seq id" in text.lower()):
+			seqidpos=i
+		i=i+1	
 	seqids=[]
 	for line in classificationfile:
 		elements=line.rstrip().split("\t")
-		seqid = elements[0].replace(">","").rstrip()
+		seqid = elements[seqidpos].replace(">","").rstrip()
 		classname=""
 		if classificationpos >=0 and classificationpos < len(elements):
 			classname=elements[classificationpos]
@@ -106,11 +115,11 @@ for seqrec in seqrecords:
 		else:
 			classname=classnames[seqids.index(seqrec.id)]
 			if not classname in selectedclassnames.keys():
-				selectedclassnames.setdefault(classname,1)
+				selectedclassnames.setdefault(classname,0)
 			if 	selectedclassnames[classname] <n:
 				if len(str(seqrec.seq))>l:
 					selectedclassnames[classname]=selectedclassnames[classname]+1
-					selectedrecords.append(seqrec)
+					selectedrecords.append(seqrec)			
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
 print("The selected sequences are saved in " + output + ".")
