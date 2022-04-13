@@ -32,7 +32,7 @@ Command:     overview     	                 Get an overview of the dataset
              tree                            Create a phylogenetic tree of the sequences			 
              cluster                         Cluster the sequences
              predict                         Predict similarity cut-offs for the sequences
-             local                           Compute local similarity cut-offs for the sequences			 
+             best                            Compute best similarity cut-offs for the sequences			 
              remove                          Remove similar sequences of the same complexes based on a give threshold
              search                          Search for best matches of the sequences against a file of reference sequences
              classify                        Classify the sequences to the group of their best match if the score is greater than the given cutoff
@@ -97,7 +97,7 @@ Description: The script computes the distribution of the sequences
     
 Arguments:   -i, --input             		Fasta file of Dna sequences, required
              -c, --classification    		The taxonomic classification file in tab delimited format, required
-             -p, --classificationpos 		The classification positions for computing sequence distribution, required			 
+             -ranks, --classificationranks 	The classification ranks for computing sequence distribution, required			 
              -n, --numberofdisplayedlabels  The number of the largest taxa to be displayed in the figure, default=8	
              -method, --visualizationmethod The visualization method: krona or plot, default=plot		 			 
              -o, --out                      The output folder, default= "dnabarcoder"
@@ -120,10 +120,10 @@ version:     %s
 
 Description: The script computes the variation of the sequences
     
-Arguments:   -i, --input             	   Fasta file of Dna sequences, required
-             -c, --classification    	   The taxonomic classification file in tab delimited format, required
-             -p, --classificationpos        The classification positions for computing sequence variation, default=""		 
-             -mc, --mincoverage             Minimum sequence alignment length required for BLAST, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
+Arguments:   -i, --input             	    FASTA file of Dna sequences, required
+             -c, --classification    	    The taxonomic classification file in tab delimited format, required
+             -ranks, --classificationranks  The classification ranks for computing sequence variation, default=""		 
+             -ml, --minalignmentlength      Minimum sequence alignment length required for BLAST, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should be set to smaller, 50 for instance.	
              -m, --maxSeqNo                 The maximum number of randomly selected sequences to be computed in the case the groups are too big, default=0 (no maximum is given).		 	
              -plt, --plottype               The type of visualization: boxplot or plot, default=boxplot
              -o, --out                      The output folder, default= "dnabarcoder"			 
@@ -147,7 +147,7 @@ version:     %s
 Description: The script computes BLAST similarity matrix for sequences
     
 Arguments:   -i, --input             	   Fasta file of Dna sequences, required
-             -mc, --mincoverage            Minimum sequence alignment length required for BLAST, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
+             -ml, --minalignmentlength      Minimum sequence alignment length required for BLAST, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should be set to smaller, 50 for instance.	
              -ms, --minsim                 The minimum similarity that will be saved.
              -o, --out                     The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
@@ -171,10 +171,10 @@ Description: The script visualizes the sequences based on BLAST similarity
     
 Arguments:   -i, --input             	   Fasta file of Dna sequences, required
              -c, --classification    	   The taxonomic classification file in tab delimited format, required
-             -p, --classificationpos        The classification positions for coloring the sequences
+             -rank, --classificationrank    The classification rank for coloring the sequences
              -coord, --coordinates          The coordinates file in json format if exists.
              -sim, --simfilename            The similarity file if exists.				 
-             -mc, --mincoverage             Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
+             -ml, --minalignmentlength      Minimum sequence alignment length required for BLAST, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should be set to smaller, 50 for instance.	
              -ms, --minsim                  The minimum similarity that will be saved for the similarity matrix, default=0.5			 
              -dim, --dimension              The dimension 2D or 3D for visualization, default=3
              -kneigh, --kneigbors           The k-neighbors number for visualization, default=150
@@ -200,10 +200,10 @@ version:     %s
 
 Description: The script visualizes the sequences based on BLAST similarity 
     
-Arguments:   -i, --input             	   Fasta file of Dna sequences, required
-             -c, --classification    	   The taxonomic classification file in tab delimited format 
-             -p, --classificationpos       The classification positions for coloring the sequences             
-             -o, --out                     The output folder, default= "dnabarcoder"			 
+Arguments:   -i, --input             	   	     FASTA file of Dna sequences, required
+             -c, --classification    	         The taxonomic classification file in tab delimited format 
+             -ranks, --classificationranks       The classification ranks for getting sequence descriptions
+             -o, --out                           The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
@@ -223,13 +223,13 @@ version:     %s
 
 Description: The script cluster the sequences with a given threshold (cutoff)
     
-Arguments:   -i, --input             	   Fasta file of Dna sequences, required
-             -t, --cutoff            	   The threshold (cutoff) used for clustering, default=0.97            
-             -sim, --simfilename            The similarity file if exists				 
-             -mc, --mincoverage             Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
-             -c, --classification    	    The taxonomic classification file in tab delimited format, optional. This is used to compute the confidence of clustering
-             -p, --classificationpos        The classification position to load the taxonomic groups to compute the confidence of clustering, optional
-             -o, --out                      The output folder, default= "dnabarcoder"			 
+Arguments:   -i, --input             	        FASTA file of Dna sequences, required
+             -t, --cutoff            	        The threshold (cutoff) used for clustering, default=0.97            
+             -sim, --simfilename                The similarity file if exists				 
+             -ml, --minalignmentlength          Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should probably be set to smaller, 50 for instance.	
+             -c, --classification    	        The taxonomic classification file in tab delimited format, optional. This is used to compute the confidence of clustering.
+             -rank, --classificationrank        The classification rank to compute the confidence measure for clustering, optional
+             -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
@@ -249,13 +249,13 @@ version:     %s
 
 Description: The script removes sequences of the same complexes based on a given threshold (cutoff)
     
-Arguments:   -i, --input             	   Fasta file of Dna sequences, required
-             -t, --cutoff            	   The threshold (cutoff) used for clustering, default=0.97            
-             -sim, --simfilename            The similarity matrix file if exists				 
-             -mc, --mincoverage             Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
-             -c, --classification    	    The taxonomic classification file in tab delimited format, optional. This is used to compute the confidence of clustering
-             -p, --classificationpos        The classification position to load the taxonomic groups to compute the confidence of clustering, optional
-             -o, --out                      The output folder, default= "dnabarcoder"			 
+Arguments:   -i, --input             	        FASTA file of Dna sequences, required
+             -t, --cutoff            	        The threshold (cutoff) used for clustering, default=0.97            
+             -sim, --simfilename                The similarity matrix file if exists				 
+             -ml, --minalignmentlength          Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should probably be set to smaller, 50 for instance.	
+             -c, --classification    	        The taxonomic classification file in tab delimited format, optional. This is used to compute the confidence of clustering
+             -rank, --classificationrank        The classification rank to remove complexes.
+             -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
@@ -275,20 +275,20 @@ version:     %s
 
 Description: The script predicts similarity cut-offs for sequence identification
     
-Arguments:   -i, --input             	        Fasta file of Dna sequences, required       
-             -sim, --simfilename                The similarity matrix file if exists				 
-             -mc, --mincoverage                 Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
-             -c, --classification    	        The taxonomic classification file in tab delimited format 			 
-             -p, --classificationpos            The classification positions for prediction, separated by ","
-             -hp, --higherclassificationpos     The higher classification positions for the prediction. If hp=="", the whole dataset will be used for prediction
-             -st, --startingthreshold           The starting threshold of the prediction
-             -et, --endthreshold                The ending threshold of the prediction		
-             -s, --step       	           ,    The step for the prediction				  
-             -minGroupNo,--minimumgroupnumber   The minimum number of groups for prediction, default=5
-             -minSeqNo,--minimumsequencenumber  The minimum number of sequences for prediction, default=50	
-             -redo,--redo                       Redo the prediction if redo !="", default=""		
-             -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
-             -o, --out                          The output folder, default= "dnabarcoder"			 
+Arguments:   -i, --input             	                   Fasta file of Dna sequences, required       
+             -sim, --simfilename                           The similarity matrix file if exists				 
+             -ml, --minalignmentlength                     Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should probably be set to smaller, 50 for instance.	
+             -c, --classification    	                   The taxonomic classification file in tab delimited format 			 
+             -ranks, --classificationranks                 The classification ranks for prediction, separated by ","
+             -higherranks, --higherclassificationranks     The higher classification ranks for the prediction. If hp=="", the whole dataset will be used for prediction
+             -st, --startingthreshold                      The starting threshold of the prediction
+             -et, --endthreshold                           The ending threshold of the prediction		
+             -s, --step       	           ,               The step for the prediction				  
+             -minGroupNo,--minimumgroupnumber              The minimum number of groups for prediction, default=5
+             -minSeqNo,--minimumsequencenumber             The minimum number of sequences for prediction, default=50	
+             -redo,--redo                                  Redo the prediction if redo !="", default=""		
+             -prefix,--prefix                              Prefix of all output files, default as the base of the input file				  
+             -o, --out                                     The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 
 		""" # % (sys.argv[1], version)
@@ -302,7 +302,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		else:
 			print(help)
 			sys.exit(1)		
-	elif sys.argv[1] == 'local':
+	elif sys.argv[1] == 'best':
 		help = """
 Usage:       dnabarcoder %s <arguments>
 version:     %s
@@ -311,16 +311,14 @@ Description: The script predicts similarity cut-offs for sequence identification
     
 Arguments:   -i, --input             	        the cutoffs file, required       
              -c, --classification    	        The taxonomic classification file in tab delimited format 			 		            
-			 -minGroupNo,--minimumgroupnumber   The minimum number of groups for prediction, default=10
-             -minSeqNo,--minimumsequencenumber  The minimum number of sequences for prediction, default=50	
-             -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
+			 -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
              -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 
 		""" # % (sys.argv[1], version)
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
-			cmd = os.path.join(path, 'prediction', 'computeLocalCutoffs.py')
+			cmd = os.path.join(path, 'prediction', 'computeBestCutoffs.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
@@ -337,7 +335,7 @@ Description: The script classifies a fasta file of sequences against a reference
     
 Arguments:   -i, --input             	        Fasta file of Dna sequences to be classified, required       
              -r, --reference                    Fasta file of reference sequences, required    			 
-             -mc, --mincoverage                 Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
+             -ml, --minalignmentlength          Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should probably be set to smaller, 50 for instance.	
              -prefix,--prefix                   Prefix of all output files, default as the base of the input file				  
              -o, --out                          The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
@@ -362,7 +360,7 @@ Description: The script classifies the sequences to their best match based on lo
 Arguments:   -i, --input             	        The file of classified sequences, required
              -f, --fasta                        The fasta file of classified sequences, required    
              -r, --reference                    The fasta file of reference sequences, required    			 
-             -mc, --mincoverage                 Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, mc should probably be set to 100.	
+             -ml, --minalignmentlength          Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should probably be set to smaller, 50 for instance.	
              -mp, --minproba                    Only consider the classified sequences with a probability greater or equal minproba
              -m, --maxseqno                     Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected, default=0
              -c, --classification    	        The taxonomic classification file in tab delimited format 			 
