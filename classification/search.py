@@ -87,12 +87,14 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 
 	#blast
 	makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out db"
+	print(makedbcommand)
 	os.system(makedbcommand)
 	#for short read
 	blastcommand = "blastn -query " + indexed_query + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
 	#for long read
 	if mincoverage >=400:
 		blastcommand = "blastn -query " + indexed_query + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
+	print(blastcommand)	
 	os.system(blastcommand)
 	
 	#read blast output
@@ -113,7 +115,8 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 		if coverage < mincoverage:
 				score=float(score * coverage)/mincoverage
 		i = int(queryid.split("|")[0])		
-		if score > bestscorelist[i]:
+		#if score > bestscorelist[i]:
+		if score > bestscorelist[i] or (score == bestscorelist[i] and coverage > bestcoveragelist[i]):	
 			bestscorelist[i]= score
 			bestrefidlist[i]=refid
 			bestsimlist[i]=sim

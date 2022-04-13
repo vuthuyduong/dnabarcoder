@@ -14,21 +14,29 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 
 parser=argparse.ArgumentParser(prog='evaluate.py',  
-							   usage="%(prog)s [options] -i predictionfile -c classification",
+							   usage="%(prog)s [options] -i predictionfile -c queryclassification -r referenceclassification",
 							   description='''Script that visualizes using Krona and computes metrices for the classification results.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the assigment/classified file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--queryclassification', default ="", help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
-parser.add_argument('-r','--refclassification', default ="", help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
+parser.add_argument('-c','--queryclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
+parser.add_argument('-r','--refclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
+parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
+parser.add_argument('-givenlabelpos','--givenlabelposition', type=int,default=-1, help='the position of given labels in the prediction file.')
+parser.add_argument('-predpos','--predictionposition', type=int,default=-1, help='the position of predicted labels in the prediction file.')
+parser.add_argument('-rankpos','--rankposition', type=int,default=-1, help='the position of ranks in the prediction file.')
+
 
 args=parser.parse_args()
 predictionfilename=args.input
 queryclassificationfilename=args.queryclassification
 refclassificationfilename=args.refclassification
+
+
 outputpath=args.out
+
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
@@ -128,9 +136,16 @@ def LoadClassification(classificationfilename):
 		return classificationdict
 	classificationfile=open(classificationfilename)
 	header=next(classificationfile)
+	i=0
+	p_seqid=0
+	for text in header.split("\t"):
+		text=text.rstrip().replace(" ","")
+		if ("seqid" in text) or ("sequenceid" in text):
+			p_seqid=i
+		i=i+1	
 	for line in classificationfile:
 		texts=line.split("\t")
-		seqid = texts[0].replace(">","").rstrip()
+		seqid = texts[p_seqid].replace(">","").rstrip()
 		classificationdict.setdefault(seqid,"")
 		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
 		classificationdict[seqid]=classification
@@ -172,18 +187,36 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa
 		outputfile=open(outputname,"w")
 	given_labels=[]
 	pred_labels=[]
+	p_seqid=args.sequenceidposition
+	p_rank=args.rankposition
+	p_givenlabel=args.givenlabelposition
+	p_predlabel=args.predictionposition
 	predictionfile= open(predictionfilename, "r")
 	header=next(predictionfile)
+	if p_givenlabel==-1 or p_predlabel==-1 or p_rank==-1:
+		texts=header.split("\t")
+		i=0
+		for text in texts:
+			text=text.rstrip()
+			if "givenlabel" in text.lower().replace(" ",""):
+				p_givenlabel=i
+			if "prediction" in text.lower().replace(" ",""):
+				p_predlabel=i	
+			if "rank" in text.lower().replace(" ",""):
+				p_rank=i		
+			i=i+1	
 	if outputname!="":
 		outputfile.write(header)
 	for line in predictionfile:
 		texts=line.split("\t")
-		seqid=texts[0]
-		classname=texts[2]
+		seqid=texts[p_seqid]
+		classname=texts[p_predlabel]
 		if classname=="":
 			classname="unidentified"
-		givenlabel=texts[1]
-		rank=texts[5]
+		if classname=="unidentified":
+			continue
+		givenlabel=texts[p_givenlabel]
+		rank=texts[p_rank]
 		level=GetLevel(rank)
 		if seqid in queryclassificationdict.keys():
 			queryclassification=queryclassificationdict[seqid]
@@ -194,8 +227,8 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa
 			givenlabel=givenlabel.replace("_"," ")
 			classname=classname.replace("_"," ")
 			if outputname!="":
-				texts[2]=classname
-				texts[1]=givenlabel
+				texts[p_predlabel]=classname
+				texts[p_givenlabel]=givenlabel
 				newline=""
 				for text in texts:
 					newline=newline + text + "\t"
