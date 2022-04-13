@@ -492,7 +492,7 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 			medianY.append(med.get_ydata()[j])
 		medians[i] = medianY[0]
 		#plot the average value
-		ax.plot(np.average(med.get_xdata()), np.average(data[i]),color='w', marker='*', markeredgecolor='k')
+		ax.plot(np.average(med.get_xdata()), np.average(data[i]),color='w', marker='*', markeredgecolor='k')	
 	#add labels	
 	ax.set_xticklabels(np.array(labels2), rotation=90)	
 	#add median values 
@@ -577,10 +577,10 @@ for classificationposition in positionlist:
 		SaveVariationInTabFormat(jsonvariationfilename + ".txt",variations)
 		print("The variations are saved in the json file  " + jsonvariationfilename + " and tab file " + jsonvariationfilename + ".txt. The figure is saved in " + figoutput + "."  )
 		#plot
-		if plottype=="plot":
-			Plot(prefix,figoutput,variations,rank,displayed)
-		else:	
-			BoxPlot(prefix,figoutput,variations,rank,displayed)
+#		if plottype=="plot":
+#			Plot(prefix,figoutput,variations,rank,displayed)
+#		else:	
+#			BoxPlot(prefix,figoutput,variations,rank,displayed)
 	variationlist.append(variations)
 	labels.append(rank)	
 	i=i+1	
