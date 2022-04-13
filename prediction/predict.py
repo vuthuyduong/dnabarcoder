@@ -31,7 +31,7 @@ parser.add_argument('-ranks','--classificationranks', default="", help='the clas
 parser.add_argument('-st','--startingthreshold', type=float, default=0, help='starting threshold')
 parser.add_argument('-et','--endthreshold', type=float, default=0, help='ending threshold')
 parser.add_argument('-s','--step', type=float, default=0.001, help='the step to be increased for the threshold after each step of the prediction.')
-parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
+parser.add_argument('-ml','--minalignmentlength', type=int,default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 #parser.add_argument('-hp','--higherclassificationpositions', default="", help='The prediction is based on the whole dataset if hp="". Otherwise it will be predicted based on different datasets obtained at the higher classifications, separated by ",".')
 parser.add_argument('-higherranks','--higherclassificationranks', default="", help='The prediction is done on the whole dataset if higherranks="". Otherwise it will be predicted for different datasets obtained at the higher classifications, separated by ",".')
