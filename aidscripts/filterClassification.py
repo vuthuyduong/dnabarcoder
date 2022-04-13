@@ -15,14 +15,22 @@ parser=argparse.ArgumentParser(prog='filterTaxonomicClassification.py',
 
 parser.add_argument('-i','--input', required=True, help='the fasta input file.')
 parser.add_argument('-c','--classification', required=True, help='The taxonomic classification file.')
-parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+parser.add_argument('-seqidpos','--sequenceidposition', type=int, default=0, help='the position of the sequence ids in the classification file.')
+parser.add_argument('-selectedpositions','--selectedpositions', default="", help='the selected positions for loading data from the classification file.')
+
+parser.add_argument('-o','--out', default="", help='The output filename.')
 
 args=parser.parse_args()
 inputfilename= args.input
 classificationfilename= args.classification
 outputfilename=args.out
+seqidpos= args.sequenceidposition
+selectedpositions=args.selectedpositions
+
 
 def GetBase(filename):
+	if not ("." in filename):
+		return filename
 	return filename[:-(len(filename)-filename.rindex("."))]
 
 #if not os.path.exists(outputpath):
@@ -44,8 +52,16 @@ for line in inputfile:
 		seqid=seqid.replace(">","")
 		seqids.append(seqid)
 	elif "\t" in line:
-		seqid=line.split("\t")[0]
-		seqids.append(seqid)
+		seqid=line.split("\t")[seqidpos]
+		seqids.append(seqid.rstrip())	
+positionlist=[]
+if selectedpositions !="":
+	positions=selectedpositions.split(",")
+	for position in positions:
+		if position=="":
+			continue
+		positionlist.append(int(position))
+		
 if outputfilename==None or outputfilename=="":
 	outputfilename=GetBase(inputfilename) + ".classification"		
 taxafilename=GetBase(outputfilename) + ".taxonomic.classification"	
@@ -55,6 +71,12 @@ if sys.version_info[0] ==3 :
 else:
 	classificationfile=open(classificationfilename)
 header=next(classificationfile)
+if len(positionlist)>0:
+	texts=header.split("\t")
+	header=""
+	for pos in positionlist:
+		header=header + texts[pos].rstrip() + "\t" 
+	header=header[:-1] + "\n"	
 p_s=0
 p_g=0
 p_f=0
@@ -87,7 +109,7 @@ if (p_s+p_g+p_g+p_f+p_o+p_c+p_p+p_k)>0:
 outputfile.write(header)
 for line in classificationfile:
 	words=line.split("\t")	   
-	seqid=words[0].rstrip()			
+	seqid=words[seqidpos].rstrip()			
 	if not seqid in seqids:
 		continue
 	words=line.split("\t")
@@ -114,7 +136,14 @@ for line in classificationfile:
 	if (p_s+p_g+p_g+p_f+p_o+p_c+p_p+p_k)>0:	
 		taxclassification=seqid + "\t" + kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species  + "\n"
 		taxafile.write(taxclassification)
-	outputfile.write(line)
+	classification=line	
+	if len(positionlist)>0:
+		texts=line.split("\t")
+		classification=""
+		for pos in positionlist:
+			classification=classification + texts[pos].rstrip() + "\t" 
+		classification=classification[:-1] + "\n"	
+	outputfile.write(classification)
 classificationfile.close()
 taxafile.close()
 outputfile.close()

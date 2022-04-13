@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# FILE: mergeDict.py
+# FILE: mergeCutoffs.py
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2020
 
@@ -8,7 +8,7 @@ import sys, argparse
 import json
 from copy import deepcopy
 
-parser=argparse.ArgumentParser(prog='mergeDict.py',  
+parser=argparse.ArgumentParser(prog='mergeCutoffs.py',  
 							   usage="%(prog)s [options] -i listofdict -o outputname",
 							   description='''The script that merges a list of dictionaries to one dictionary. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
@@ -33,14 +33,14 @@ def SaveCutoffs(mergeddict,outputfilename):
 	#save as tab. format
 	textoutput=outputfilename+".txt"
 	textfile=open(textoutput,"w")
-	textfile.write("Rank\tDataset\tcut-off\tconfidence\tsequence number\tgroup number\tfasta filename\tclassification filename\tclassification position\n")
+	textfile.write("Rank\tDataset\tcut-off\tconfidence\tsequence number\tgroup number\tmin alignment length\tfasta filename\tclassification filename\n")
 	cutoff=0
 	confidence=0
 	SeqNo=0
 	GroupNo=0
 	fastafilename=""
 	classificationfilename=""
-	classificationposition=-1
+	#classificationposition=-1
 	for rank in mergeddict.keys():
 		datasets=mergeddict[rank]
 		for datasetname in datasets.keys():
@@ -57,16 +57,19 @@ def SaveCutoffs(mergeddict,outputfilename):
 			GroupNo=0	
 			if "group number" in dataset.keys():
 				GroupNo=dataset["group number"]
+			minalignmentlength=0
+			if "min alignment length" in dataset.keys():
+				minalignmentlength=dataset["min alignment length"]	
 			fastafilename=""	
 			if "fasta filename" in dataset.keys():	
 				fastafilename=dataset["fasta filename"]
 			classificationfilename=""	
 			if 	"classification filename" in dataset.keys():
 				classificationfilename=dataset["classification filename"]
-			classificationposition=""	
-			if 	"classification position" in dataset.keys():
-				classificationposition=dataset["classification position"]
-			textfile.write(rank+"\t" + datasetname + "\t"+str(cutoff)+"\t"+str(confidence)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\t"+str(classificationposition)+"\n")
+			#classificationposition=""	
+			#if 	"classification position" in dataset.keys():
+			#	classificationposition=dataset["classification position"]
+			textfile.write(rank+"\t" + datasetname + "\t"+str(cutoff)+"\t"+str(confidence)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+ str(minalignmentlength) + "\t" + fastafilename+"\t"+classificationfilename+"\n")
 	textfile.close()
 	print("The outputs are saved in " + outputfilename + " and " + textoutput + ".")
 ####MAIN####

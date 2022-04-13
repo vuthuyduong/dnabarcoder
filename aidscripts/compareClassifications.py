@@ -96,7 +96,7 @@ def LoadClassification(classificationfilename):
 	classes=LoadClassificationAtPos(classificationfilename,p_c,p_score)		
 	phyla=LoadClassificationAtPos(classificationfilename,p_p,p_score)	
 	kingdoms=LoadClassificationAtPos(classificationfilename,p_k,p_score)	
-	return kingdoms,phyla,classes,orders,families,genera,species
+	return kingdoms,phyla,classes,orders,families,genera,species, p_k,p_p,p_c,p_o,p_f,p_g,p_s
 
 def Compare(rank,classes1,classes2,classification1,classification2,output):
 	outputfile=open(output,"a")
@@ -176,7 +176,47 @@ def Compare(rank,classes1,classes2,classification1,classification2,output):
 	print("The comparison at the " + rank + " taxonomic level is saved in file " +  output + "." + rank + "." )
 	return seqids1,seqids2,onlyseqids1,onlyseqids2
 	
-def CreateNewClassificationFile(filename,newfilename,skeys,selectedsseqids,gkeys,selectedgseqids,fkeys,selectedfseqids,okeys,selectedoseqids,ckeys,selectedcseqids,pkeys,selectedpseqids,kkeys,selectedkseqids):
+def CreateNewClassificationFile(filename,newfilename,skeys,gkeys,fkeys,okeys,ckeys,pkeys,kkeys,p_k,p_p,p_c,p_o,p_f,p_g,p_s):
+	newfile=open(newfilename,"w")
+	file=open(filename)
+	header=next(file)
+	newfile.write(header)
+	for line in file:
+		newline=""
+		seqid=line.split("\t")[0]
+		texts=line.split("\t")
+		i=0
+		for text in texts:
+			text=text.rstrip()
+			if i==p_s:
+				if not (seqid in skeys):
+					text="unidentified"
+			if i==p_g:
+				if not (seqid in gkeys):
+					text="unidentified"		
+			if i==p_f:
+				if not (seqid in fkeys):
+					text="unidentified"	
+			if i==p_o:
+				if not (seqid in okeys):
+					text="unidentified"		
+			if i==p_c:
+				if not (seqid in ckeys):
+					text="unidentified"	
+			if i==p_p:
+				if not (seqid in pkeys):
+					text="unidentified"			
+			if i==p_k:
+				if not (seqid in kkeys):
+					text="unidentified"			
+			newline=newline + text +"\t" 		
+			i=i+1
+		newline=newline[:-1] + "\n"	
+		newfile.write(newline)	
+	newfile.close()
+	file.close()
+	
+def CreateNewClassificationFileForSelectedSeqIds(filename,newfilename,skeys,gkeys,fkeys,okeys,ckeys,pkeys,kkeys):
 	newfile=open(newfilename,"w")
 	file=open(filename)
 	header=next(file)
@@ -185,36 +225,63 @@ def CreateNewClassificationFile(filename,newfilename,skeys,selectedsseqids,gkeys
 		seqid=line.split("\t")[0]
 		isok=0
 		if (seqid in skeys):
-			if (seqid in selectedsseqids):
-				isok=1
-		elif (seqid in gkeys):
-			if seqid in selectedgseqids:
-				isok=1
-		elif (seqid in fkeys):
-			if (seqid in selectedfseqids):
-				isok=1
-		elif (seqid in okeys):
-			if (seqid in selectedoseqids):
-				isok=1
-		elif (seqid in ckeys):
-			if (seqid in selectedcseqids):
-				isok=1
-		elif (seqid in pkeys):
-			if (seqid in selectedpseqids):
-				isok=1
-		elif (seqid in kkeys):
-			if (seqid in selectedkseqids):
-				isok=1
+			isok=1
+		elif seqid in gkeys:
+			isok=1
+		elif seqid in fkeys:
+			isok=1
+		elif seqid in okeys:
+			isok=1
+		elif seqid in ckeys:
+			isok=1
+		elif seqid in pkeys:
+			isok=1
+		elif seqid in kkeys:
+			isok=1
 		if isok==1:
 			newfile.write(line)	
 	newfile.close()
-	file.close()
+	file.close()	
+	
+#def CreateNewClassificationFileForSelectedSeqIds(filename,newfilename,skeys,selectedsseqids,gkeys,selectedgseqids,fkeys,selectedfseqids,okeys,selectedoseqids,ckeys,selectedcseqids,pkeys,selectedpseqids,kkeys,selectedkseqids):
+#	newfile=open(newfilename,"w")
+#	file=open(filename)
+#	header=next(file)
+#	newfile.write(header)
+#	for line in file:
+#		seqid=line.split("\t")[0]
+#		isok=0
+#		if (seqid in skeys):
+#			if (seqid in selectedsseqids):
+#				isok=1
+#		elif (seqid in gkeys):
+#			if seqid in selectedgseqids:
+#				isok=1
+#		elif (seqid in fkeys):
+#			if (seqid in selectedfseqids):
+#				isok=1
+#		elif (seqid in okeys):
+#			if (seqid in selectedoseqids):
+#				isok=1
+#		elif (seqid in ckeys):
+#			if (seqid in selectedcseqids):
+#				isok=1
+#		elif (seqid in pkeys):
+#			if (seqid in selectedpseqids):
+#				isok=1
+#		elif (seqid in kkeys):
+#			if (seqid in selectedkseqids):
+#				isok=1
+#		if isok==1:
+#			newfile.write(line)	
+#	newfile.close()
+#	file.close()	
 ###
 
 classification1=os.path.basename(classificationfilename1)
 classification2=os.path.basename(classificationfilename2)
-kingdoms1,phyla1,classes1,orders1,families1,genera1,species1=LoadClassification(classificationfilename1)
-kingdoms2,phyla2,classes2,orders2,families2,genera2,species2=LoadClassification(classificationfilename2)
+kingdoms1,phyla1,classes1,orders1,families1,genera1,species1,p_k1,p_p1,p_c1,p_o1,p_f1,p_g1,p_s1=LoadClassification(classificationfilename1)
+kingdoms2,phyla2,classes2,orders2,families2,genera2,species2,p_k2,p_p2,p_c2,p_o2,p_f2,p_g2,p_s2=LoadClassification(classificationfilename2)
 outputfile=open(output,"w")	
 outputfile.write("Rank\tSequence number of " + classification1+ "\tSequence number of " + classification2 + "\tNumber of common sequences\tNumber of the same classification\tNumber of different classifications\tHigher scores by first classification\tHigher scores by second classification\tLess scores by first classification\tLess scores by second classification\tOnly by first classification\tOnly by second classification\n")
 outputfile.close()
@@ -227,18 +294,18 @@ pseqids1,pseqids2,onlypseqids1,onlypseqids2=Compare("phylum",phyla1,phyla2,class
 kseqids1,kseqids2,onlykseqids1,onlykseqids2=Compare("kingdom",kingdoms1,kingdoms2,classification1,classification2,output)
 outputfile.close()
 #write better classification to file
-newclassificationfilename1=classificationfilename1 + ".better"
-newclassificationfilename2=classificationfilename2 + ".better"
-CreateNewClassificationFile(classificationfilename1,newclassificationfilename1,species1.keys(),sseqids1,genera1.keys(),gseqids1,families1.keys(),fseqids1,orders1.keys(),oseqids1,classes1.keys(),cseqids1,phyla1.keys(),pseqids1,kingdoms1.keys(),kseqids1)
-CreateNewClassificationFile(classificationfilename2,newclassificationfilename2,species2.keys(),sseqids2,genera2.keys(),gseqids2,families2.keys(),fseqids2,orders2.keys(),oseqids2,classes2.keys(),cseqids2,phyla2.keys(),pseqids2,kingdoms2.keys(),kseqids2)
+newclassificationfilename1=classificationfilename1 + ".worseclassificationremoved"
+newclassificationfilename2=classificationfilename2 + ".worseclassificationremoved"
+CreateNewClassificationFile(classificationfilename1,newclassificationfilename1,sseqids1,gseqids1,fseqids1,oseqids1,cseqids1,pseqids1,kseqids1,p_k1,p_p1,p_c1,p_o1,p_f1,p_g1,p_s1)
+CreateNewClassificationFile(classificationfilename2,newclassificationfilename2,sseqids2,gseqids2,fseqids2,oseqids2,cseqids2,pseqids2,kseqids2,p_k2,p_p2,p_c2,p_o2,p_f2,p_g2,p_s2)
 
 ##write only classification to file
 newclassificationfilename1_by_1_only=classificationfilename1 + ".only"
 newclassificationfilename2_by_2_only=classificationfilename2 + ".only"
-CreateNewClassificationFile(classificationfilename1,newclassificationfilename1_by_1_only,species1.keys(),onlysseqids1,genera1.keys(),onlygseqids1,families1.keys(),onlyfseqids1,orders1.keys(),onlyoseqids1,classes1.keys(),onlycseqids1,phyla1.keys(),onlypseqids1,kingdoms1.keys(),onlykseqids1)
-CreateNewClassificationFile(classificationfilename2,newclassificationfilename2_by_2_only,species2.keys(),onlysseqids2,genera2.keys(),onlygseqids2,families2.keys(),onlyfseqids2,orders2.keys(),onlyoseqids2,classes2.keys(),onlycseqids2,phyla2.keys(),onlypseqids2,kingdoms2.keys(),onlykseqids2)
+CreateNewClassificationFileForSelectedSeqIds(classificationfilename1,newclassificationfilename1_by_1_only,onlysseqids1,onlygseqids1,onlyfseqids1,onlyoseqids1,onlycseqids1,onlypseqids1,onlykseqids1)
+CreateNewClassificationFileForSelectedSeqIds(classificationfilename2,newclassificationfilename2_by_2_only,onlysseqids2,onlygseqids2,onlyfseqids2,onlyoseqids2,onlycseqids2,onlypseqids2,onlykseqids2)
 
 print("The comparison is saved in file " + output + ".")
-print("The better classifications are saved in files " + newclassificationfilename1 + " and " + newclassificationfilename2 + ".")
+print("The classifications with worse classifications removed are saved in files " + newclassificationfilename1 + " and " + newclassificationfilename2 + ".")
 print("The only classifications are saved in files " + newclassificationfilename1_by_1_only + " and " + newclassificationfilename2_by_2_only + ".")
 
