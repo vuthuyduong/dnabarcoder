@@ -79,7 +79,7 @@ Here l is the interval length. Analyzing sequence lengths is important to decide
 
 ../../dnabarcoder.py distribution -i CBSITS.fasta -c CBSITS.current.classification -ranks class,order,family,genus,species            
 
-where ranks are the classification ranks that we are interested in. Next to a text file containing output information, a figure is generated as follows:
+where ranks are the classification ranks that we are interested in. Next to an output text file containing output information, a figure is generated as follows:
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.distribution.png" width="300" height="300">
 
@@ -93,20 +93,26 @@ If we want to visualize the distribution of the sequences with Krona, then we ca
 
 Here the minimum BLAST alignment length ml is set to 400 as 95% of the barcodes have a length of more than 400bp. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. Next to an output text file, a figure is generated as follows:
 
-<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.variation.png" width="600" height="300">
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.variation.png" width="500" height="300">
 
 - To compute a similarity matrix for the barcodes:
 
 ../../dnabarcoder.py sim -i CBSITS.fasta -ml 400
 
-The output is given in the file dnabarcoder/CBSITS.sim
+The output is given in the file dnabarcoder/CBSITS.sim. 
+
+## Visualization
 
 The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
-Together with sequence distribution and variation, visu-alization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
+Together with sequence distribution and variation, visualization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
 
 ../../dnabarcoder.py visualize -i CBSITS.fasta -c CBSITS.current.classification -rank class -ml 400 -sim dnabarcoder/CBSITS.sim
 
-If the simmatrix is not given, dnabarcoder will compute it and save it in the file dnabarcoder/CBSITS.sim.
+The output is given below:
+
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.3.visualization.png" width="300" height="300">
+
+If the simmatrix is not given, dnabarcoder will compute it and save it in the file dnabarcoder/CBSITS.sim. Note that if the computer cannot handle the complete similarity matrix, it is better to use [fMLC](https://github.com/vuthuyduong/fMLC) (the Windows platform).
 
 Here the sequences are colored by on the taxa at the class level. 
 
