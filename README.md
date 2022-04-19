@@ -2,7 +2,7 @@
 
 Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a FASTA file  and their taxonomic classification (at the species, genus, family, order, class, etc. levels) in a tab-delimited file as inputs (see data/CBSITS.fasta and data/CBSITS.current.classification for the format of the files). The output of dnabarcode will be saved in an folder given by the user. If this folder is not given, the folder namely dnabarcoder will be created. Dnabarcoder contains four components: analysis, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs. 
 
-<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/figure1.jpg" width="1000" height="300">
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/dnabarcoder_flowchart.jpg" width="1000" height="300">
 
 For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file data/CBSITS2.sh.
 
