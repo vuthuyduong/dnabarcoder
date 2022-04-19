@@ -71,14 +71,17 @@ The output is given in the file dnabarcoder/CBSITS.overview. The overview at the
 
 ../../dnabarcoder.py length -i CBSITS.fasta -l 100
 
-Here l is the interval length. Analyzing sequence lengths is important to decide the minimum BLAST alignment length ml. Next to a text file, a figure will be generated as an output of the function:
+Here l is the interval length. Analyzing sequence lengths is important to decide the minimum BLAST alignment length ml. Next to a text file, a figure will be generated as an output of the function as follows:
 
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.length.png" width="1000" height="300">
 
 -To get the distribution of the sequences at different taxonomic level. In the following example, the distribution of the sequences is computed from the species to the class level:
 
 ../../dnabarcoder.py distribution -i CBSITS.fasta -c CBSITS.current.classification -ranks class,order,family,genus,species            
 
 where ranks are the classification ranks that we are interested in.
+
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.distribution.png" width="300" height="300">
 
 If we want to visualize the distribution of the sequences with Krona, then we can use the following command:
 
