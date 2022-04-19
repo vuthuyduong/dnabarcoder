@@ -4,6 +4,14 @@ Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal
 
 Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification.
 
+## Contact person 
+
+Duong Vu (d.vu@wi.knaw.nl)
+
+## Citation
+
+Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-source software package for analyzing and predicting DNA sequence similarity cut-offs for fungal sequence identification. DOI: 10.22541/au.164201896.67817672/v1
+
 ## Dependencies:
 
 - [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi), used for DNA sequence comparisons
@@ -193,9 +201,6 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 
 The CBSITS barcode dataset was released in Vu et al. (2019), while the UNITErelease.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The CBSITS.current.classification and UNITErelease.current.classification were updated from [Mycobank](https://www.mycobank.org/).
 
-## Contact person 
-
-Duong Vu (d.vu@wi.knaw.nl)
 
 
 ## References
