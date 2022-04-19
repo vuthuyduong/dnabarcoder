@@ -112,9 +112,9 @@ The output is given below:
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.3.visualization.png" width="300" height="300">
 
-If the simmatrix is not given, dnabarcoder will compute it and save it in the file dnabarcoder/CBSITS.sim. Note that if the computer cannot handle the complete similarity matrix, it is better to use [fMLC](https://github.com/vuthuyduong/fMLC) (the Windows platform).
-
 Here the sequences are colored by on the taxa at the class level. 
+
+If the simmatrix is not given, dnabarcoder will compute it and save it in the file dnabarcoder/CBSITS.sim. Note that if the computer cannot handle the complete similarity matrix, it is better to use [fMLC](https://github.com/vuthuyduong/fMLC/tree/master/Windows) for visualization.
 
 We can also visualize the sequences using [DIVE](https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
 
@@ -134,6 +134,10 @@ The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predic
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family,order,class,phylum -ml 400
 
+If a similarity matrix is given, then we can use it for the prediction:
+
+../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim
+
 We can also predict the local cutoffs at a given rank individually:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family -ml 400
@@ -141,7 +145,6 @@ We can also predict the local cutoffs at a given rank individually:
 or in a given taxa:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks phylum -ml 400 -taxa Ascomycota
-
 
 - To predict global and local similarity cut-offs for the CBSITS dataset at the species level, we first need to remove sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
 
@@ -160,6 +163,23 @@ The prefix is to save the prediction and the predicted cutoffs in files dnabarco
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -ranks species -higherranks genus,family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
 The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
+
+To visualize the global prediction for all ranks, use the following command:
+
+../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -ranks species,genus,family,order,class
+
+The output is given below:
+
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.global.png" width="600" height="300">
+
+
+To visualize the local prediction for species identification in the genera of the reference dataset, use the following command:
+
+../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks species -higherranks genus
+
+The output is given below:
+
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.7.local.png" width="600" height="300">
 
 
 To compute the best cutoffs:
