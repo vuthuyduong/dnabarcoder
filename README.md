@@ -69,7 +69,6 @@ The output is given in the file dnabarcoder/CBSITS.overview. The overview at the
 
 Here l is the interval length. Analyzing sequence lengths is important to decide the minimum BLAST alignment length ml. Next to a text file, a figure will be generated as an output of the function:
 
-<img src="C:/Users/Duong Vu/Documents/CBSPapers/DnaBarcoder_2022/Data/moldITS_SH/dnabarcoder/moldITS.length.png" alt="Alt text" title="The median (in blue) and minimum (in red) similarity scores computed for all groups of the reference filamentous fungal CBS ITS barcode dataset at different taxonomic levels">
 
 -To get the distribution of the sequences at different taxonomic level. In the following example, the distribution of the sequences is computed from the species to the class level:
 
