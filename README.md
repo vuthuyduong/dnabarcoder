@@ -79,9 +79,9 @@ Here l is the interval length. Analyzing sequence lengths is important to decide
 
 ../../dnabarcoder.py distribution -i CBSITS.fasta -c CBSITS.current.classification -ranks class,order,family,genus,species            
 
-where ranks are the classification ranks that we are interested in.
+where ranks are the classification ranks that we are interested in. Next to a text file containing output information, a figure is generated as follows:
 
-<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.distribution.png" width="300" height="300">
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.distribution.png" width="1000" height="300">
 
 If we want to visualize the distribution of the sequences with Krona, then we can use the following command:
 
@@ -91,7 +91,9 @@ If we want to visualize the distribution of the sequences with Krona, then we ca
 
 ../../dnabarcoder.py variation -i CBSITS.fasta -c CBSITS.current.classification -ranks class,order,family,genus,species  -ml 400
 
-Here the minimum BLAST alignment length ml is set to 400 as 95% of the barcodes have a length of more than 400bp. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50.
+Here the minimum BLAST alignment length ml is set to 400 as 95% of the barcodes have a length of more than 400bp. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. Next to an output text file, a figure is generated as follows:
+
+<img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.variation.png" width="1000" height="300">
 
 - To compute a similarity matrix for the barcodes:
 
