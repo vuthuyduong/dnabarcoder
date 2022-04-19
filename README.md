@@ -28,6 +28,10 @@ Using conda:
 
 conda install -c duong.t.vu dnabarcoder
 
+## Inputs
+
+As mentioned earlier, most of the functions dnabarcoder requires two files as inputs: a FASTA file containing reference sequences with unique sequence ids, and a classification file in a tab-delimited format containing the taxonomic classification of the sequences where the header contains the ranks of the sequences. Examples can be found in files data/CBSITS.fasta and data/CBSITS.current.classification, respectively.
+
 ## Analysis and Visualization
 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. All outputs will be saved in an output folder, dnabarcoder is given as default.
