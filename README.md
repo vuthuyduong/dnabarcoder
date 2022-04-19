@@ -9,16 +9,30 @@ Although dnabarcoder was initially developed for fungi, it is applicable to any 
 - [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi), used for DNA sequence comparisons
 - [Matplot](https://matplotlib.org/), used for the visualization of the results
 - [Krona](https://github.com/marbl/Krona/wiki), optional for visualizing classifications
-- [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optinal for visualization
+- [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optional for visualization
 - [DiVE](https://nlesc.github.io/DiVE), optional for visualization
 - [IQtree](http://www.iqtree.org/), optional for verification
 - [Clustalo](http://www.clustal.org/omega/), opional for verification
+
+## Installation:
+
+Using github:
+
+git clone https://github.com/vuthuyduong/dnabarcoder.git
+
+Using pypi:
+
+pip install dnabarcoder
+
+Using conda:
+
+conda install -c duong.t.vu dnabarcoder
 
 ## Analysis and Visualization
 
 The analyzation component was to get an overview, and to study the length, the distribution, and the similarity variation of the sequences at different taxonomic levels. All outputs will be saved in an output folder, dnabarcoder is given as default.
 
-- To get an overview of the moldITS.fasta dataset:
+- To get an overview of the CBSITS.fasta dataset:
 
 ../../dnabarcoder.py overview -i CBSITS.fasta -c CBSITS.current.classification
 
