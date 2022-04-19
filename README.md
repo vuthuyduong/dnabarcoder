@@ -1,6 +1,6 @@
 # Dnabarcoder
 
-Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a fasta file  and their taxonomic classification (at the species, genus, family, order, class, etc. levels) in a tab delimited file as inputs (see data/filamentousfungalITS.fasta and data/filamentousfungalITS.current.classification for the format of the files). The output of dnabarcode will be saved in an folder given by the user. If this folder is not given, the folder namely dnabarcoder will be created. Dnabarcoder contains four components: analysis, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs. For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file data/CBSITS2.sh.
+Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal sequence identification. It was implemented in Python which takes DNA barcodes in a FASTA file  and their taxonomic classification (at the species, genus, family, order, class, etc. levels) in a tab-delimited file as inputs (see data/CBSITS.fasta and data/CBSITS.current.classification for the format of the files). The output of dnabarcode will be saved in an folder given by the user. If this folder is not given, the folder namely dnabarcoder will be created. Dnabarcoder contains four components: analysis, visualization, prediction, and classification to help analyze and predict similarity cut-offs for a dataset of barcodes as well as its subclades, and to classify a dataset against the barcode dataset with the predicted cut-offs. For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file data/CBSITS2.sh.
 
 Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification.
 
@@ -34,10 +34,16 @@ conda install -c duong.t.vu dnabarcoder
 As mentioned earlier, most of the functions dnabarcoder requires two files as inputs: a FASTA file containing reference sequences with unique sequence ids, and a classification file in a tab-delimited format containing the taxonomic classification of the sequences where the header contains the ranks of the sequences as follows:
 
 Seqid	kingdom	phylum	class	order	family	genus	species	strain number
+
 MH854569	Fungi	Ascomycota	Dothideomycetes			Monodictys	Monodictys castaneae	CBS 100.07
+
 MH854570	Fungi	Ascomycota	Sordariomycetes	Hypocreales	Nectriaceae	Fusarium	Fusarium equiseti	CBS 107.07
 
 Examples can be found in files data/CBSITS.fasta and data/CBSITS.current.classification, respectively.
+
+## Outputs
+
+Outputs of dnabarcoder will be saved in an output folder, specified by the user. If this output folder is not given, a folder namely dnabarcoder will be created automatically.
 
 ## Analysis and Visualization
 
