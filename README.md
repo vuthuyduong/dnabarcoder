@@ -204,7 +204,7 @@ The best similarity cut-offs are saved in json and text format files dnabarcoder
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
 
 
-## Classification and Verification
+## Classification 
 
 The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs given by the users or predicted by dnabarcoder for the reference dataset. The similarity cut-offs file should be in json format and have a structure similar to the structure of the file data/CBSITS.cutoffs.json. For classification, dnabarcoder will use the cut-off given in the 'cut-off' tag for classification.
 
@@ -245,6 +245,8 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 - To visualize the classification/assignment results with Krona:
 
 ../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c filamentousfungalITS.current.classification
+
+## Verification
 
 - To verify the classification results based on phylogenic trees at the species level:
 
