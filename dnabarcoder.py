@@ -23,7 +23,7 @@ version:     %s
 
 Description: dnabarcoder is a tool for the analysis, visualization, classification, and predictions of similarity cut-offs for dna barcodes
     
-Command:     overview     	                 Get an overview of the dataset 
+Command:     overview     	             Get an overview of the dataset 
              length                          Compute length distribution
              distribution                    Compute sequence distribution
              variation                       Compute sequence variation
@@ -33,6 +33,7 @@ Command:     overview     	                 Get an overview of the dataset
              cluster                         Cluster the sequences
              predict                         Predict similarity cut-offs for the sequences
              best                            Compute best similarity cut-offs for the sequences			 
+             merge                           Merge two similarity cut-offs files	
              remove                          Remove similar sequences of the same complexes based on a give threshold
              search                          Search for best matches of the sequences against a file of reference sequences
              classify                        Classify the sequences to the group of their best match if the score is greater than the given cutoff
@@ -319,6 +320,28 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		arguments = sys.argv[2:]
 		if len(arguments) > 1:
 			cmd = os.path.join(path, 'prediction', 'computeBestCutoffs.py')
+			arguments.insert(0, cmd)
+			exe = sys.executable
+			arguments.insert(0, exe)
+			subprocess.call(arguments)
+		else:
+			print(help)
+			sys.exit(1)	
+	elif sys.argv[1] == 'merge':
+		help = """
+Usage:       dnabarcoder %s <arguments>
+version:     %s
+
+Description: The script predicts similarity cut-offs for sequence identification
+    
+Arguments:   -i, --input             	        the cutoffs filenames separated by commas, required       				  
+             -o, --out                          The merged cut-offs file, required
+Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
+
+		""" # % (sys.argv[1], version)
+		arguments = sys.argv[2:]
+		if len(arguments) > 1:
+			cmd = os.path.join(path, 'prediction', 'mergeCutoffs.py')
 			arguments.insert(0, cmd)
 			exe = sys.executable
 			arguments.insert(0, exe)
