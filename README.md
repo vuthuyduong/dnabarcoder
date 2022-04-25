@@ -128,7 +128,14 @@ The third component is to cluster and predict a similarity cut-off for sequence 
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400
 
-The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt
+The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. If we wish to recompute the existing prediction, please use the following command:
+
+../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400 -redo yes
+
+If we wish the prediction will appended to an existing file with a given prefix such as existingCBSITS for example, please use the following command:
+
+../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400 -prefix existingCBSITS
+
 
 - To predict local similarity cut-offs at the genus level of the CBSITS dataset for example, use the followig command:
 
