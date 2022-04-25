@@ -75,7 +75,7 @@ Here l is the interval length. Analyzing sequence lengths is important to decide
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.length.png" width="1000" height="300">
 
--To get the distribution of the sequences at different taxonomic level. In the following example, the distribution of the sequences is computed from the species to the class level:
+- To get the distribution of the sequences at different taxonomic level. In the following example, the distribution of the sequences is computed from the species to the class level:
 
 ../../dnabarcoder.py distribution -i CBSITS.fasta -c CBSITS.current.classification -ranks class,order,family,genus,species            
 
@@ -128,11 +128,13 @@ The third component is to cluster and predict a similarity cut-off for sequence 
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400
 
-The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. If we wish to recompute the existing prediction, please use the following command:
+The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
+
+- If we wish to recompute the existing prediction, please use the following command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400 -redo yes
 
-If we wish the prediction will appended to an existing file with a given prefix such as existingCBSITS for example, please use the following command:
+- If we wish the prediction will appended to an existing file with a given prefix such as existingCBSITS for example, please use the following command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400 -prefix existingCBSITS
 
@@ -141,11 +143,11 @@ If we wish the prediction will appended to an existing file with a given prefix 
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family,order,class,phylum -ml 400
 
-If a similarity matrix is given, then we can use it for the prediction:
+- If a similarity matrix is given, then we can use it for the prediction:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim
 
-We can also predict the local cutoffs at a given rank individually:
+- We can also predict the local cutoffs at a given rank individually:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family -ml 400
 
@@ -159,19 +161,19 @@ or in a given taxa:
 
 Here t is the threshold or cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/CBSITS.species.diff.fasta dna dnabarcoder/CBSITS.similar
 
--To predict global similarity cut-off for species identification of the CBSITS dataset:
+- To predict global similarity cut-off for species identification of the CBSITS dataset:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -ranks species -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS
 
 The prefix is to save the prediction and the predicted cutoffs in files dnabarcoder/CBSITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
 
--To predict local similarity cut-offs for species identification of the CBSITS dataset:
+- To predict local similarity cut-offs for species identification of the CBSITS dataset:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -ranks species -higherranks genus,family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
 The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
 
-To visualize the global prediction for all ranks, use the following command:
+- To visualize the global prediction for all ranks, use the following command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -ranks species,genus,family,order,class
 
@@ -180,7 +182,7 @@ The output is given below:
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.global.png" width="600" height="300">
 
 
-To visualize the local prediction for species identification in the genera of the reference dataset, use the following command:
+- To visualize the local prediction for species identification in the genera of the reference dataset, use the following command:
 
 ../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks species -higherranks genus
 
@@ -189,7 +191,7 @@ The output is given below:
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.7.local.png" width="600" height="300">
 
 
-To compute the best cutoffs:
+- To compute the best cutoffs:
 
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json -c CBSITS.current.classification
 
@@ -220,7 +222,7 @@ Here 0.994 is the global similarity cut-off for sequence identification at the s
 
 The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.classified. 
 
-Only classify at the species level:
+- Only classify at the species level:
 
 ../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS.fasta -c fCBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs  -rank species
 
