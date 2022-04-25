@@ -199,15 +199,14 @@ The output is given below:
 The best similarity cut-offs are saved in json and text format files dnabarcoder/CBSITS.cutoffs.best.json and dnabarcoder/CBSITS.cutoffs.best.txt.
 
 
-- To merge two similarity cut-offs files, use the following commands:
+- To merge two or more similarity cut-offs files, use the following commands. For a taxonomic level and group, the output file will keep the similarity cut-off having the highest confidence:
 
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
 
 
-
 ## Classification and Verification
 
-The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs predicted for the reference dataset.
+The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs given by the users or predicted by dnabarcoder for the reference dataset. The similarity cut-offs file should be in json format and have a structure similar to the structure of the file data/CBSITS.cutoffs.json. For classification, dnabarcoder will use the cut-off given in the 'cut-off' tag for classification.
 
 - To search for the best match of the sequences in the UNITErelease.fasta file, use the following command:
 
@@ -222,6 +221,10 @@ To classify the UNITE sequences based on best matches, using the following comma
 ../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS.fasta -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
 
 Here 0.994 is the global similarity cut-off for sequence identification at the species level. The result will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.0994.classified. 
+
+- Note that dnabarcoder could also take the output of BLAST (fmt 6) as the input for classification. Please use the following command:
+
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.blastoutput -f UNITErelease.fasta -r CBSITS.fasta -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
 
 - Locally, based on the similarity cut-off predicted for the best match:
 
@@ -239,7 +242,7 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 
 ../../dnabarcoder.py accuracy -i dnabarcoder/UNITErelease.CBSITS_BLAST.species.classified -c UNITErelease.current.classification -r CBSITS.current.classification
 
--To visualize the classification/assignment results with Krona:
+- To visualize the classification/assignment results with Krona:
 
 ../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c filamentousfungalITS.current.classification
 
