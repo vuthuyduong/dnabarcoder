@@ -126,7 +126,7 @@ If the simmatrix is not given, dnabarcoder will compute it and save it in the fi
 
 The third component is to cluster and predict a similarity cut-off for sequence identification based on taxonomic classification. Given a taxonomic level, if higher taxonomic levels are not given, then whole dataset will be used for the prediction.
 
-- To predict a global similarity cut-off at the genus level of the moldITS dataset for example, use the followig command:
+- To predict a global similarity cut-off at the genus level of the CBSITS dataset for example, use the followig command. Note that this action should not be used for a very large dataset as it might take quite sometime to finish.
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -ml 400
 
@@ -153,7 +153,7 @@ The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predic
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks family -ml 400
 
-or in a given taxa:
+- or in a given taxa:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -ranks genus -higherranks phylum -ml 400 -taxa Ascomycota
 
@@ -161,13 +161,12 @@ or in a given taxa:
 
 ../../dnabarcoder.py remove -i CBSITS.fasta -c CBSITS.current.classification -ranks species -sim dnabarcoder/CBSITS.sim -ml 400 -t 1
 
-Here t is the threshold or cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/CBSITS.species.diff.fasta dna dnabarcoder/CBSITS.similar
+Here t is the threshold or similarity cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/CBSITS.species.diff.fasta dna dnabarcoder/CBSITS.similar
 
 - To predict global similarity cut-off for species identification of the CBSITS dataset:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -ranks species -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS
 
-The prefix is to save the prediction and the predicted cutoffs in files dnabarcoder/CBSITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
 
 - To predict local similarity cut-offs for species identification of the CBSITS dataset:
 
@@ -198,6 +197,12 @@ The output is given below:
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json -c CBSITS.current.classification
 
 The best similarity cut-offs are saved in json and text format files dnabarcoder/CBSITS.cutoffs.best.json and dnabarcoder/CBSITS.cutoffs.best.txt.
+
+
+- To merge two similarity cut-offs files, use the following commands:
+
+../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
+
 
 
 ## Classification and Verification
