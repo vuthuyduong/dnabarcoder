@@ -24,7 +24,7 @@ parser=argparse.ArgumentParser(prog='classify.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the classified file')
-parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
+parser.add_argument('-fmt','--inputformat', default="tab_delimited", help='the format of the classified file. The inputfmt can have two values "tab_delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
 parser.add_argument('-f','--fasta', default="", help='the fasta file')
 parser.add_argument('-r','--reference', default="", help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
