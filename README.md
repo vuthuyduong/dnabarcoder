@@ -106,9 +106,11 @@ The output is given in the file dnabarcoder/CBSITS.sim.
 The second component of dnabarcoder is to visualize the sequences-based 2D/3D “embeddings” using Matplotlib. Sequences’ coordinates are computed using LargeVis.
 Together with sequence distribution and variation, visualization helped evaluate the predicted similarity cut-offs and classifi-cation results. 
 
+- To visualize the sequences, use the following command:
+
 ../../dnabarcoder.py visualize -i CBSITS.fasta -c CBSITS.current.classification -rank class -ml 400 -sim dnabarcoder/CBSITS.sim
 
-The output is given below:
+Here the sequences of the same taxonomic class will have the same color. The output is given below:
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.3.visualization.png" width="300" height="300">
 
@@ -116,7 +118,7 @@ Here the sequences are colored by on the taxa at the class level.
 
 If the simmatrix is not given, dnabarcoder will compute it and save it in the file dnabarcoder/CBSITS.sim. Note that if the computer cannot handle the complete similarity matrix, it is better to use [fMLC](https://github.com/vuthuyduong/fMLC/tree/master/Windows) for visualization.
 
-We can also visualize the sequences using [DIVE](https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
+- We can also visualize the sequences using [DIVE](https://github.com/NLeSC/DiVE). In this case, please download DiVE and place in the visualization folder, and use the following command:
 
 ../../dnabarcoder.py visualize -i CBSITS.fasta -c CBSITS.current.classification -rank class -ml 400 -method dive
 
