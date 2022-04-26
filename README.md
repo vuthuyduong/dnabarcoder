@@ -31,7 +31,9 @@ We can use the following command to install scikit-learn,scipy, and matplotlib. 
 
  pip install -U scikit-learn scipy matplotlib  
  
-For python3:  pip3 install -U scikit-learn scipy matplotlib
+For python3:  
+
+pip3 install -U scikit-learn scipy matplotlib
 
 ## Installation:
 
