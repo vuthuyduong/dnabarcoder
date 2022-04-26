@@ -20,11 +20,11 @@ cd /data/ProgLang/Python/dnabarcoder/data/CBSITS2
 ../../dnabarcoder.py predict -i CBSITS2.class.fasta -c ITS_20211006.classification -st 0.5 -et 1 -s 0.001 -ranks class  -higherranks phylum -prefix CBSITS2 -minSeqNo 30
 #visualization 
 ../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks species,genus,family,order,class 
-../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks species -higherranks genus -minSeqNo 30
-../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks genus -higherranks family -minSeqNo 30
-../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks family -higherranks order -minSeqNo 30
-../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks order -higherranks class -minSeqNo 30
-../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks class -higherranks phylum  -minSeqNo 30
+../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks species -higherranks genus -minseqno 30
+../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks genus -higherranks family -minseqno 30
+../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks family -higherranks order -minseqno 30
+../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks order -higherranks class -minseqno 30
+../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -ranks class -higherranks phylum  -minseqno 30
 ../../dnabarcoder.py visualize -i CBSITS2.fasta  -c ITS_20211006.classification -p 3 -n 10 -size 0.3
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS2.cutoffs.json -c ITS_20211006.classification
 
