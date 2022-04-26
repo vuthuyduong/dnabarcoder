@@ -25,7 +25,7 @@ Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-so
 - [DiVE](https://nlesc.github.io/DiVE), optional for visualization
 - [IQtree](http://www.iqtree.org/), optional for verification
 - [Clustalo](http://www.clustal.org/omega/), opional for verification
-- scikit-learn, numpy (version 1.16.2) and scipy (version 1.2.1), optional for evaluating classification results. If for higher versions of numpy and scipy, python 3.8 is required. 
+- scikit-learn, numpy (version 1.16.2) and scipy (version 1.2.1), optional for evaluating classification results. If for higher versions of numpy and scipy, python 3.8 is required. We can use the following command to install scikit-learn,scipy, and matplotlib:  pip install -U scikit-learn scipy matplotlib (for python 2.7). For python3:  pip3 install -U scikit-learn scipy matplotlib
 
 ## Installation:
 
