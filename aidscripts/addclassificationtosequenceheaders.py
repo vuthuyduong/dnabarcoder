@@ -20,13 +20,17 @@ parser=argparse.ArgumentParser(prog='addclassificationtosequenceheaders.py',
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-o','--out', help='The fasta filename with sequence headers containing classification.') 
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
-parser.add_argument('-p','--classificationposition', default="", help='the classification positions for the prediction.')
+#parser.add_argument('-p','--classificationposition', default="", help='the classification positions for the prediction.')
+parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks for the prediction, separated by ",".')
+parser.add_argument('-fmt','--format', default="", help='the format of the header. There are two options for the fmt: empty or unite.')
 
 
 args=parser.parse_args()
 fastafilename= args.input
 classificationfilename=args.classification
-classificationpos=args.classificationposition
+#classificationpos=args.classificationposition
+classificationranks=args.classificationranks
+fmt=args.format
 output=args.out
 
 #fastafilename=sys.argv[1]
@@ -36,42 +40,47 @@ output=args.out
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 
-def LoadClassification(classificationfilename,classificationpos):
+def unite(word,rank):
+	word=word.rstrip()
+	if rank.lower()=="species":
+		word="s__"+word
+	elif rank.lower()=="genus":
+		word="g__"+word	
+	elif rank.lower()=="family":
+		word="f__"+word	
+	elif rank.lower()=="order":
+		word="o__"+word	
+	elif rank.lower()=="class":
+		word="c__"+word	
+	elif rank.lower()=="phylum":
+		word="p__"+word	
+	elif rank.lower()=="kingdom":
+		word="k__"+word	
+	return word
+
+def LoadClassification(classificationfilename,poslist,ranklist,fmt):
 	classificationfile= open(classificationfilename, errors="ignore")
-	poslist=[]
-	if "," in classificationpos:
-		texts=classificationpos.split(",")
-		for t in texts:
-			poslist.append(int(t))
-	elif classificationpos!="":
-		poslist.append(int(classificationpos))	
 	seqids=[]
 	classifications=[]
 	numberoffeatures=0
 	for line in classificationfile:
-		elements=line.rstrip().split("\t")
-		seqid = elements[0].replace(">","").rstrip()
+		texts=line.split("\t")
+		seqid = texts[0].replace(">","").rstrip()
 		seqids.append(seqid)
-		classification=(line[line.index("\t")+1:])
-		texts=classification.split("\t")
 		classification=""
-		if len(poslist) >0:		
-			for pos in poslist:
-				pos=pos-1
-				text=""
-				if pos < len(texts):
-					text=texts[pos]
-				if text=="":
-					text="unidentified"	
+		i=0
+		for pos in poslist:
+			text=""
+			if pos < len(texts):
+				text=texts[pos].rstrip()
+			if text=="":
+				text="unidentified"	
+			if fmt=="":	
+				classification=classification + text + "|"
+			else:
 				text=text.replace(" ","_")	
-				classification=classification + text + "|"
-		else:
-			for text in texts:
-				text=text.rstrip()
-				if text=="":
-					text="unidentified"
-				text=text.replace(" ","_")		
-				classification=classification + text + "|"
+				classification=classification + unite(text,ranklist[i]) + ";"
+			i=i+1	
 		classification=classification[:-1] 		
 		classifications.append(classification)
 		if numberoffeatures==0:
@@ -81,10 +90,39 @@ def LoadClassification(classificationfilename,classificationpos):
 	classificationfile.close()
 	return seqids,classifications,numberoffeatures
 
+def GetPositionList(classificationfilename,ranks):
+	ranklist=[]	
+	if "," in ranks:
+		ranklist=ranks.split(",")
+	elif ranks !="":
+		ranklist.append(ranks)
+	positionlist=[]
+	classificationfile=open(classificationfilename)
+	header=classificationfile.readline()
+	header=header.rstrip()
+	classificationfile.close()
+	texts=header.split("\t")
+	isError=False
+	for rank in ranklist:
+		if rank in texts:
+			pos=texts.index(rank)
+			positionlist.append(pos)
+		else:
+			print("The rank " + rank + " is not given in the classification." )
+			isError=True
+	return positionlist,ranklist,isError
+
 #####main###
 
 #seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
-seqids,classifications,numberoffeatures=LoadClassification(classificationfilename,classificationpos)
+poslist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
+if isError==True:
+	print("The given ranks/features do not exist in the header of the classification file.")
+	sys.exit()
+if len(ranklist)==0:
+	print("Please specify the ranks/features to add to sequence headers.")	
+	sys.exit()
+seqids,classifications,numberoffeatures=LoadClassification(classificationfilename,poslist,ranklist,fmt)
 outputfile=open(output,"w")
 fastafile=open(fastafilename)
 
