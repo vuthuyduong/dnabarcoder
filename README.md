@@ -14,7 +14,7 @@ Duong Vu (d.vu@wi.knaw.nl)
 
 ## Citation
 
-Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-source software package for analyzing and predicting DNA sequence similarity cut-offs for fungal sequence identification. DOI: 10.22541/au.164201896.67817672/v1
+Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-source software package for analyzing and predicting DNA sequence similarity cut-offs for fungal sequence identification.  Molecular Ecology Resources. https://doi.org/10.1111/1755-0998.13651
 
 ## Dependencies:
 
@@ -218,7 +218,7 @@ The last component of dnabarcode is to classify a dataset against a reference/ba
 
 - To search for the best match of the sequences in the UNITErelease.fasta file, use the following command:
 
-../../dnabarcoder.py classify -i UNITErelease.fasta -r CBSITS.fasta -ml 400
+../../dnabarcoder.py search -i UNITErelease.fasta -r CBSITS.fasta -ml 400
 
 The result is saved in the file dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch
 
