@@ -59,7 +59,10 @@ MH854569	Fungi	Ascomycota	Dothideomycetes			Monodictys	Monodictys castaneae	CBS 
 
 MH854570	Fungi	Ascomycota	Sordariomycetes	Hypocreales	Nectriaceae	Fusarium	Fusarium equiseti	CBS 107.07
 
+We can use [mkCOInr](https://github.com/meglecz/mkCOInr) to obtain this tab-delimited format for a database.
+
 The taxonomic classification of the sequences can be provided in the sequence headers as well where the taxonomic classification should have the following format: k__kingdom;p__phylum;c__class;o__order;f__family;s__species (see data/CBSITS_classification.fasta)
+
 
 ## Outputs
 
