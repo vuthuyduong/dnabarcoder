@@ -112,6 +112,10 @@ or:
 
 ../../dnabarcoder.py variation -i CBSITS.fasta -c CBSITS.current.classification -rank class,order,family,genus,species  -ml 400
 
+Or:
+
+../../dnabarcoder.py variation -i CBSITS_classification.fasta -rank class,order,family,genus,species  -ml 400
+
 Here the minimum BLAST alignment length ml is set to 400 as 95% of the barcodes have a length of more than 400bp. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. Next to an output text file, a figure is generated as follows:
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.variation.png" width="500" height="300">
@@ -145,7 +149,7 @@ If the simmatrix is not given, dnabarcoder will compute it and save it in the fi
 
 ## Prediction
 
-The third component is to cluster and predict a similarity cut-off for sequence identification based on taxonomic classification. Given a taxonomic level, if higher taxonomic levels are not given, then whole dataset will be used for the prediction.
+The third component is to cluster and predict a similarity cut-off for sequence identification based on taxonomic classification. Given a taxonomic level, if higher taxonomic levels are not given, then whole dataset will be used for the prediction. The local similarity cut-offs assign more sequences than the global similarity cut-offs, and less computationally expensive to compute.
 
 - To predict a global similarity cut-off at the genus level of the CBSITS dataset for example, use the followig command. Note that this action should not be used for a very large dataset as it might take quite sometime to finish.
 
@@ -156,7 +160,7 @@ Or:
 ../../dnabarcoder.py predict -i CBSITS_classification.fasta -st 0.7 -et 1 -s 0.001 -rank genus -ml 400
 
 
-The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
+For this action, a complete similarity matrix will be computed. The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
 
 - If we wish to recompute the existing prediction, please use the following command:
 
