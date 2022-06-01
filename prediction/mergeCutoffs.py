@@ -6,7 +6,7 @@
 
 import sys, argparse
 import json
-from copy import deepcopy
+#from copy import deepcopy
 
 parser=argparse.ArgumentParser(prog='mergeCutoffs.py',  
 							   usage="%(prog)s [options] -i listofdict -o outputname",

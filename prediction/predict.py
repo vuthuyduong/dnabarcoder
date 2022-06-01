@@ -25,7 +25,7 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-prefix','--prefix', default="", help='the prefix of output filenames.')
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
-parser.add_argument('-c','--classification', default="", required=True, help='the classification file in tab. format.')
+parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 #parser.add_argument('-p','--classificationpositions', default="", help='the classification positions for the prediction, separated by ",".')
 parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks for the prediction, separated by ",".')
 parser.add_argument('-st','--startingthreshold', type=float, default=0, help='starting threshold')
@@ -39,7 +39,9 @@ parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='Th
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
+parser.add_argument('-remove','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 
 args=parser.parse_args()
@@ -261,16 +263,14 @@ def ComputeFmeasure(classes,clusters):
 		f = f +	(len(group)*m)	
 	return float(f)/float(n) 
 
-def LoadClasses(seqids,classificationfilename,pos):
+def LoadClasses(seqids,classificationfilename,pos,seqidpos):
 	classificationfile= open(classificationfilename)
 #	records= open(classificationfilename,errors='ignore')
 	classification={}
 	classes={}
 	for line in classificationfile:
-		if line.startswith("#"):
-			 continue
 		words=line.split("\t")
-		seqid= words[0].rstrip().replace(">","")
+		seqid= words[seqidpos].rstrip()
 		if seqid in seqids:
 			classname=""
 			if pos < len(words):
@@ -282,6 +282,30 @@ def LoadClasses(seqids,classificationfilename,pos):
 				classes.setdefault(classname,[seqid]) 
 	classificationfile.close()
 	return classes,classification
+
+def LoadClassesFromDescription(records,rank):
+	classification={}
+	classes={}
+	for seqid in records.keys():
+		description=seqrecords[seqid].description
+		classname=GetTaxonName(description,rank)
+		classification[seqid]=classname
+		if classname in classes.keys():
+			classes[classname].append(seqid)
+		else:
+			classes.setdefault(classname,[seqid]) 
+	return classes,classification
+
+def LoadClassesFromClassification(records,classification):
+	classes={}
+	for seqid in records.keys():
+		if seqid in classification.keys():
+			classname=classification[seqid]
+			if classname in classes.keys():
+				classes[classname].append(seqid)
+			else:
+				classes.setdefault(classname,[seqid]) 
+	return classes
 
 def isfloat(value):
   try:
@@ -308,8 +332,69 @@ def ComputeSubSim(datasetname,records,simmatrix):
 		if subsimmatrix!={}:
 			os.system("rm " + subfastafilename)
 	return subsimmatrix
-	
-def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
+
+def MergeComplexes(complexes,classes):
+	removednames=[]
+	complexnames=[]
+	for comp in complexes:
+		for classname in comp:
+			if not (classname in complexnames):
+				complexnames.append(classname)
+	namepoints={}
+	for classname in complexnames:
+		namepoint = PointDef(classname,False,[],None)
+		namepoints.setdefault(classname,namepoint)	
+	#Load neighbor for points
+	for comp in complexes:
+		for classname in comp:
+			for classname2 in comp:
+				if not classname2 in namepoints[classname].neighbors:
+					namepoints[classname].neighbors.append(classname2)			
+	nameclusters=[]	
+	Cluster(namepoints,nameclusters)	
+	for namecluster in nameclusters:
+		maxseqnumber=0
+		ref=""
+		for complexname in namecluster.pointids:
+			seqnumber=len(classes[complexname])
+			if seqnumber>=maxseqnumber:
+				maxseqnumber=seqnumber
+				ref=complexname
+		for complexname in namecluster.pointids:
+			if complexname!=ref:
+				removednames.append(complexname)
+	return removednames	
+
+def RemoveComplexes(records,classification,subsimmatrix):
+	distinguishablerecords={}
+	newclasses={}
+	#load neighbors
+	neighbordict = LoadNeighbors(records.keys(),subsimmatrix,1)	
+	#cluster
+	points=LoadPoints(neighbordict,records)
+	clusters=[]
+	Cluster(points,clusters)	
+	#compute complexes
+	complexes=[]
+	for cluster in clusters:
+		speciescomplex=[]
+		for seqid in cluster.pointids:
+			seqrecord = records[seqid]
+			classname=classification[seqid]
+			if not classname in speciescomplex:
+				speciescomplex.append(classname)
+		complexes.append(speciescomplex)
+	#merge complexes
+	complexnames=MergeComplexes(complexes,classes)
+	#remove complexes
+	for seqid in records.keys():
+		seqrecord=records[seqid]
+		if not classification[seqid] in complexnames:
+			distinguishablerecords.setdefault(seqid,seqrecord)
+	newclasses=LoadClassesFromClassification(distinguishablerecords,classification)		
+	return distinguishablerecords,newclasses
+
+def Predict(datasetname,prediction_datasetname,records,classes,classification,simmatrix):
 	thresholds=[]
 	fmeasures=[]	
 	t=round(threshold,4)
@@ -324,6 +409,14 @@ def Predict(datasetname,prediction_datasetname,records,classes,simmatrix):
 		fmeasuredict=prediction_datasetname['fmeasures']
 	isError=False		
 	subsimmatrix={}	
+	#remove complexes if required	
+	if args.removecomplexes=="yes":
+		#compute sub simmatrix
+		subsimmatrix=ComputeSubSim(datasetname,records,simmatrix)
+		if subsimmatrix=={}:
+			print("Cannot compute the similarity matrix for " + datasetname + ".")
+			sys.exit()
+		records,classes=RemoveComplexes(records,classification,subsimmatrix)
 	#compute optimal threshold
 	while t <= endthreshold:
 		print("Computing F-measure for threshold " + str(t))
@@ -370,6 +463,14 @@ def GetPositionList(classificationfilename,ranklist,higherranklist):
 	classificationfile.close()
 	texts=header.split("\t")
 	isError=False
+	i=0
+	for text in texts:
+		if text.lower()==args.idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True
 	for rank in ranklist:
 		if rank in texts:
 			pos=texts.index(rank)
@@ -385,9 +486,9 @@ def GetPositionList(classificationfilename,ranklist,higherranklist):
 			else:
 				print("The higher rank " + rank + " is not given in the classification." )
 				isError=True
-	return positionlist,higherpositionlist,isError
+	return seqidpos,positionlist,higherpositionlist,isError
 	
-def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos,taxa):
+def GenerateDatasetsForPrediction(seqrecords,classificationfilename,seqidpos,pos,higherpos,taxa):
 	taxalist=[]
 	if "," in taxa:
 		taxalist=taxa.split(",")
@@ -399,7 +500,7 @@ def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpo
 		if line.startswith("#"):
 			continue 		
 		texts=line.rstrip().split("\t")
-		seqid=texts[0].replace(">","")
+		seqid=texts[seqidpos].rstrip()
 		classname=""
 		higherclassname=""
 		if pos < len(texts):
@@ -411,16 +512,16 @@ def GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpo
 			continue
 		if classname != "" and higherclassname !="" and classname != "unidentified" and higherclassname !="unidentified" and seqid in seqrecords.keys():
 			if not higherclassname in datasets.keys():
-					datasets.setdefault(higherclassname,{})
+				datasets.setdefault(higherclassname,{})
 			datasets[higherclassname][seqid]=seqrecords[seqid]	
 	classificationfile.close()
 	return datasets
 
-def GenerateDatasets(seqrecords,classificationfilename,pos,higherpositionlist,taxa):
+def GenerateDatasets(seqrecords,classificationfilename,seqidpos,pos,higherpositionlist,taxa):
 	alldatasets={}
 	if len(higherpositionlist) !=0:		
 		for higherpos in higherpositionlist:
-			datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,pos,higherpos,taxa)
+			datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,seqidpos,pos,higherpos,taxa)
 			alldatasets.update(datasets)
 		return alldatasets	
 	else:
@@ -428,13 +529,96 @@ def GenerateDatasets(seqrecords,classificationfilename,pos,higherpositionlist,ta
 		classificationfile= open(classificationfilename)
 		for line in classificationfile:
 			texts=line.rstrip().split("\t")
-			seqid=texts[0].replace(">","")
+			seqid=texts[seqidpos].rstrip()
 			classname=""
 			if pos < len(texts):
 				classname=texts[pos].rstrip()	
 			if classname != "" and classname != "unidentified" and seqid in seqrecords.keys():
 				alldatasets["All"][seqid]=seqrecords[seqid]
 		classificationfile.close()
+	return alldatasets
+
+def GetTaxonName(description,rank):
+	taxonname=""
+	species=""
+	genus=""
+	family=""
+	order=""
+	bioclass=""
+	phylum=""
+	kingdom=""
+	if " " in description:
+		description=description.split(" ")[1]
+	texts=description.split("|")
+	for text in texts:
+		text=text.rstrip()
+		taxa=text.split(";")	
+		for taxon in taxa:
+			if taxon.startswith("k__"):
+				kingdom=taxon.replace("k__","")
+			elif taxon.startswith("p__"):
+				phylum=taxon.replace("p__","")
+			elif taxon.startswith("c__"):
+				bioclass=taxon.replace("c__","")	
+			elif taxon.startswith("o__"):
+				order=taxon.replace("o__","")
+			elif taxon.startswith("f__"):
+				family=taxon.replace("f__","")	
+			elif taxon.startswith("g__"):
+				genus=taxon.replace("g__","")
+			elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+				species=taxon.replace("s__","")
+				species=species.replace("_"," ")
+	if rank.lower()=="species":
+		taxonname=species
+	elif rank.lower()=="genus":
+		taxonname=genus
+	elif rank.lower()=="family":
+		taxonname=family
+	elif rank.lower()=="order":
+		taxonname=order
+	elif rank.lower()=="class":
+		taxonname=bioclass
+	elif rank.lower()=="phylum":
+		taxonname=phylum
+	elif rank.lower()=="kingdom":
+		taxonname=kingdom		
+	return taxonname
+
+
+def GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa):
+	taxalist=[]
+	if "," in taxa:
+		taxalist=taxa.split(",")
+	elif taxa!="":
+		taxalist.append(taxa)
+	datasets={}
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		classname=GetTaxonName(description,rank)
+		higherclassname=GetTaxonName(description,higherrank)
+		if (len(taxalist) >0) and higherclassname!="" and not (higherclassname in taxalist) :
+			continue
+		if classname != "" and higherclassname !="" and classname != "unidentified" and higherclassname !="unidentified":
+			if not higherclassname in datasets.keys():
+				datasets.setdefault(higherclassname,{})
+			datasets[higherclassname][seqid]=seqrecords[seqid]	
+	return datasets
+
+def GenerateDatasetsFromDescription(seqrecords,rank,higherranks,taxa):
+	alldatasets={}
+	if len(higherranks) !=0:		
+		for higherrank in higherranks:
+			datasets=GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa)
+			alldatasets.update(datasets)
+		return alldatasets	
+	else:
+		alldatasets.setdefault("All",{})
+		for seqid in seqrecords.keys():
+			description=seqrecords[seqid].description
+			classname=GetTaxonName(description,rank)
+			if classname != "" and classname != "unidentified":
+				alldatasets["All"][seqid]=seqrecords[seqid]
 	return alldatasets
 
 def LoadPrediction(predictionfilename):
@@ -500,7 +684,8 @@ def SavePrediction(predictiondict,outputnamewithfmeasures,outputnamewithoutfmeas
 			minalignmentlength=0
 			if "min alignment length" in dataset.keys():
 				minalignmentlength=dataset["min alignment length"]
-			if groupno < minGroupNo or seqno < minSeqNo or (minalignmentlength>0 and minalignmentlength <mincoverage):	#delete the cutoffs that dont have enough sequences and groups for prediction
+			#if groupno < minGroupNo or seqno < minSeqNo or (minalignmentlength>0 and minalignmentlength <mincoverage):	#delete the cutoffs that dont have enough sequences and groups for prediction
+			if groupno < minGroupNo or seqno < minSeqNo:	#delete the cutoffs that dont have enough sequences and groups for prediction
 				del datasets[datasetname]			
 	with open(outputnamewithoutfmeasures,"w") as json_file:
 		if sys.version_info[0] >= 3:
@@ -539,23 +724,6 @@ def SavePrediction(predictiondict,outputnamewithfmeasures,outputnamewithoutfmeas
 			#classificationposition=dataset["classification position"]
 			textfile.write(rank+"\t" + datasetname + "\t"+str(cutoff)+"\t"+str(confidence)+"\t"+str(seqno)+"\t"+str(groupno)+"\t"+ str(minalignmentlength) + "\t" + fastafilename+"\t"+classificationfilename+"\n")
 	textfile.close()
-			
-
-def GetTaxa(classificationfilename,pos,highertaxon):
-	taxa=[]
-	classificationfile=open(classificationfilename)
-	for line in classificationfile:
-		if line.startswith("#"):
-			continue		
-		texts=line.rstrip().split("\t")
-		if not highertaxon in texts:
-			continue
-		if pos<len(texts):
-			taxon=texts[pos]
-			if not taxon in taxa:
-				taxa.append(taxon)
-	classificationfile.close()
-	return taxa
 	
 def PlotPrediction(datasetname,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,figoutput):
 	if len(thresholdlist) >5:
@@ -623,16 +791,12 @@ if __name__ == "__main__":
 	predictiondict={}
 	if os.path.exists(outputname):
 		predictiondict=LoadPrediction(outputname)
-	ranklist=[]	
-	if "," in classificationranks:
+	ranklist=[]
+	if classificationranks!="":
 		ranklist=classificationranks.split(",")
-	elif classificationranks !="":
-		ranklist.append(classificationranks)
-	higherranklist=[]	
-	if "," in higherclassificationranks:
+	higherranklist=[]
+	if higherclassificationranks!="":
 		higherranklist=higherclassificationranks.split(",")
-	elif higherclassificationranks !="":
-		higherranklist.append(higherclassificationranks)		
 	if len(ranklist)==0:
 		for rank in predictiondict.keys():
 			prediction_datasets=predictiondict[rank]
@@ -642,10 +806,9 @@ if __name__ == "__main__":
 					if fastafilename== datasetdict["fasta filename"] and classificationfilename==datasetdict["classification filename"]:
 						if not (rank in ranklist):
 							ranklist.append(rank)	
-	#load positions of classification for prediction
-	positionlist,higherpositionlist,isError=GetPositionList(classificationfilename,ranklist,higherranklist)
-	if isError==True:
-		sys.exit()	
+	if len(ranklist)==0:
+		print("Please specify the ranks for similarity cut-offs prediction by using -ranks.")	
+		sys.exit()		
 	#load sequences
 	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 	if len(seqrecords) >100:
@@ -675,18 +838,34 @@ if __name__ == "__main__":
 	bestFmeasures=[]
 	features=[]
 	datasetnames=[]
-	i=0
+	#load positions of classification for prediction
+	seqidpos=-1
+	positionlist=[]
+	higherpositionlist=[]
+	isError=False
+	if classificationfilename!="":
+		seqidpos,positionlist,higherpositionlist,isError=GetPositionList(classificationfilename,ranklist,higherranklist)
+		if isError==True:
+			sys.exit()
 	#predicting
-	for pos in positionlist:
-		rank=ranklist[i]
+	i=0
+	for rank in ranklist:
 		prediction_datasets={}
 		if rank in predictiondict.keys():
 			prediction_datasets=predictiondict[rank]
-		datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherpositionlist,args.taxa)	
+		#load datasets for prediction
+		datasets={}
+		if classificationfilename!="":
+			pos=positionlist[i]
+			datasets=GenerateDatasets(seqrecords,classificationfilename,seqidpos,pos,higherpositionlist,args.taxa)	
+		else:
+			datasets=GenerateDatasetsFromDescription(seqrecords,rank,higherranklist,args.taxa)	
+		if datasets=={}:
+			print("Please provide classification for the rank " + rank + ".")	
+			sys.exit()	
 		if step==0 or (endthreshold < threshold) or (endthreshold==0 and threshold==0):
 			#load existing prediction
 			for datasetname in prediction_datasets.keys():
-				#print(datasetname)
 				if not datasetname in datasets.keys():
 					continue 
 				datasetdict=prediction_datasets[datasetname]
@@ -694,12 +873,10 @@ if __name__ == "__main__":
 					continue
 				elif fastafilename != datasetdict["fasta filename"] and classificationfilename!=datasetdict["classification filename"]:
 					continue
-				#seqno=datasetdict['sequence number']
-				#groupno=datasetdict['group number']		
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength=LoadPredictionAtPos(datasetdict)
-				if not (groupno < minGroupNo or seqno < minSeqNo or (minalignmentlength >0 and minalignmentlength < mincoverage)):	#for visualization
+				#if not (groupno < minGroupNo or (seqno < minSeqNo) or (minalignmentlength >0 and minalignmentlength < mincoverage)):	#for visualization
+				if not (groupno < minGroupNo or seqno < minSeqNo):	#for visualization
 					if (len(higherpositionlist)==0 and datasetname == "All") or (len(higherpositionlist)!=0):	
-						#print(datasetname)
 						thresholdlist.append(thresholds)
 						fmeasurelist.append(fmeasures)
 						optthresholds.append(optthreshold)
@@ -709,13 +886,17 @@ if __name__ == "__main__":
 		else:
 			if os.path.exists(GetWorkingBase((os.path.basename(args.input))) + ".predict.log"):		
 				os.system("rm " + GetWorkingBase((os.path.basename(args.input))) + ".predict.log")
-			#datasets=GenerateDatasets(seqrecords,classificationfilename,pos,higherclassificationpos)
 			for datasetname in datasets.keys():
 				records=datasets[datasetname]
 				seqno=len(records)
-				#load classification at given positions 	
-				classes,classification=LoadClasses(records.keys(),classificationfilename,pos)
-#				#only predict when the numbers of the groups > 1
+				#load classification at the given rank
+				classes={}
+				classification={}
+				if classificationfilename!="":				
+					classes,classification=LoadClasses(records.keys(),classificationfilename,pos,seqidpos)
+				else:
+					classes,classification=LoadClassesFromDescription(records,rank)
+				#only predict when the numbers of the groups > 1
 				if len(classes) < 2:
 					continue
 				datasetdict={}
@@ -727,7 +908,7 @@ if __name__ == "__main__":
 				bestFmeasure=0
 				groupno=len(classes)
 				print("Predicting optimal threshold to separate sequences at the " + rank + " level for " + datasetname)
-				thresholds,fmeasures,optthreshold,bestFmeasure,isError=Predict(datasetname,datasetdict,records,classes,simmatrix)	
+				thresholds,fmeasures,optthreshold,bestFmeasure,isError=Predict(datasetname,datasetdict,records,classes,classification,simmatrix)	
 				if isError==False:
 					datasetdict['min alignment length']=mincoverage
 					datasetdict['fasta filename']=fastafilename
@@ -744,13 +925,13 @@ if __name__ == "__main__":
 			if not rank in predictiondict.keys():	
 				predictiondict[rank] = prediction_datasets 
 		i=i+1
-	#save prediction and cut-offs for classification and identification
-	if len(positionlist) >0:	
+	if len(ranklist) >0:	
+		#save prediction and cut-offs for classification and identification
 		if len(predictiondict.keys())>0:
 			outputwithoutfmeasures=GetBase(outputname) + ".cutoffs.json"	
 			SavePrediction(predictiondict,outputname,outputwithoutfmeasures)
 			#SaveCutoffs(predictiondict,outputcutoffs)
-			print("Only cutoffs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", respectively. If you wish to predict also for clades with less numbers of sequences and groups, please reset minSeqNo and minGroupNo.")
+			print("Only cutoffs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", respectively. If you wish to predict also for clades with less numbers of sequences and groups, please reset -minseqno and -mingroupno.")
 			print("The prediction and cutoffs are saved in the files " + outputname + ", " + outputwithoutfmeasures + " and " + outputwithoutfmeasures + ".txt.")
 	else:
 		#load existing prediction for plotting
@@ -758,24 +939,24 @@ if __name__ == "__main__":
 			prediction_datasets=predictiondict[rank]
 			for datasetname in prediction_datasets.keys():
 				prediction_datasetname=prediction_datasets[datasetname]
-				thresholds,fmeasures,optthreshold,bestFmeasure,feature,seqno,groupno,minalignmentlength=LoadPredictionAtPos(prediction_datasetname)
+				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength=LoadPredictionAtPos(prediction_datasetname)
 				if not (groupno < minGroupNo or seqno < minSeqNo or (minalignmentlength >0 and minalignmentlength < mincoverage)):	#for visualization
 					thresholdlist.append(thresholds)
 					fmeasurelist.append(fmeasures)
 					optthresholds.append(optthreshold)
 					bestFmeasures.append(bestFmeasure)
-					features.append(feature)
+					features.append(rank)
 					datasetnames.append(datasetname + "(" + str(seqno) + "," + str(groupno) + ")")
 	#Plot the prediction results
 	globalfigoutput=""
 	localfigoutput=""
-	if len(positionlist) == 1:
-		globalfigoutput=GetBase(outputname) + "." + str(positionlist[0]) + ".global.png"
-		localfigoutput=GetBase(outputname) + "." + str(positionlist[0]) + ".local.png"
+	if len(ranklist) == 1:
+		globalfigoutput=GetBase(outputname) + "." + ranklist[0].replace(" ","_") + ".global.png"
+		localfigoutput=GetBase(outputname) + "." + ranklist[0].replace(" ","_") + ".local.png"
 	else: 	
 		globalfigoutput=GetBase(outputname) + ".global.png"
 		barplotfigoutput=GetBase(outputname) + ".local.png"
-	if len(higherpositionlist)==0 or len(thresholdlist)==1:
+	if len(higherranklist)==0 or len(thresholdlist)==1:
 		if len(thresholdlist) >0:
 			#plot all predictions
 			if label=="":

@@ -6,14 +6,14 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import cohen_kappa_score
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
+#from sklearn.metrics import precision_recall_fscore_support
+#from sklearn.metrics import cohen_kappa_score
+#from sklearn.metrics import matthews_corrcoef
+#from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import accuracy_score
 import json
 from Bio import SeqIO
-import random
+#import random
 import multiprocessing
 parser=argparse.ArgumentParser(prog='computeBestCutoffs.py',  
 							   usage="%(prog)s [options] -i cutoffs -c classificationfile -o output",
@@ -23,7 +23,8 @@ parser=argparse.ArgumentParser(prog='computeBestCutoffs.py',
 
 parser.add_argument('-i','--input',required=True, help='the cutoffs file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
+parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
+parser.add_argument('-f','--fasta', default="", help='the fasta file with sequence descriptions containing taxonomic classification.')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
 #parser.add_argument('-minSeqNo','--minseqno', type=int, default=50, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 #arser.add_argument('-minGroupNo','--mingroupno', type=int, default=10, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
@@ -32,6 +33,7 @@ parser.add_argument('-savebestcutoffsascutoffs','--savebestcutoffsascutoffs', de
 
 args=parser.parse_args()
 classificationfilename=args.classification
+fastafilename=args.fasta
 cutoffsfilename=args.input
 outputpath=args.out
 prefix=args.prefix
@@ -175,25 +177,96 @@ def LoadClassification(classificationfilename):
 	for line in classificationfile:
 		texts=line.split("\t")
 		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
+		ranks=["kingdom","phylum","class","order","family","genus","species"]
 		taxonnames=classification.split(";")
 		level=0
+		newclassification=""
 		for taxonname in taxonnames:
+			if newclassification=="":
+				newclassification=taxonname
+			else:	
+				newclassification=newclassification + ";"+ taxonname 
 			taxonname=taxonname.split("__")[1]
 			if taxonname=="unidentified" or taxonname=="":
 				level=level+1
 				continue
-			newclassification,rank=GetRankTaxonomicClassification(level,classification)	
-			if taxonname in classificationdict.keys():
-				if len(newclassification.replace("unidentified","")) > len(classificationdict[taxonname]):
-					classificationdict[taxonname]["classification"]=newclassification
-					classificationdict[taxonname]["rank"]=rank
-			else:
+			rank=ranks[level]
+			#newclassification,rank=GetRankTaxonomicClassification(level,classification)	
+			if not (taxonname in classificationdict.keys()):
 				item={}
 				item["classification"]=newclassification
 				item["rank"]=rank
 				classificationdict.setdefault(taxonname,item)		
+#			else:
+# 				if len(newclassification.replace("unidentified","")) > len(classificationdict[taxonname]["classification"].replace("unidentified","")):
+# 					classificationdict[taxonname]["classification"]=newclassification
+# 					classificationdict[taxonname]["rank"]=rank
 			level=level+1	
 	classificationfile.close()	
+	return classificationdict
+
+def LoadClassificationFromDescription(fastafilename):
+	if fastafilename == "":
+		return {}
+	#load sequences
+	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species="s__unidentified"
+		genus="g__unidentified"
+		family="f__unidentified"
+		order="o__unidentified"
+		bioclass="c__unidentified"
+		phylum="p__unidentified"
+		kingdom="k__unidentified"
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			text=text.rstrip()
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon
+				elif taxon.startswith("p__"):
+					phylum=taxon
+				elif taxon.startswith("c__"):
+					bioclass=taxon
+				elif taxon.startswith("o__"):
+					order=taxon
+				elif taxon.startswith("f__"):
+					family=taxon
+				elif taxon.startswith("g__"):
+					genus=taxon
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon
+				
+		taxonnames=[kingdom,phylum,bioclass,order,family,genus,species]
+		ranks=["kingdom","phylum","class","order","family","genus","species"]
+		level=0
+		classification=""
+		for taxonname in taxonnames:
+			if classification=="":
+				classification=taxonname
+			else:	
+				classification=classification + ";"+ taxonname 
+			taxonname=taxonname.split("__")[1]
+			taxonname=taxonname.replace("_"," ")			
+			if taxonname=="unidentified" or taxonname=="":
+				level=level+1
+				continue
+			rank=ranks[level]
+			if taxonname in classificationdict.keys():
+				item={}
+				item["classification"]=classification
+				item["rank"]=rank
+				classificationdict.setdefault(taxonname,item)
+# 			else:
+# 				if len(classification.replace("unidentified","")) > len(classificationdict[taxonname]["classification"].replace("unidentified","")):
+# 					classificationdict[taxonname]["classification"]=classification
+# 					classificationdict[taxonname]["rank"]=rank
+			classification=classification + ";"	
+			level=level+1	
 	return classificationdict
 
 def GetLevel(rank):
@@ -296,8 +369,8 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
 	count=0
 	total=0
-	count1=0
-	total1=0
+	count_1=0
+	total_1=0
 	for rank in cutoffs.keys():
 		datasets=cutoffs[rank]
 		for datasetname in datasets.keys():
@@ -370,12 +443,12 @@ def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutput
 			datasetname_level=GetLevel(datasetname_rank)
 			level=GetLevel(rank)
 			if datasetname_level==level - 1:
-				total1=total1+1
+				total_1=total_1 + 1
 			if confidence > originalconfidence and cutoff != originalcutoff:
 				count=count+1
 				problematicfile.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t" + str(minalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")
 				if datasetname_level==level - 1:
-					count1=count1+1
+					count_1=count_1 + 1
 					problematicfile1.write(rank+"\t" + datasetname + "\t"+str(originalcutoff)+"\t"+str(originalconfidence) + "\t" + str(originalminalignmentlength)+ "\t" + highertaxon +"\t" +str(cutoff)+"\t"+str(confidence)+ "\t" + str(minalignmentlength)+"\t"+str(SeqNo)+"\t"+str(GroupNo)+"\t"+fastafilename+"\t"+classificationfilename+"\n")		
 			if originalconfidence >= globalconfidence:
 				globalcount=globalcount+1
@@ -383,7 +456,7 @@ def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutput
 	textfile.close()		
 	problematicfile.close()
 	problematicfile1.close()
-	return count,total,count1,total1,globaltotal,globalcount
+	return count,total,count_1,total_1,globaltotal,globalcount
 
 def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
 	count=0
@@ -478,13 +551,20 @@ if __name__ == "__main__":
 		prefix=GetBase(os.path.basename(cutoffsfilename))
 	jsonoutputname=GetWorkingBase(prefix) + ".best.json"		
 	txtoutputname=GetWorkingBase(prefix) + ".best.txt"	
-	problematicoutputname=GetWorkingBase(prefix) + ".cutoffs.lowerconfidence.txt"
-	problematicoutputname1=GetWorkingBase(prefix) + ".cutoffs.lowerconfidence.immediatehigherlevel.txt"	
+	problematicoutputname=GetWorkingBase(prefix) + ".lowerconfidence.txt"
+	problematicoutputname1=GetWorkingBase(prefix) + ".lowerconfidence.immediatehigherlevel.txt"	
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)
-	classificationdict= LoadClassification(classificationfilename)
+	classificationdict={}	
+	if classificationfilename!="":	
+		classificationdict= LoadClassification(classificationfilename)
+	elif fastafilename!="":
+		classificationdict= LoadClassificationFromDescription(fastafilename)
+	else:
+		print("Please give provide a tab-delimited formated file containing taxonomic classification using -c or a FASTA file with sequence description containing taxonomic classification using -f.")
+		sys.exit()
 	if args.savebestcutoffsascutoffs=="yes":
 		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1)
 	else:

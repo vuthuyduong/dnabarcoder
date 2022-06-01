@@ -16,11 +16,11 @@ parser.add_argument('-i','--input', required=True, help='the fasta file to be cl
 parser.add_argument('-t','--cutoff', type=float, default=1, help='The threshold for the classification.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', help='the classification file in tab. format.')
+parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 #parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for loading the complexes.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
-
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -184,17 +184,62 @@ def ComputeFmeasure(classes,clusters):
 		f = f +	(len(group)*m)	
 	return float(f)/float(n) 
 
-def LoadClasses(allseqrecords,classificationfilename,pos):
+def GetTaxonName(description,rank):
+	taxonname=""
+	species=""
+	genus=""
+	family=""
+	order=""
+	bioclass=""
+	phylum=""
+	kingdom=""
+	if " " in description:
+		description=description.split(" ")[1]
+	texts=description.split("|")
+	for text in texts:
+		text=text.rstrip()
+		taxa=text.split(";")	
+		for taxon in taxa:
+			if taxon.startswith("k__"):
+				kingdom=taxon.replace("k__","")
+			elif taxon.startswith("p__"):
+				phylum=taxon.replace("p__","")
+			elif taxon.startswith("c__"):
+				bioclass=taxon.replace("c__","")	
+			elif taxon.startswith("o__"):
+				order=taxon.replace("o__","")
+			elif taxon.startswith("f__"):
+				family=taxon.replace("f__","")	
+			elif taxon.startswith("g__"):
+				genus=taxon.replace("g__","")
+			elif taxon.startswith("s__") and (" " in taxon or "_" in taxon):
+				species=taxon.replace("s__","")
+				species=species.replace("_"," ")
+	if rank.lower()=="species":
+		taxonname=species
+	elif rank.lower()=="genus":
+		taxonname=genus
+	elif rank.lower()=="family":
+		taxonname=family
+	elif rank.lower()=="order":
+		taxonname=order
+	elif rank.lower()=="class":
+		taxonname=bioclass
+	elif rank.lower()=="phylum":
+		taxonname=phylum
+	elif rank.lower()=="kingdom":
+		taxonname=kingdom		
+	return taxonname
+
+def LoadClasses(allseqrecords,classificationfilename,pos,seqidpos):
 	classificationfile= open(classificationfilename)
 #	records= open(classificationfilename,errors='ignore')
 	classification={}
 	classes={}
 	seqrecords={}
 	for line in classificationfile:
-		if line.startswith("#"):
-			 continue
 		words=line.split("\t")
-		seqid= words[0].rstrip().replace(">","")
+		seqid= words[seqidpos].rstrip()
 		if seqid in allseqrecords.keys():
 			classname=""
 			if pos < len(words):
@@ -208,6 +253,23 @@ def LoadClasses(allseqrecords,classificationfilename,pos):
 			else:
 				classes.setdefault(classname,[seqid]) 
 	classificationfile.close()
+	return seqrecords,classes,classification
+
+def LoadClassesFromDescription(allseqrecords,rank):
+	classification={}
+	classes={}
+	seqrecords={}
+	for seqid in allseqrecords.keys():
+		description=allseqrecords[seqid].description
+		classname=GetTaxonName(description, rank)
+		if classname=="" or classname=="unidentified":	
+			continue
+		classification[seqid]=classname
+		seqrecords[seqid]=allseqrecords[seqid]
+		if classname in classes.keys():
+			classes[classname].append(seqid)
+		else:
+			classes.setdefault(classname,[seqid]) 
 	return seqrecords,classes,classification
 
 def MergeComplexes(complexes,classes):
@@ -285,24 +347,36 @@ def GetPosition(classificationfilename,rank):
 	classificationfile.close()
 	texts=header.split("\t")
 	isError=False
+	seqidpos=-1
+	i=0
+	for text in texts:
+		if text.lower()==args.idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True
 	if rank in texts:
 		pos=texts.index(rank)
 	else:
 		print("The rank " + rank + " is not given in the classification." )
 		isError=True
-	return pos,isError
+	return seqidpos,pos,isError
 	
 if __name__ == "__main__":
 	outputfastafilename=GetWorkingBase(fastafilename) + ".diff.fasta"	
 	outputname=GetWorkingBase(fastafilename) + ".similar"
 	allseqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 	sys.setrecursionlimit(len(allseqrecords)*2)
-	classificationpos,isError=GetPosition(classificationfilename,rank)
-	if isError==True:
-		sys.exit()
-	seqrecords,classes,classification=LoadClasses(allseqrecords,classificationfilename,classificationpos)
-	if len(seqrecords)==0:
-		print("No classification names are available for the sequences at the position " + str(classificationpos) + str("."))
+	if classificationfilename!="":
+		seqidpos,classificationpos,isError=GetPosition(classificationfilename,rank)
+		if isError==True:
+			sys.exit()
+		seqrecords,classes,classification=LoadClasses(allseqrecords,classificationfilename,classificationpos,seqidpos)
+	else:
+		seqrecords,classes,classification=LoadClassesFromDescription(allseqrecords,rank)
+	if seqrecords=={}:
+		print("No classification names are available for the sequences at the rank " + rank + ".")
 		os.sys.exit()
 	#load similarity matrix
 	if simfilename=="" or simfilename==None:
