@@ -5,8 +5,8 @@
 import sys, argparse
 if sys.version_info[0] >= 3:
 	unicode = str
-import numpy as np
-import os
+# import numpy as np
+# import os
 from Bio import SeqIO
 import multiprocessing
 nproc=multiprocessing.cpu_count()
@@ -18,11 +18,11 @@ parser=argparse.ArgumentParser(prog='addclassificationtosequenceheaders.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
-parser.add_argument('-o','--out', help='The fasta filename with sequence headers containing classification.') 
+parser.add_argument('-o','--out', help='The fasta filename with sequence descriptions containing classification.') 
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
-#parser.add_argument('-p','--classificationposition', default="", help='the classification positions for the prediction.')
 parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks for the prediction, separated by ",".')
-parser.add_argument('-fmt','--format', default="", help='the format of the header. There are two options for the fmt: empty or unite.')
+parser.add_argument('-sep','--separator', default="", help='the separator between the ranks in the header. If sep is not given, the sequence description will have the format: k__kingdom;p__phylum;c__class;o__order;f__family;g__genus;s__species.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 
 args=parser.parse_args()
@@ -30,7 +30,7 @@ fastafilename= args.input
 classificationfilename=args.classification
 #classificationpos=args.classificationposition
 classificationranks=args.classificationranks
-fmt=args.format
+sep=args.separator
 output=args.out
 
 #fastafilename=sys.argv[1]
@@ -58,39 +58,37 @@ def unite(word,rank):
 		word="k__"+word	
 	return word
 
-def LoadClassification(classificationfilename,poslist,ranklist,fmt):
+def LoadClassification(classificationfilename,poslist,ranklist,seqidpos,sep):
 	classificationfile= open(classificationfilename, errors="ignore")
-	seqids=[]
-	classifications=[]
+	classificationdict={}
 	numberoffeatures=0
 	for line in classificationfile:
 		texts=line.split("\t")
-		seqid = texts[0].replace(">","").rstrip()
-		seqids.append(seqid)
+		seqid = texts[seqidpos].rstrip()
 		classification=""
 		i=0
 		for pos in poslist:
 			text=""
-			if pos < len(texts):
+			if pos >-1 and pos < len(texts):
 				text=texts[pos].rstrip()
 			if text=="":
 				text="unidentified"	
-			if fmt=="":	
-				classification=classification + text + "|"
+			if sep!="":	
+				classification=classification + text + sep
 			else:
 				text=text.replace(" ","_")	
 				classification=classification + unite(text,ranklist[i]) + ";"
 			i=i+1	
 		classification=classification[:-1] 		
-		classifications.append(classification)
 		if numberoffeatures==0:
-			numberoffeatures=classification.count("|")
+			numberoffeatures=classification.count(sep)
 		else:
-			numberoffeatures=min(numberoffeatures,classification.count("|"))
+			numberoffeatures=min(numberoffeatures,classification.count(sep))
+		classificationdict.setdefault(seqid,classification)	
 	classificationfile.close()
-	return seqids,classifications,numberoffeatures
+	return classificationdict,numberoffeatures
 
-def GetPositionList(classificationfilename,ranks):
+def GetPositionList(classificationfilename,ranks,idcolumnname):
 	ranklist=[]	
 	if "," in ranks:
 		ranklist=ranks.split(",")
@@ -103,43 +101,33 @@ def GetPositionList(classificationfilename,ranks):
 	classificationfile.close()
 	texts=header.split("\t")
 	isError=False
+	i=0
+	seqidpos=0
+	for text in texts:
+		if text.lower()==idcolumnname.lower():
+			seqidpos=i
+		i=i+1	
 	for rank in ranklist:
+		pos=-1
 		if rank in texts:
 			pos=texts.index(rank)
-			positionlist.append(pos)
-		else:
-			print("The rank " + rank + " is not given in the classification." )
-			isError=True
-	return positionlist,ranklist,isError
+		positionlist.append(pos)
+	return seqidpos,positionlist,ranklist,isError
 
 #####main###
 
 #seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
-poslist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
-if isError==True:
-	print("The given ranks/features do not exist in the header of the classification file.")
-	sys.exit()
-if len(ranklist)==0:
-	print("Please specify the ranks/features to add to sequence headers.")	
-	sys.exit()
-seqids,classifications,numberoffeatures=LoadClassification(classificationfilename,poslist,ranklist,fmt)
-outputfile=open(output,"w")
-fastafile=open(fastafilename)
+seqidpos,poslist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks,args.idcolumnname)	
 
-for line in fastafile:
-	if line.startswith(">"):
-		seqid=line.rstrip().replace(">","")
-		if "|" in seqid:
-			seqid=seqid[0:seqid.index("|")]
-		classification=""
-		if seqid in seqids:
-			classification=unicode(classifications[seqids.index(seqid)])
-		else:
-			classification="|" * numberoffeatures
-		header=">" + seqid + "|" + classification + "\n"
-		outputfile.write(header)	
-	else:		
-		outputfile.write(line)
-	
-outputfile.close()		
-fastafile.close()
+classificationdict,numberoffeatures=LoadClassification(classificationfilename,poslist,ranklist,seqidpos,sep)
+
+seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
+for seqrecord in seqrecords:
+	classification=""
+	if seqrecord.id in classificationdict.keys():
+		classification=unicode(classificationdict[seqrecord.id])
+	elif sep!="":
+		classification=sep * numberoffeatures
+	seqrecord.description= classification
+#save new file	
+SeqIO.write(seqrecords, output, "fasta")	
