@@ -201,13 +201,13 @@ Here t is the threshold or similarity cut-off for removing sequences of the same
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
-For higher taxonomic levels:
+- For higher taxonomic levels:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
 The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
 
-If the similarity matrix is not given because of a large dataset, we can just simply use the following command to remove species complexes and predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
+- If the similarity matrix is not given because of a large dataset, we can just simply use the following command to remove species complexes and predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
 
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS 
