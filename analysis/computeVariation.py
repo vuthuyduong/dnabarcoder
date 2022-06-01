@@ -26,7 +26,7 @@ parser.add_argument('-i','--input', required=True, help='the fasta file to be cl
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks to compute variation, separated by ",".')
+parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks to compute variation, separated by ",".')
 parser.add_argument('-m','--maxSeqNo', type=int, default=0, help='The maximum number of randomly selected sequences of each class to be computed in the case the groups are too big.')
 parser.add_argument('-plt','--plottype', default="boxplot", help='The type of plots. There are two options: boxplot and plot.')
 parser.add_argument('-sim','--simfilename', default="", help='The similarity matrix of the sequences if exists.')

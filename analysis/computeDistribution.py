@@ -25,7 +25,7 @@ parser=argparse.ArgumentParser(prog='computeDistribution.py',
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default='', help='the classification file in tab. format.')
-parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks to compute distribution, separated by ",".')
+parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks to compute distribution, separated by ",".')
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The number of labels to be displayed.')
 parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
 parser.add_argument('-method','--visualizationmethod', default="plot", help='The visualization method. There are two methods to be selected: krona and plot.')
