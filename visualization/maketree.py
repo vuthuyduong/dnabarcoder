@@ -18,7 +18,7 @@ parser=argparse.ArgumentParser(prog='maketree.py',
 parser.add_argument('-i','--input', required=True, help='the fasta input file.')
 parser.add_argument('-c','--classification', default="", help='The taxonomic classification file.')
 #parser.add_argument('-p','--classificationposition', default="", help='the classification positions for the prediction.')
-parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks for getting sequence dscriptions.')
+parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks for getting sequence dscriptions.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
