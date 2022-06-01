@@ -10,7 +10,7 @@ import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='maketree.py',  
-							   usage="%(prog)s [options] -i fastafile -c classificationfilename -rank classification rank",
+							   usage="%(prog)s [options] -i fastafile -c classificationfilename -ranks classificationranks",
 							   description='''The script create a phylogenetic tree for the sequences given in the input fasta file. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -20,6 +20,7 @@ parser.add_argument('-c','--classification', default="", help='The taxonomic cla
 #parser.add_argument('-p','--classificationposition', default="", help='the classification positions for the prediction.')
 parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks for getting sequence dscriptions.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -40,43 +41,74 @@ def GetWorkingBase(filename):
 	path=outputpath + "/" + basename
 	return path
 
-def LoadClassification(classificationfilename,poslist):
+def LoadClassification(seqids,classificationfilename,poslist,seqidpos):
 	classificationfile= open(classificationfilename, errors="ignore")
-	seqids=[]
-	classifications=[]
-	numberoffeatures=0
+	classificationdict={}
 	for line in classificationfile:
 		elements=line.rstrip().split("\t")
-		seqid = elements[0].replace(">","").rstrip()
-		seqids.append(seqid)
-		classification=(line[line.index("\t")+1:])
-		texts=classification.split("\t")
+		seqid = elements[seqidpos].rstrip()
+		if not (seqid in seqids):
+			continue
 		classification=""
-		if len(poslist) >0:		
-			for pos in poslist:
-				pos=pos-1
-				text=""
-				if pos < len(texts):
-					text=texts[pos]
-				if text=="":
-					text="unidentified"	
-				text=text.replace(" ","_")	
-				classification=classification + text + "|"
-		else:
-			for text in texts:
-				text=text.rstrip()
-				if text=="":
-					text="unidentified"
-				text=text.replace(" ","_")		
-				classification=classification + text + "|"
+		for pos in poslist:
+			classification=classification + elements[pos].rstrip() + "|"
 		classification=classification[:-1] 		
-		classifications.append(classification)
-		if numberoffeatures==0:
-			numberoffeatures=classification.count("|")
-		else:
-			numberoffeatures=min(numberoffeatures,classification.count("|"))
+		classificationdict.setdefault(seqid,classification)
 	classificationfile.close()
-	return seqids,classifications,numberoffeatures
+	return classificationdict
+
+def LoadClassificationFromDescription(seqrecords,ranklist):
+	classificationdict={}
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species=""
+		genus=""
+		family=""
+		order=""
+		bioclass=""
+		phylum=""
+		kingdom=""
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			text=text.rstrip()
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon.replace("k__","")
+				elif taxon.startswith("p__"):
+					phylum=taxon.replace("p__","")
+				elif taxon.startswith("c__"):
+					bioclass=taxon.replace("c__","")	
+				elif taxon.startswith("o__"):
+					order=taxon.replace("o__","")
+				elif taxon.startswith("f__"):
+					family=taxon.replace("f__","")	
+				elif taxon.startswith("g__"):
+					genus=taxon.replace("g__","")
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon.replace("s__","")
+					species=species.replace("_"," ")
+		classification=""
+		if "kingdom" in ranklist:
+			classification=classification + kingdom + "|"			
+		if "phylum" in ranklist:
+			classification=classification + phylum + "|"				
+		if "class" in ranklist:
+			classification=classification + bioclass + "|"	
+		if "order" in ranklist:
+			classification=classification + order + "|"	
+		if "family" in ranklist:
+			classification=classification + family + "|"	
+		if "genus" in ranklist:
+			classification=classification + genus + "|"	
+		if "species" in ranklist:
+			classification=classification + species + "|"	
+		if classification!="":
+			classification=classification[:-1]
+		classificationdict.setdefault(seqid,classification)	
+	return classificationdict	
 
 def lookup_by_names(tree):
 	names = {}
@@ -136,8 +168,14 @@ def CreateTree(fastafilename):
 	#make tree
 	treefilename=GetWorkingBase(fastafilename) + ".aligned.fas.treefile"
 	if not os.path.exists(treefilename):
-		#command="iqtree -pers 0.2 -s " + alignmentfilename
+		#command="iqtree -pers 0.2 -s " + alignmentfilename + " -nt " +  str(nproc)
+		command="iqtree version > dnabarcoder.iqtree.log"
+		os.system(command)
 		command="iqtree -pers 0.2 -n 500 -s " + alignmentfilename
+		with open('dnabarcoder.iqtree.log') as f:
+			if 'IQ-TREE multicore version' in f.read():
+				command="iqtree -pers 0.2 -n 500 -s " + alignmentfilename + " -nt " +  str(nproc)
+		os.system("rm dnabarcoder.iqtree.log") 
 		#command="iqtree -s " + alignmentfilename
 		#command="fasttree -nt -quote " + alignmentfilename + " > " + treefilename
 		print(command)
@@ -145,22 +183,20 @@ def CreateTree(fastafilename):
 	#print tree
 	PrintTree(treefilename)
 	return treefilename
-def CreateFastaFileWithClassification(fastafilename,classificationfilename,positionlist):
+
+def CreateFastaFileWithClassification(fastafilename,classificationdict):
 	newfastafilename=GetWorkingBase(fastafilename) + ".classification.fasta"
-	seqids,classifications,numberoffeatures=LoadClassification(classificationfilename,positionlist)
 	outputfile=open(newfastafilename,"w")	
 	fastafile=open(fastafilename)
 	for line in fastafile:
 		if line.startswith(">"):
 			seqid=line.rstrip().replace(">","")
-			if "|" in seqid:
-				seqid=seqid[0:seqid.index("|")]
+			if " " in seqid:
+				seqid=seqid.split(" ")[0]
 			classification=""
-			if seqid in seqids:
-				classification=unicode(classifications[seqids.index(seqid)])
-			else:
-				classification="|" * numberoffeatures
-			header=">" + seqid + "|" + classification + "\n"
+			if seqid in classificationdict.keys():
+				classification=unicode(classificationdict[seqid])
+			header=">" + seqid + "|" + classification.replace(" ","_") + "\n"
 			outputfile.write(header)	
 		else:		
 			outputfile.write(line)
@@ -168,12 +204,7 @@ def CreateFastaFileWithClassification(fastafilename,classificationfilename,posit
 	fastafile.close()
 	return newfastafilename
 
-def GetPositionList(classificationfilename,ranks):
-	ranklist=[]	
-	if "," in ranks:
-		ranklist=ranks.split(",")
-	elif ranks !="":
-		ranklist.append(ranks)
+def GetPositionList(classificationfilename,rankslist):
 	positionlist=[]
 	classificationfile=open(classificationfilename)
 	header=classificationfile.readline()
@@ -181,6 +212,15 @@ def GetPositionList(classificationfilename,ranks):
 	classificationfile.close()
 	texts=header.split("\t")
 	isError=False
+	i=0
+	seqidpos=-1
+	for text in texts:
+		if text.lower()==args.idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True
 	for rank in ranklist:
 		if rank in texts:
 			pos=texts.index(rank)
@@ -188,14 +228,23 @@ def GetPositionList(classificationfilename,ranks):
 		else:
 			print("The rank " + rank + " is not given in the classification." )
 			isError=True
-	return positionlist,ranklist,isError
+	return seqidpos,positionlist,isError
 
 ######MAIN
-positionlist,ranklist,isError=GetPositionList(classificationfilename,ranks)
-if isError==True:
-	sys.exit()
-newfastafilename=fastafilename
+ranklist=[]	
+if "," in ranks:
+	ranklist=ranks.split(",")
+elif ranks !="":
+	ranklist.append(ranks)
+classificationdict={}
+seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 if os.path.exists(classificationfilename):
-	newfastafilename=CreateFastaFileWithClassification(fastafilename,classificationfilename,positionlist)
+	seqidpos,positionlist,isError=GetPositionList(classificationfilename,ranks)
+	if isError==True:
+		sys.exit()
+	classificationdict=LoadClassification(seqrecords.keys(),classificationfilename,positionlist,seqidpos)	
+else:
+	classificationdict=LoadClassificationFromDescription(seqrecords,ranklist)
+newfastafilename=CreateFastaFileWithClassification(fastafilename,classificationdict)
 treefilename=CreateTree(newfastafilename)
 

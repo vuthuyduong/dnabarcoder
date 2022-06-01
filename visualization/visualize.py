@@ -24,12 +24,12 @@ parser=argparse.ArgumentParser(prog='visualize.py',
 
 parser.add_argument('-i','--input', required=True, help='the fasta file')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', help='the classification file in tab. format.')
+parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 #parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification positions for the prediction.')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for coloring the sequences.')
-parser.add_argument('-sim','--simfilename', help='The similarity file if exists, othter it will be computed.')
+parser.add_argument('-sim','--simfilename', default="", help='The similarity file if exists, othter it will be computed.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
-parser.add_argument('-coord','--coordinates', help='A file containing coordinates of the sequences, computed by LargeVis. If these coordinates will be computed if this file is not given.')
+parser.add_argument('-coord','--coordinates', default="", help='A file containing coordinates of the sequences, computed by LargeVis. If these coordinates will be computed if this file is not given.')
 parser.add_argument('-dim','--dimension', type=int, default=3,help='The dimension 2D or 3D for visualization.')
 parser.add_argument('-kneigh','--kneigbors', type=int, default=150,help='The k-neighbors number for visualization.')
 parser.add_argument('-ms','--minsim', type=float, default=0, help='The minimum similarity for visualization.')
@@ -39,6 +39,7 @@ parser.add_argument('-size','--size', type=float, default=1, help='The size of t
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The size of the dot.')
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -158,46 +159,140 @@ def ComputeCoordinates(base,simfilename,dim,edgeNo,kneigh):
 	os.system(largeViscommand)
 	return coordfilename
 
-def LoadFullClassification(seqids,classificationfilename):
-	features=""
-	classification=[""]*len(seqids)
-	if classificationfilename!=None:
-		classificationfile=open(classificationfilename)
-		firstline=classificationfile.readline()
-		features=firstline.replace("\n","").split("\t")
-		if not firstline.startswith("#"):
-			seqid = firstline.split("\t")[0].replace(">","")
-			if seqid in seqids:  
-				classification[seqids.index(seqid)]=firstline.replace("\n","")	        
-		for line in classificationfile:
-			seqid = line.split("\t")[0].replace(">","")
-			if seqid in seqids:
-				classification[seqids.index(seqid)]=line.replace("\n","").split("\t")
-		classificationfile.close()				
-	else:
-		features=["seqindex"]
-		for i in range(0,len(seqids)):
-			classification[i]=[str(i)]
-	return features,classification
+def LoadFullClassification(seqids,classificationfilename,idcolumnname):
+	isError=False
+	classificationfile=open(classificationfilename)
+	header=next(classificationfile)
+	features=header.replace("\n","").split("\t")
+	emptyfeatures=[""]*len(features)
+	classification=[emptyfeatures]*len(seqids)
+	seqidpos=-1
+	i=0
+	for feature in features:
+		if feature.lower()==idcolumnname.lower():
+			seqidpos=i
+		i=i+1	
+	if seqidpos==-1:
+		print("Please specify sequence id column name by using -idcolumnname.")
+		isError=True      
+	for line in classificationfile:
+		seqid = line.split("\t")[seqidpos].rstrip()
+		if seqid in seqids:
+			classification[seqids.index(seqid)]=line.replace("\n","").split("\t")
+	classificationfile.close()			
+	return features,classification,isError
 
-def LoadClassification(seqids,classificationfilename,classificationpos):
+def LoadFullClassificationFromDescription(seqrecords):
+	classification=[]
+	features=["kingdom","phylum","class","order","family","genus","species"]
+	for seqrecord in seqrecords:
+		description=seqrecord.description
+		species=""
+		genus=""
+		family=""
+		order=""
+		bioclass=""
+		phylum=""
+		kingdom=""
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			text=text.rstrip()
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon.replace("k__","")
+				elif taxon.startswith("p__"):
+					phylum=taxon.replace("p__","")
+				elif taxon.startswith("c__"):
+					bioclass=taxon.replace("c__","")	
+				elif taxon.startswith("o__"):
+					order=taxon.replace("o__","")
+				elif taxon.startswith("f__"):
+					family=taxon.replace("f__","")	
+				elif taxon.startswith("g__"):
+					genus=taxon.replace("g__","")
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon.replace("s__","")
+					species=species.replace("_"," ")
+		classification.append([kingdom,phylum,bioclass,order,family,genus,species])
+	return features,classification
+	
+def LoadClassification(seqids,classificationfilename,rank,idcolumnname):
+	isError=False
 	labels=[""]*len(seqids)
-	rank=""
-	if classificationfilename!=None:
-		classificationfile=open(classificationfilename)
-		i=0
-		for line in classificationfile:
-			seqid = line.split("\t")[0].replace(">","")
-			if i==0:
-				rank=line.replace("\n","").split("\t")[classificationpos]
-			if seqid in seqids:
-				labels[seqids.index(seqid)]=line.replace("\n","").split("\t")[classificationpos]
-			i=i+1	
-		classificationfile.close()				
-	else:
-		for i in range(0,len(seqids)):
-			labels[i]=str(i)
-	return labels, rank
+	classificationfile=open(classificationfilename)
+	header=next(classificationfile)
+	features=header.replace("\n","").split("\t")
+	seqidpos=-1
+	pos=-1
+	i=0
+	for feature in features:
+		if feature.lower()==idcolumnname.lower():
+			seqidpos=i
+		if feature.lower()==rank.lower():
+			pos=i
+		i=i+1	
+	if seqidpos==-1:
+		print("Please specify the sequence id column name by using -idcolumnname.")
+		isError=True   
+	if pos==-1:
+		print("Please specify the column name for coloring the sequences by using -rank.")
+		isError=True    	  
+	for line in classificationfile:
+		seqid = line.split("\t")[seqidpos].rstrip()
+		if seqid in seqids:
+			labels[seqids.index(seqid)]=line.replace("\n","").split("\t")[pos]
+	classificationfile.close()				
+	return labels,isError
+
+def LoadClassificationFromDescription(seqrecords,rank):
+	labels=[]
+	for seqrecord in seqrecords:
+		description=seqrecord.description
+		species=""
+		genus=""
+		family=""
+		order=""
+		bioclass=""
+		phylum=""
+		kingdom=""
+		texts=description.split("|")
+		for text in texts:
+			text=text.rstrip()
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon.replace("k__","")
+				elif taxon.startswith("p__"):
+					phylum=taxon.replace("p__","")
+				elif taxon.startswith("c__"):
+					bioclass=taxon.replace("c__","")	
+				elif taxon.startswith("o__"):
+					order=taxon.replace("o__","")
+				elif taxon.startswith("f__"):
+					family=taxon.replace("f__","")	
+				elif taxon.startswith("g__"):
+					genus=taxon.replace("g__","")
+				elif taxon.startswith("s__"):
+					species=taxon.replace("s__","")
+					species=species.replace("_"," ")
+		if rank.lower()=="species":
+			labels.append(species)
+		if rank.lower()=="genus":
+			labels.append(genus)
+		if rank.lower()=="family":
+			labels.append(family)
+		if rank.lower()=="order":
+			labels.append(order)
+		if rank.lower()=="class":
+			labels.append(bioclass)
+		if rank.lower()=="phylum":
+			labels.append(phylum)	
+		if rank.lower()=="kingdom":
+			labels.append(kingdom)	
+	return labels
 
 def LoadCoordinates(coorfilename):
 	coordfile=open(coordfilename)
@@ -214,10 +309,9 @@ def LoadCoordinates(coorfilename):
 	coordfile.close()	
 	return seqNo,dim,coordinates
 
-def CreateDiVEFiles(base,seqids,classificationfilename,coorfilename):
+def CreateDiVEFiles(base,seqids,classification,features,coorfilename):
 	jsonfilename=GetWorkingBase(fastafilename) + ".dive.json"
-	divefilename=base + "DiVE/data/data.js"
-	features,classification=LoadFullClassification(seqids,classificationfilename)
+	divefilename=base + "DiVE/data/data.js"	
 	seqNo,dim,coordinates=LoadCoordinates(coorfilename)
 	coorddict={}
 	coorddict["NamesOfProperties"]=features
@@ -245,13 +339,12 @@ def CreateDiVEFiles(base,seqids,classificationfilename,coorfilename):
 	f.close()
 	return divefilename,jsonfilename
 
-def VisualizeUsingDiVE(base,seqids,classificationfilename,coorfilename):
-	divefilename,jsonfilename=CreateDiVEFiles(base,seqids,classificationfilename,coorfilename)
+def VisualizeUsingDiVE(base,seqids,classification,features,coorfilename):
+	divefilename,jsonfilename=CreateDiVEFiles(base,seqids,classification,features,coorfilename)
 	print("The DiVE file is created as " + jsonfilename + ".")
 	os.system("firefox " + base + "DiVE/index.html");
 	
-def Plot(prefix,seqids,coordfilename,classificationfilename,classificationpos,size,output):
-	labels,rank = LoadClassification(seqids,classificationfilename,classificationpos)
+def Plot(prefix,seqids,coordfilename,labels,size,output):
 	seqNo,dim,coordinates=LoadCoordinates(coordfilename)
 	all_data = {}
 	cmap = plt.get_cmap("tab20c")
@@ -345,21 +438,6 @@ def Plot(prefix,seqids,coordfilename,classificationfilename,classificationpos,si
 	plt.savefig(output, dpi = 500)
 	plt.show()		
 	
-def GetPosition(classificationfilename,rank):
-	pos=-1
-	classificationfile=open(classificationfilename)
-	header=classificationfile.readline()
-	header=header.rstrip()
-	classificationfile.close()
-	texts=header.split("\t")
-	isError=False
-	if rank in texts:
-		pos=texts.index(rank)
-	else:
-		print("The rank " + rank + " is not given in the classification." )
-		isError=True
-	return pos,isError
-	
 if __name__ == "__main__":
 	#load sequences
 	if prefix=="":
@@ -369,8 +447,8 @@ if __name__ == "__main__":
 	seqids=[]
 	for rec in seqrecords:
 		seqids.append(rec.id)
-	if coordfilename==None:
-		if simfilename==None or simfilename=="":			
+	if coordfilename=="":
+		if simfilename=="":			
 			simfilename=GetWorkingBase(prefix)  + ".sim"
 			simfilename_minsim=""
 			if minsim >0:
@@ -410,13 +488,22 @@ if __name__ == "__main__":
 			#use the existing simfilename.
 			print("The existing file " + coordfilename + " is used for visualization. If you wish to recalculate the coordinates, please delete the existing file.")
 	if method.lower()=="dive":
-		VisualizeUsingDiVE(base,seqids,classificationfilename,coordfilename)		
+		if classificationfilename!="":
+			features,classification,isError=LoadFullClassification(seqids,classificationfilename,args.idcolumnname)
+		else:
+			features,classification=LoadFullClassificationFromDescription(seqrecords)
+		VisualizeUsingDiVE(base,seqids,classification,features,coordfilename)		
 	else:
-		classificationpos,isError=GetPosition(classificationfilename,rank)
-		output=GetWorkingBase(prefix)  + "." + str(classificationpos) + ".visualization.png"
+		#classificationpos,isError=GetPosition(classificationfilename,rank)
+		output=GetWorkingBase(prefix)  + "." + rank + ".visualization.png"
 		if label=="":
 			label=prefix
-		Plot(label,seqids,coordfilename,classificationfilename,classificationpos,size,output)
+		labels=[]	
+		if classificationfilename!="":
+			labels,isError = LoadClassification(seqids,classificationfilename,rank,args.idcolumnname)		
+		else:
+			labels = LoadClassificationFromDescription(seqrecords,rank)		
+		Plot(label,seqids,coordfilename,labels,size,output)
 		print("The visualization is saved in " + output + ".")
 			
 
