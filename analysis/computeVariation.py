@@ -25,7 +25,7 @@ parser=argparse.ArgumentParser(prog='computeVariation.py',
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', help='the classification file in tab. format.')
+parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks to compute variation, separated by ",".')
 parser.add_argument('-m','--maxSeqNo', type=int, default=0, help='The maximum number of randomly selected sequences of each class to be computed in the case the groups are too big.')
 parser.add_argument('-plt','--plottype', default="boxplot", help='The type of plots. There are two options: boxplot and plot.')
@@ -33,6 +33,7 @@ parser.add_argument('-sim','--simfilename', default="", help='The similarity mat
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 
 args=parser.parse_args()
@@ -69,34 +70,80 @@ def GetWorkingBase(basename):
 	path=outputpath + "/" + basename
 	return path
 
-def LoadClassification(seqIDs,seqrecords,classificationfilename,pos):
-	classification=[""]*len(seqIDs)
-	classes=[]
-	classnames=[]
+def LoadClassificationFromDescription(seqrecords,rank):
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species=""
+		genus=""
+		family=""
+		order=""
+		bioclass=""
+		phylum=""
+		kingdom=""
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			text=text.rstrip()
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon.replace("k__","")
+				elif taxon.startswith("p__"):
+					phylum=taxon.replace("p__","")
+				elif taxon.startswith("c__"):
+					bioclass=taxon.replace("c__","")	
+				elif taxon.startswith("o__"):
+					order=taxon.replace("o__","")
+				elif taxon.startswith("f__"):
+					family=taxon.replace("f__","")	
+				elif taxon.startswith("g__"):
+					genus=taxon.replace("g__","")
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon.replace("s__","")
+					species=species.replace("_"," ")
+		if rank.lower()=="species":
+			classname=species
+		elif rank.lower()=="genus":
+			classname=genus
+		elif rank.lower()=="family":
+			classname=family
+		elif rank.lower()=="order":
+			classname=order
+		elif rank.lower()=="class":
+			classname=bioclass
+		elif rank.lower()=="phylum":
+			classname=phylum
+		elif rank.lower()=="kingdom":
+			classname=kingdom
+		if classname=="" or ("unidentified" in classname):
+			continue 
+		if seqid in seqrecords.keys():
+			if not (classname in classes.keys()):
+				classes.setdefault(classname,[])	
+			classes[classname].append(seqrecords[seqid])				
+	return classes
+
+def LoadClassification(seqrecords,classificationfilename,pos,seqidpos):
+	classes={}
 	if classificationfilename == "":
-		return classification,classes,classnames
+		return classes
 	records= open(classificationfilename)
 	next(records)
 	for line in records:
 		elements=line.split("\t")
-		seqid = elements[0].replace(">","").rstrip()
+		seqid = elements[seqidpos].replace(">","").rstrip()
 		classname=""
 		if pos < len(elements):
 			 classname=elements[pos].rstrip()
 		if classname=="" or classname=="unidentified":
 			continue 
-		if seqid in seqIDs:
-			index=seqIDs.index(seqid)
-			if classname in classnames:
-				classid=classnames.index(classname)
-				classes[classid].append(seqrecords[index])
-			else:
-				classnames.append(classname)
-				seqs=[]
-				seqs.append(seqrecords[index])
-				classes.append(seqs)
+		if seqid in seqrecords.keys():
+			if not (classname in classes.keys()):
+				classes.setdefault(classname,[])	
+			classes[classname].append(seqrecords[seqid])
 	records.close()			
-	return classification,classes,classnames
+	return classes
 
 def LoadSim(simfilename):
 	simmatrix = {} #we use dictionary to reduce the memory constraints 
@@ -230,14 +277,14 @@ def ComputeVariation(reffilename,mincoverage,simmatrix):
 		threshold=round(float(np.median(x)),4)
 	return threshold,minthreshold
 
-def ComputeVariations(variationfilename,classes,classnames,mincoverage,simmatrix):
+def ComputeVariations(variationfilename,classes,mincoverage,simmatrix):
 	#create json dict
 	variations={}
 	i=0
-	for taxonname in classnames:
+	for taxonname in classes.keys():
 		threshold=0
 		minthreshold=0
-		sequences=classes[i]
+		sequences=classes[taxonname]
 		if len(sequences) >0:
 			if maxSeqNo==0 or (len(sequences) < maxSeqNo):
 				fastafilename=taxonname.replace(" ","_") + ".fasta"
@@ -514,13 +561,22 @@ def GetPositionList(classificationfilename,ranks):
 		ranklist=ranks.split(",")
 	elif ranks !="":
 		ranklist.append(ranks)
-	positionlist=[]
+	positionlist=[]	
+	isError=False	
+	seqidpos=-1	
 	classificationfile=open(classificationfilename)
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
-	texts=header.split("\t")
-	isError=False
+	texts=header.rstrip().split("\t")
+	i=0
+	for text in texts:
+		if text.lower()==args.idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True
 	for rank in ranklist:
 		if rank in texts:
 			pos=texts.index(rank)
@@ -528,7 +584,7 @@ def GetPositionList(classificationfilename,ranks):
 		else:
 			print("The rank " + rank + " is not given in the classification." )
 			isError=True
-	return positionlist,ranklist,isError
+	return seqidpos,positionlist,ranklist,isError
 
 ##############################################################################
 # MAIN
@@ -538,9 +594,9 @@ path=path[:-(len(path)-path.rindex("/")-1)]
 
 if prefix=="":
 	prefix=GetBase(os.path.basename(referencename))
-	
-positionlist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
-if isError==True:
+
+seqidpos,positionlist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
+if isError==True :
 	sys.exit()
 displayed=False
 if len(positionlist)==1:
@@ -550,37 +606,33 @@ simmatrix={}
 if os.path.exists(simfilename):
 	print("Loading similarity matrix " + simfilename)
 	simmatrix=LoadSim(simfilename)	
-#load train seq records
-referencerecords =  list(SeqIO.parse(referencename, "fasta"))
-referenceIDs=[]
-for seq in referencerecords:
-	referenceIDs.append(seq.id)
+#load reference seq records
+referencerecords =  SeqIO.to_dict(SeqIO.parse(referencename, "fasta"))
 variationlist=[]
 labels=[]
 i=0
-for classificationposition in positionlist:
-	rank=ranklist[i]
-	jsonvariationfilename = GetWorkingBase(prefix) + "." + str(classificationposition) + ".variation"
+jsonvariationfilename=""
+figoutput=""
+for rank in ranklist:
+	rank=rank.lower()
+	jsonvariationfilename = GetWorkingBase(prefix) + "." + rank + ".variation"
 	figoutput=GetBase(jsonvariationfilename) + ".variation.png" 
 	#Load classes, classification:
-	referenceclassification,classes,classnames= LoadClassification(referenceIDs,referencerecords,classificationfilename, classificationposition)
-	rank=rank.lower()
-	if rank=="":
-		rank="groups at position " + str(classificationposition)
+	classes={}
+	if classificationfilename !="":
+		classificationposition=positionlist[i]
+		classes=LoadClassification(referencerecords,classificationfilename, classificationposition,seqidpos)
+	else:
+		classes=LoadClassificationFromDescription(referencerecords,rank)
 	variations={}
 	if not os.path.exists(jsonvariationfilename):
-		variations=ComputeVariations(jsonvariationfilename,classes,classnames,mincoverage,simmatrix)
+		variations=ComputeVariations(jsonvariationfilename,classes,mincoverage,simmatrix)
 	else:
 		print("The variation file " + jsonvariationfilename + " exists. Please delete the file if you wish to recalculate the variation.")
 		with open(jsonvariationfilename) as variation_file:
 			variations = json.load(variation_file)
 		SaveVariationInTabFormat(jsonvariationfilename + ".txt",variations)
 		print("The variations are saved in the json file  " + jsonvariationfilename + " and tab file " + jsonvariationfilename + ".txt. The figure is saved in " + figoutput + "."  )
-		#plot
-#		if plottype=="plot":
-#			Plot(prefix,figoutput,variations,rank,displayed)
-#		else:	
-#			BoxPlot(prefix,figoutput,variations,rank,displayed)
 	variationlist.append(variations)
 	labels.append(rank)	
 	i=i+1	

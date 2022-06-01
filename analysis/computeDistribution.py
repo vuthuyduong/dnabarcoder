@@ -8,8 +8,8 @@ if sys.version_info[0] >= 3:
 import numpy as np
 import os
 from Bio import SeqIO
-import json
-import random
+#import json
+#import random
 import matplotlib.pyplot as plt
 plt.rc('font',size=6)
 
@@ -24,12 +24,13 @@ parser=argparse.ArgumentParser(prog='computeDistribution.py',
 
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', help='the classification file in tab. format.')
+parser.add_argument('-c','--classification', default='', help='the classification file in tab. format.')
 parser.add_argument('-ranks','--classificationranks', default="", help='the classification ranks to compute distribution, separated by ",".')
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The number of labels to be displayed.')
 parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
 parser.add_argument('-method','--visualizationmethod', default="plot", help='The visualization method. There are two methods to be selected: krona and plot.')
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 referencename= args.input
@@ -55,26 +56,79 @@ def GetWorkingBase(filename):
 	path=outputpath + "/" + basename
 	return path
 
-def LoadClassification(seqIDs,seqrecords,classificationfilename,poslist):
-	classification={}
-	if classificationfilename == "":
-		classification["unidentified"]=len(seqrecords)
-		return classification
-	records= list(open(classificationfilename, "r"))
-	feature=""
-	for line in records:
-		if line.startswith("#"):
-			i=0 
-			for pos in poslist:
-				if i==0:
-					feature=line.rstrip().split("\t")[pos]
-				else:
-					feature=feature + line.rstrip().split("\t")[pos]
-				i=i+1
-			continue 
+def LoadClassificationFromDescription(seqrecords,ranklist):
+	classificationdict={}
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species=""
+		genus=""
+		family=""
+		order=""
+		bioclass=""
+		phylum=""
+		kingdom=""
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			text=text.rstrip()
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon.replace("k__","")
+				elif taxon.startswith("p__"):
+					phylum=taxon.replace("p__","")
+				elif taxon.startswith("c__"):
+					bioclass=taxon.replace("c__","")	
+				elif taxon.startswith("o__"):
+					order=taxon.replace("o__","")
+				elif taxon.startswith("f__"):
+					family=taxon.replace("f__","")	
+				elif taxon.startswith("g__"):
+					genus=taxon.replace("g__","")
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon.replace("s__","")
+					species=species.replace("_"," ")
+		classification=[]
+		if "kingdom" in ranklist:
+			classification.append(kingdom)			
+		if "phylum" in ranklist:
+			classification.append(phylum)		
+		if "class" in ranklist:
+			classification.append(bioclass)	
+		if "order" in ranklist:
+			classification.append(order)
+		if "family" in ranklist:
+			classification.append(family)	
+		if "genus" in ranklist:
+			classification.append(genus)
+		if "species" in ranklist:
+			classification.append(species)	
+		classname=""
+		i=0
+		for taxonname in classification:
+			if taxonname=="" or ("unidentified" in taxonname):
+				taxonname="unidentified"
+			if i==0:
+				classname=taxonname
+			else:
+				classname=classname + "\t" + taxonname
+			i=i+1			
+		if classname in classificationdict.keys():
+			classificationdict[classname]=classificationdict[classname] + 1
+		else:
+			classificationdict.setdefault(classname, 1)
+			
+	return classificationdict	
+
+def LoadClassification(seqrecords,classificationfilename,poslist,seqidpos):
+	classificationdict={}
+	classificationfile= open(classificationfilename)
+	next(classificationfile)
+	for line in classificationfile:
 		elements=line.split("\t")
-		seqid = elements[0].replace(">","").rstrip()
-		if seqid in seqIDs:
+		seqid = elements[seqidpos].rstrip()
+		if seqid in seqrecords.keys():
 			classname=""
 			i=0
 			for pos in poslist:
@@ -86,11 +140,11 @@ def LoadClassification(seqIDs,seqrecords,classificationfilename,poslist):
 				else:
 					classname=classname + "\t" + taxonname
 				i=i+1	
-			if classname in classification.keys():
-				classification[classname]=classification[classname] + 1
+			if classname in classificationdict.keys():
+				classificationdict[classname]=classificationdict[classname] + 1
 			else:
-				classification.setdefault(classname, 1)
-	return classification,feature
+				classificationdict.setdefault(classname, 1)
+	return classificationdict
 
 def SaveDistributionInTabFormat(output,classification):
 	outputfile=open(output,"w")
@@ -147,6 +201,7 @@ def PlotPieChart(figoutput,title,classification,displayed):
 	if unseqno >0:	
 		colors[len(classnames)-1]= np.array([0,0,0,1])#black	
 	#pie chart
+	plt.close("all")
 	fig, ax = plt.subplots(figsize=(3,3))
 	#ax.pie(seqnos, startangle = 90, wedgeprops = { 'linewidth': 2, "edgecolor" :"k" }) #autopct='%.2f'
 	ax.set_title
@@ -165,6 +220,7 @@ def PlotNestedPieCharts(figoutput,title,classificationlist,labels):
 	#colors = plt.cm.Set1(np.linspace(0, 1,len(data)))	
 	# create a figure with two subplots
 	#pie chart
+	plt.close("all")
 	fig, ax = plt.subplots(figsize=(3,3))
 	ax.set_title(title)
 	size = 0.1
@@ -233,19 +289,23 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	os.system(command)
 	os.system("firefox " + kronahtml) 
 	
-def GetPositionList(classificationfilename,ranks):
-	ranklist=[]	
-	if "," in ranks:
-		ranklist=ranks.split(",")
-	elif ranks !="":
-		ranklist.append(ranks)
+def GetPositionList(classificationfilename,ranklist):	
 	positionlist=[]
 	classificationfile=open(classificationfilename)
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
-	texts=header.split("\t")
+	texts=header.rstrip().split("\t")
 	isError=False
+	seqidpos=-1
+	i=0
+	for text in texts:
+		if text.lower()==args.idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify ID columnname by using --idcolumnname.")
+		isError=True
 	for rank in ranklist:
 		if rank in texts:
 			pos=texts.index(rank)
@@ -253,7 +313,7 @@ def GetPositionList(classificationfilename,ranks):
 		else:
 			print("The rank " + rank + " is not given in the classification." )
 			isError=True
-	return positionlist,ranklist,isError
+	return positionlist,seqidpos,isError
 ##############################################################################
 # MAIN
 ##############################################################################
@@ -264,53 +324,65 @@ poslist=[]
 
 if prefix=="":
 	prefix=GetBase(os.path.basename(referencename))
+			
+ranklist=[]
+if "," in args.classificationranks:
+	ranklist=args.classificationranks.split(",")
+else:
+	ranklist=[args.classificationranks]	
 
-poslist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
-if isError==True:
-	sys.exit()
+poslist=[]
+seqidpos=0
+if classificationfilename!="":
+	poslist,seqidpos,isError=GetPositionList(classificationfilename,ranklist)
+	if isError==True:
+		sys.exit()		
+
 displayed=False
-if len(poslist)==1:
+if len(ranklist)==1:
 	displayed=True
 	
 #load train seq records
-referencerecords =  list(SeqIO.parse(referencename, "fasta"))
-referenceIDs=[]
-for seq in referencerecords:
-	referenceIDs.append(seq.id)
+referencerecords = SeqIO.to_dict(SeqIO.parse(referencename, "fasta"))
 if method!="krona":
 	classificationlist=[]
 	labels=[]
-	for classificationposition in poslist:
-		jsonfilename = GetWorkingBase(prefix) + "." + str(classificationposition) + ".distribution"
+	for rank in ranklist:
+		jsonfilename = GetWorkingBase(prefix) + "." + rank + ".distribution"
 		figoutput=GetBase(jsonfilename) + ".distribution.png" 
 		#Load classes, classification:
-		classification,feature= LoadClassification(referenceIDs,referencerecords,classificationfilename, [classificationposition])
+		classificationdict={}
+		if classificationfilename!="":
+			pos=poslist[ranklist.index(rank)]
+			classificationdict=LoadClassification(referencerecords,classificationfilename,[pos],seqidpos)
+		else:
+			classificationdict=LoadClassificationFromDescription(referencerecords,[rank])
 		title=""
-		if feature=="":
-			title= prefix + ": the distribution of the the sequences of the groups at position " + str(classificationposition)
-		elif feature.lower()== "species":
+		if rank.lower()== "species":
 			title=prefix + ": the distribution of the sequences at the species level"		
-		elif feature.lower()== "genus":
+		elif rank.lower()== "genus":
 			title=prefix + ": the distribution of the sequences at the genus level"	
-		elif feature.lower()== "family":
+		elif rank.lower()== "family":
 			title=prefix + ": the distribution of the sequences at the family level"	
-		elif feature.lower()== "order":
+		elif rank.lower()== "order":
 			title=prefix + ": the distribution of the sequences at the order level"	
-		elif feature.lower()== "class":
+		elif rank.lower()== "class":
 			title=prefix + ": the distribution of the sequences at the class level"	
-		elif feature.lower()== "phylum":
+		elif rank.lower()== "phylum":
 			title=prefix + ": the distribution of the sequences at the phylum level"	
-		elif feature.lower()== "kingdom":
+		elif rank.lower()== "kingdom":
 			title=prefix + ": the distribution of the sequences at the kingdom level"	
+		else:
+			title= prefix + ": the distribution of the the sequences of the groups at the columnname " + rank
 		#save classification	
-		SaveDistributionInTabFormat(jsonfilename + ".txt",classification)	
-		newclassification=classification.copy()
+		SaveDistributionInTabFormat(jsonfilename + ".txt",classificationdict)	
+		newclassification=classificationdict.copy()
 		classificationlist.append(newclassification)
-		labels.append(feature)
+		labels.append(rank)
 		#plot
-		PlotPieChart(figoutput,title,classification,displayed)
+		PlotPieChart(figoutput,title,classificationdict,displayed)
 		print("The results are saved in the json file  " + jsonfilename + " and tab file " + jsonfilename + ".txt. The figure is saved in " + figoutput + "."  )	
-	if len(poslist)>1:
+	if len(ranklist)>1:
 		jsonfilename=""
 		jsonfilename = GetWorkingBase(prefix) + ".distribution"
 		figoutput=jsonfilename + ".png" 
@@ -320,8 +392,12 @@ if method!="krona":
 else:
 	kronareport = GetWorkingBase(prefix) + ".krona.report"
 	kronahtml=GetBase(kronareport) + ".html"
-	classification,feature= LoadClassification(referenceIDs,referencerecords,classificationfilename, poslist)
-	KronaPieCharts(classification,kronareport,kronahtml)
+	classificationdict={}
+	if classificationfilename!="":
+		classificationdict=LoadClassification(referencerecords,classificationfilename,poslist,seqidpos)
+	else:
+		classificationdict=LoadClassificationFromDescription(referencerecords,ranklist)
+	KronaPieCharts(classificationdict,kronareport,kronahtml)
 	print("The krona report and html are saved in iles " + kronareport + " and " + kronahtml + ".") 
 		
 	
