@@ -39,7 +39,7 @@ parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='Th
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
-parser.add_argument('-remove','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
+parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
