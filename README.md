@@ -160,7 +160,7 @@ Or:
 ../../dnabarcoder.py predict -i CBSITS_classification.fasta -st 0.7 -et 1 -s 0.001 -rank genus -ml 400
 
 
-For this action, a complete similarity matrix will be computed. The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
+For this action, a complete similarity matrix will be computed if dnabarcoder/CBSITS.sim does not exist. The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
 
 - If we wish to recompute the existing prediction, please use the following command:
 
@@ -187,7 +187,7 @@ For this action, a complete similarity matrix will be computed. The prediction i
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank phylum -ml 400 -taxa Ascomycota
 
-- To predict global and local similarity cut-offs for the CBSITS dataset at the species level, we first need to remove sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
+- To predict global similarity cut-offs for the CBSITS dataset at the species level, we first need to remove sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
 
 ../../dnabarcoder.py remove -i CBSITS.fasta -c CBSITS.current.classification -rank species -sim dnabarcoder/CBSITS.sim -ml 400 -t 1
 
@@ -197,11 +197,21 @@ Here t is the threshold or similarity cut-off for removing sequences of the same
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS
 
-- To predict local similarity cut-offs for species identification of the CBSITS dataset:
+- To predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
 
-../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus,family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
+../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
+
+For higher taxonomic levels:
+
+../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
 The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
+
+If the similarity matrix is not given because of a large dataset, we can just simply use the following command to remove species complexes and predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
+
+
+../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS 
+
 
 - To visualize the global prediction for all ranks, use the following command:
 
