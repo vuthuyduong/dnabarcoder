@@ -23,8 +23,8 @@ parser=argparse.ArgumentParser(prog='classify.py',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
-parser.add_argument('-i','--input', required=True, help='the classified file')
-parser.add_argument('-fmt','--inputformat', default="tab_delimited", help='the format of the classified file. The inputfmt can have two values "tab_delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
+parser.add_argument('-i','--input', required=True, help='the classified file.')
+parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
 parser.add_argument('-f','--fasta', default="", help='the fasta file')
 parser.add_argument('-r','--reference', default="", help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
@@ -39,7 +39,8 @@ parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-
+parser.add_argument('-save','--save',default="", help='The option to save all (default) or only classified sequences (-save classified) in the classification output.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -197,16 +198,25 @@ def GetTaxonomicClassification(level,header,texts):
 		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
 	return classification,taxonname,rank
 
-def LoadClassification(seqrecords,classificationfilename):
+def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 	classificationdict={}
 	classes={}
-	if classificationfilename == "":
-		return {},{}
 	classificationfile= open(classificationfilename)
 	header=next(classificationfile)
+	seqidpos=-1
+	isError=False
+	texts=header.rstrip().split("\t")
+	i=0
+	for text in texts:
+		if text.lower()==idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True	
 	for line in classificationfile:
 		texts=line.split("\t")
-		seqid = texts[0].replace(">","").rstrip()
+		seqid = texts[seqidpos].rstrip()
 		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
 		if classification!="":
 			classificationdict.setdefault(seqid,{})
@@ -226,6 +236,64 @@ def LoadClassification(seqrecords,classificationfilename):
 				else:
 					classes.setdefault(taxonname,[seqrecords[seqid]])		
 	classificationfile.close()	
+	return classificationdict,classes,isError
+
+def LoadClassificationFromDescription(seqrecords):
+	classificationdict={}
+	classes={}
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species="s__unidentified"
+		genus="g__unidentified"
+		family="f__unidentified"
+		order="o__unidentified"
+		bioclass="c__unidentified"
+		phylum="p__unidentified"
+		kingdom="k__unidentified"
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon
+				elif taxon.startswith("p__"):
+					phylum=taxon
+				elif taxon.startswith("c__"):
+					bioclass=taxon
+				elif taxon.startswith("o__"):
+					order=taxon
+				elif taxon.startswith("f__"):
+					family=taxon
+				elif taxon.startswith("g__"):
+					genus=taxon
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon	
+		classification=kingdom + ";" + phylum + ";" + bioclass + ";" + order + ";" + family + ";" + genus + ";" + species
+		taxonnames=[kingdom,phylum,bioclass,order,family,genus,species]
+		ranks=["kingdom","phylum","class","order","family","genus","species"]
+		level=0
+		rank=""
+		taxonname=""
+		for t in taxonnames:
+			t=t.split("__")[1]
+			t=t.replace("_"," ")		
+			if t=="unidentified" or t=="":
+				level=level+1
+				continue
+			rank=ranks[level]
+			taxonname=t
+			if t in classes.keys():
+				classes[t].append(seqrecords[seqid])
+			else:
+				classes.setdefault(t,[seqrecords[seqid]])
+			level=level+1		
+		if taxonname!="":
+			classificationdict.setdefault(seqid,{})
+			classificationdict[seqid]["classification"]=classification
+			classificationdict[seqid]["taxonname"]=taxonname
+			classificationdict[seqid]["rank"]=rank	
 	return classificationdict,classes
 
 #def LoadTaxa(classificationfilename):
@@ -525,9 +593,8 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 	#classificationlevel=GetLevel(classificationrank)
 	output=open(outputname,"w")
 	classificationreportfile=open(classificationreportfilename,"w")
-	output.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
-	classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
-	i=0
+	output.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
+	classificationreportfile.write("ID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
 	given_labels=[]
 	assigned_labels=[]
 	unclassifiedseqids=[]
@@ -577,32 +644,27 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 			predictedname=predictedname.replace("_"," ")
 			given_labels.append(giventaxonname)
 			assigned_labels.append(predictedname)	
-#		if predictedname!="" and predictedname!="unidentified":			
-#			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
-#			cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
-#			if refid==seqid:
-#				refid=""
-#			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
-#			count=count+1
-#		else:
-#			unclassifiedseqids.append(seqid)	
-		#save all classification
 		if predictedname!="" and predictedname!="unidentified":
 			count=count+1
 		else:
 			unclassifiedseqids.append(seqid)	
 			rank=""
-		output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 		cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
-#		if refid==seqid:
-#			refid=""
-		classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
-		
+		#save all classification"
+		if args.save=="":
+			#save all including unidentified sequences in the classification file
+			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
+			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
+		elif args.save=="classified":
+			#save only the classified sequences in the classification file
+			if predictedname!="" and predictedname!="unidentified":
+				output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
+				classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
 	output.close()
 	classificationreportfile.close()
 	return count,given_labels,assigned_labels,unclassifiedseqids
 	
-def LoadPrediction(predictionfilename,mincoverage):
+def LoadPrediction(predictionfilename,mincoverage,idcolumnname):
 	bestmatchdict={}
 	p_id=-1
 	p_l=-1
@@ -617,7 +679,7 @@ def LoadPrediction(predictionfilename,mincoverage):
 	headers=next(predictionfile)
 	i=0
 	for header in headers.rstrip().split("\t"):
-		if ("sequenceid" in header.lower()) or ("sequence_id" in header.lower()) or ("sequence id" in header.lower()) or ("seqid" in header.lower()) :
+		if header.lower()==idcolumnname.lower():
 			p_id=i
 		if "given label" in header.lower():
 			p_l=i
@@ -799,7 +861,7 @@ if __name__ == "__main__":
 	if args.inputformat=="blast":
 		bestmatchdict=LoadBlastOutput(predictionfilename,mincoverage)	
 	else:
-		bestmatchdict=LoadPrediction(predictionfilename,mincoverage)	
+		bestmatchdict=LoadPrediction(predictionfilename,mincoverage,args.idcolumnname)	
 	#load sequences
 	seqrecords={}
 	if os.path.exists(fastafilename):
@@ -808,9 +870,24 @@ if __name__ == "__main__":
 	refseqrecords={}
 	if os.path.exists(referencefastafilename):
 		refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
-	refclassificationdict,refclasses= LoadClassification(refseqrecords,classificationfilename)
-	queryclassificationdict,queryclasses= LoadClassification(seqrecords,classificationfilename)	
-	predictedclassificationdict,predictedclasses= LoadClassification(seqrecords,predictionfilename)	
+	refclassificationdict={}
+	refclasses	={}
+	queryclassificationdict={}
+	queryclasses={}
+	#load classification for the sequences
+	if classificationfilename!="":
+		refclassificationdict,refclasses,isError = LoadClassification(refseqrecords,classificationfilename,args.idcolumnname)
+		if isError==True:
+			sys.exit()
+		queryclassificationdict,queryclasses,isError = LoadClassification(seqrecords,classificationfilename,args.idcolumnname)	
+		if isError==True:
+			sys.exit()
+	else:
+		refclassificationdict,refclasses = LoadClassificationFromDescription(refseqrecords)		
+		queryclassificationdict,queryclasses = LoadClassificationFromDescription(seqrecords)	
+	predictedclassificationdict,predictedclasses,isError= LoadClassification(seqrecords,predictionfilename,args.idcolumnname)	
+	if isError==True:
+		sys.exit()
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:

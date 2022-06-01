@@ -3,16 +3,16 @@
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2021
 import sys
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import cohen_kappa_score
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
+#from sklearn.metrics import precision_recall_fscore_support
+#from sklearn.metrics import cohen_kappa_score
+#from sklearn.metrics import matthews_corrcoef
+#from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import accuracy_score
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
 from Bio import SeqIO
-import json
+#import json
 import multiprocessing
 
 nproc=multiprocessing.cpu_count()
@@ -127,7 +127,7 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 
 def SavePrediction(testseqIDs,bestscorelist,bestsimlist,bestcoveragelist,bestrefidlist,outputname):
 	output=open(outputname,"w")
-	output.write("SequenceID\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
+	output.write("ID\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
 	i=0
 	for seqid in testseqIDs:
 		output.write(seqid + "\t"  + bestrefidlist[i] + "\t" +  str(bestscorelist[i]) + "\t" + str(bestsimlist[i]) + "\t" + str(bestcoveragelist[i]) +"\n")

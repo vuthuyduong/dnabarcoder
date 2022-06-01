@@ -44,6 +44,11 @@ def GetWorkingBase(filename):
 	path=outputpath + "/" + filename
 	return path
 
+def is_fasta(filename):
+    with open(filename, "r") as handle:
+        fasta = SeqIO.parse(handle, "fasta")
+        return any(fasta)  # False when `fasta` is empty, i.e. wasn't a FASTA file
+
 def GetTaxonomicClassification(level,header,texts):
 	classification=""
 	p_s=len(texts)
@@ -124,19 +129,66 @@ def GetTaxonomicClassification(level,header,texts):
 		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
 	return classification,taxonname,rank
 
-def LoadClassification(classificationfilename):
+def LoadClassification(classificationfilename,idcolumnname):
 	classificationdict={}
 	if not os.path.exists(classificationfilename):
 		return classificationdict
 	classificationfile=open(classificationfilename)
 	header=next(classificationfile)
+	seqidpos=-1
+	isError=False
+	texts=header.rstrip().split("\t")
+	i=0
+	for text in texts:
+		if text.lower()==idcolumnname.lower():
+			seqidpos=i
+		i=i+1
+	if 	seqidpos==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True	
 	for line in classificationfile:
 		texts=line.split("\t")
-		seqid = texts[0].replace(">","").rstrip()
+		seqid = texts[seqidpos].rstrip()
 		classificationdict.setdefault(seqid,"")
 		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
 		classificationdict[seqid]=classification
 	classificationfile.close()	
+	return classificationdict,isError
+
+def LoadClassificationFromDescription(fastafilename):
+	classificationdict={}
+	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species="s__unidentified"
+		genus="g__unidentified"
+		family="f__unidentified"
+		order="o__unidentified"
+		bioclass="c__unidentified"
+		phylum="p__unidentified"
+		kingdom="k__unidentified"
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon
+				elif taxon.startswith("p__"):
+					phylum=taxon
+				elif taxon.startswith("c__"):
+					bioclass=taxon
+				elif taxon.startswith("o__"):
+					order=taxon
+				elif taxon.startswith("f__"):
+					family=taxon
+				elif taxon.startswith("g__"):
+					genus=taxon
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon	
+		classification=kingdom + ";" + phylum + ";" + bioclass + ";" + order + ";" + family + ";" + genus + ";" + species
+		classificationdict[seqid]=classification
 	return classificationdict
 
 def GetLevel(rank):
@@ -194,6 +246,12 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	
 if __name__ == "__main__":
 	classificationdict=LoadClassification(classificationfilename)
+	if is_fasta(classificationfilename):
+		classificationdict=LoadClassificationFromDescription(classificationfilename)
+	else:	
+		classificationdict,isError=LoadClassification(classificationfilename,args.idcolumnname)
+		if isError==True:
+			sys.exit()
 	classificationdict= LoadPrediction(predictionfilename,classificationdict)
 	#making krona report
 	kronareport = GetWorkingBase(predictionfilename) + ".krona.report"

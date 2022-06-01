@@ -12,6 +12,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
+from Bio import SeqIO
 
 parser=argparse.ArgumentParser(prog='evaluate.py',  
 							   usage="%(prog)s [options] -i predictionfile -c queryclassification -r referenceclassification",
@@ -27,6 +28,7 @@ parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help
 parser.add_argument('-givenlabelpos','--givenlabelposition', type=int,default=-1, help='the position of given labels in the prediction file.')
 parser.add_argument('-predpos','--predictionposition', type=int,default=-1, help='the position of predicted labels in the prediction file.')
 parser.add_argument('-rankpos','--rankposition', type=int,default=-1, help='the position of ranks in the prediction file.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 
 args=parser.parse_args()
@@ -130,26 +132,65 @@ def GetTaxonomicClassification(level,header,texts):
 		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
 	return classification,taxonname,rank
 
-def LoadClassification(classificationfilename):
+def LoadClassification(classificationfilename,idcolumnname):
 	classificationdict={}
 	if not os.path.exists(classificationfilename):
 		return classificationdict
 	classificationfile=open(classificationfilename)
 	header=next(classificationfile)
 	i=0
-	p_seqid=0
+	isError=False
+	p_seqid=-1
 	for text in header.split("\t"):
-		text=text.rstrip().replace(" ","")
-		if ("seqid" in text) or ("sequenceid" in text):
+		if text.rstrip().lower()==idcolumnname.lower():
 			p_seqid=i
 		i=i+1	
+	if 	p_seqid==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")	
+		isError=True
 	for line in classificationfile:
 		texts=line.split("\t")
-		seqid = texts[p_seqid].replace(">","").rstrip()
+		seqid = texts[p_seqid].rstrip()
 		classificationdict.setdefault(seqid,"")
 		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
 		classificationdict[seqid]=classification
 	classificationfile.close()	
+	return classificationdict,isError
+
+def LoadClassificationFromDescription(fastafilename):
+	classificationdict={}
+	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		species="s__unidentified"
+		genus="g__unidentified"
+		family="f__unidentified"
+		order="o__unidentified"
+		bioclass="c__unidentified"
+		phylum="p__unidentified"
+		kingdom="k__unidentified"
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom=taxon
+				elif taxon.startswith("p__"):
+					phylum=taxon
+				elif taxon.startswith("c__"):
+					bioclass=taxon
+				elif taxon.startswith("o__"):
+					order=taxon
+				elif taxon.startswith("f__"):
+					family=taxon
+				elif taxon.startswith("g__"):
+					genus=taxon
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+					species=taxon	
+		classification=kingdom + ";" + phylum + ";" + bioclass + ";" + order + ";" + family + ";" + genus + ";" + species
+		classificationdict[seqid]=classification
 	return classificationdict
 
 def LoadTaxa(classificationfilename):
@@ -159,10 +200,33 @@ def LoadTaxa(classificationfilename):
 		line=line.rstrip()
 		texts=line.split("\t")
 		for text in texts:
-			if text!="":
+			if text!="" and not (text in taxa):
 				taxa.append(text)
 	classificationfile.close()			
 	return taxa
+
+def LoadTaxaFromDescription(fastafilename):
+	alltaxa=[]
+	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	for seqid in seqrecords.keys():
+		description=seqrecords[seqid].description
+		if " " in description:
+			description=description.split(" ")[1]
+		texts=description.split("|")
+		for text in texts:
+			taxa=text.split(";")	
+			for taxon in taxa:
+				if "__" in taxon:
+					taxon=taxon.split("__")[1]
+				if taxon!="" and taxon!="unidentified" and not (taxon in alltaxa):
+					taxon=taxon.replace("_"," ")
+					alltaxa.append(taxon)			
+	return alltaxa
+
+def is_fasta(filename):
+    with open(filename, "r") as handle:
+        fasta = SeqIO.parse(handle, "fasta")
+        return any(fasta)  # False when `fasta` is empty, i.e. wasn't a FASTA file
 
 def GetLevel(rank):
 	level=-1
@@ -326,9 +390,20 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname):
 	print("Accuracy, precision, and fscore of the taxa are given in file " + reportname +  ".")
 
 if __name__ == "__main__":
-	queryclassificationdict=LoadClassification(queryclassificationfilename)
+	queryclassificationdict={}
+	if is_fasta(queryclassificationfilename):
+		queryclassificationdict=LoadClassificationFromDescription(queryclassificationfilename)
+	else:	
+		queryclassificationdict,isError=LoadClassification(queryclassificationfilename,args.idcolumnname)
+		if isError==True:
+			sys.exit()
 	outputname=GetBase(predictionfilename) + ".labeled"
-	reftaxa=LoadTaxa(refclassificationfilename)	
+	reftaxa=[]
+	if is_fasta(refclassificationfilename):
+		reftaxa=LoadTaxaFromDescription(refclassificationfilename)	
+	else:	
+		reftaxa=LoadTaxa(refclassificationfilename)		
+
 	given_labels,pred_labels= LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa)
 	if outputname!="":
 		print("The assigned sequences with given labels are saved in file " + outputname + ".") 

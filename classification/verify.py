@@ -36,6 +36,7 @@ parser.add_argument('-m','--maxseqno', type=int, default=50, help='Maximum numbe
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 parser.add_argument('-redo','--redo', default="", help='the classification rank')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -159,37 +160,100 @@ def GetTaxonomicClassification(level,header,texts):
 		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
 	return classification,taxonname,rank
 
-def LoadClassification(seqrecords,classificationfilename):
+def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 	classificationdict={}
 	classes={}
-	if classificationfilename == "":
-		return {},{}
-	classificationfile= open(classificationfilename)
-	header=next(classificationfile)
-	for line in classificationfile:
-		texts=line.split("\t")
-		seqid = texts[0].replace(">","").rstrip()
-		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
-		if classification!="":
-			classificationdict.setdefault(seqid,{})
-			classificationdict[seqid]["classification"]=classification
-			classificationdict[seqid]["taxonname"]=taxonname
-			classificationdict[seqid]["rank"]=rank	
-		if seqid in seqrecords.keys():
-			taxonnames=classification.split(";")
-			for taxonname in taxonnames:
-				if taxonname=="":
+	isError=False
+	if classificationfilename != "":
+		classificationfile= open(classificationfilename)
+		header=next(classificationfile)
+		texts=header.rstrip().split("\t")
+		i=0
+		for text in texts:
+			if text.lower()==idcolumnname.lower():
+				seqidpos=i
+				i=i+1
+		if 	seqidpos==-1:
+			print("Please specify the sequence id columnname by using -idcolumnname.")
+			isError=True
+		for line in classificationfile:
+			texts=line.split("\t")
+			seqid = texts[seqidpos].rstrip()
+			classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
+			if classification!="":
+				classificationdict.setdefault(seqid,{})
+				classificationdict[seqid]["classification"]=classification
+				classificationdict[seqid]["taxonname"]=taxonname
+				classificationdict[seqid]["rank"]=rank	
+			if seqid in seqrecords.keys():
+				taxonnames=classification.split(";")
+				for taxonname in taxonnames:
+					if taxonname=="":
+						continue
+					taxonname=taxonname.split("__")[1].replace("_"," ")
+					if taxonname=="unidentified" or taxonname=="":
+						continue
+					if not taxonname in classes.keys():
+						classes.setdefault(taxonname,{})
+					classes[taxonname][seqid]=seqrecords[seqid]
+		classificationfile.close()	
+	else:
+		for seqid in seqrecords.keys():
+			description=seqrecords[seqid].description
+			species="s__unidentified"
+			genus="g__unidentified"
+			family="f__unidentified"
+			order="o__unidentified"
+			bioclass="c__unidentified"
+			phylum="p__unidentified"
+			kingdom="k__unidentified"
+			if " " in description:
+				description=description.split(" ")[1]
+			texts=description.split("|")
+			for text in texts:
+				taxa=text.split(";")	
+				for taxon in taxa:
+					if taxon.startswith("k__"):
+						kingdom=taxon
+					elif taxon.startswith("p__"):
+						phylum=taxon
+					elif taxon.startswith("c__"):
+						bioclass=taxon
+					elif taxon.startswith("o__"):
+						order=taxon
+					elif taxon.startswith("f__"):
+						family=taxon
+					elif taxon.startswith("g__"):
+						genus=taxon
+					elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+						species=taxon	
+			classification=kingdom + ";" + phylum + ";" + bioclass + ";" + order + ";" + family + ";" + genus + ";" + species
+			taxonnames=[kingdom,phylum,bioclass,order,family,genus,species]
+			ranks=["kingdom","phylum","class","order","family","genus","species"]
+			level=0
+			rank=""
+			taxonname=""
+			for t in taxonnames:
+				t=t.split("__")[1]
+				t=t.replace("_"," ")		
+				if t=="unidentified" or t=="":
+					level=level+1
 					continue
-				taxonname=taxonname.split("__")[1].replace("_"," ")
-				if taxonname=="unidentified" or taxonname=="":
-					continue
-				if not taxonname in classes.keys():
-					classes.setdefault(taxonname,{})
-				classes[taxonname][seqid]=seqrecords[seqid]
-	classificationfile.close()	
-	return classificationdict,classes
+				rank=ranks[level]
+				taxonname=t
+				if not (t in classes.keys()):
+					classes.setdefault(t,{})
+				classes[t][seqid]=seqrecords[seqid]
+				level=level+1	
+			if taxonname!="":
+				classificationdict.setdefault(seqid,{})
+				classificationdict[seqid]["classification"]=classification
+				classificationdict[seqid]["taxonname"]=taxonname
+				classificationdict[seqid]["rank"]=rank	
+	return classificationdict,classes,isError
 
-def LoadPrediction(predictionfilename):
+def LoadPrediction(predictionfilename,idcolumnname):
+	isError=False
 	predictiondict={}
 	p_id=-1
 	p_l=-1
@@ -213,7 +277,9 @@ def LoadPrediction(predictionfilename):
 	headers=next(predictionfile)
 	i=0
 	for header in headers.rstrip().split("\t"):
-		if ("sequenceid" in header.lower()) or ("sequence_id" in header.lower()) or ("sequence id" in header.lower()) :
+# 		if ("sequenceid" in header.lower()) or ("sequence_id" in header.lower()) or ("sequence id" in header.lower()) :
+# 			p_id=i
+		if header.lower()==idcolumnname.lower():
 			p_id=i
 		if "given label" in header.lower():
 			p_l=i
@@ -250,6 +316,13 @@ def LoadPrediction(predictionfilename):
 		if "average branch length" in header.lower():
 			p_averagebranchlength=i	
 		i=i+1	
+	if p_id==-1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError=True
+	if 	p_r==-1:
+		print("Please use columnname referenceid for reference sequence ids.")
+		isError=True
+		
 	for line in predictionfile:
 		texts=line.rstrip().split("\t")
 		if p_id >=0 and p_id < len(texts):
@@ -326,7 +399,7 @@ def LoadPrediction(predictionfilename):
 			averagebranchlength=texts[p_averagebranchlength]
 		predictiondict[seqid]["averagebranchlength"]=averagebranchlength
 		
-	return predictiondict
+	return predictiondict,isError
 
 def GetLevel(rank):
 	level=-1
@@ -572,7 +645,9 @@ if __name__ == "__main__":
 #	if outputname==predictionfilename:
 #		outputname=outputname+".verified"
 	#load prediction
-	predictiondict=LoadPrediction(predictionfilename)	
+	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname)	
+	if isError==True:
+		sys.exit()
 	#load sequences
 	seqrecords={}
 	if os.path.exists(fastafilename):
@@ -581,7 +656,9 @@ if __name__ == "__main__":
 	refseqrecords={}
 	if os.path.exists(referencefastafilename):
 		refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
-	refclassificationdict,refclasses= LoadClassification(refseqrecords,classificationfilename)
+	refclassificationdict,refclasses,isError= LoadClassification(refseqrecords,classificationfilename,args.idcolumnname)
+	if isError==True:
+		sys.exit()
 	#verifying...	
 	count,notree_count,total=Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank)
 	if total >0:
