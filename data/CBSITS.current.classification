@@ -1,4 +1,4 @@
-Seqid	kingdom	phylum	class	order	family	genus	species	strain number/type	synonym
+id	kingdom	phylum	class	order	family	genus	species	strain number/type	synonym
 MH854569	Fungi	Ascomycota	Dothideomycetes			Monodictys	Monodictys castaneae	CBS 100.07	Monodictys castaneae
 MH854570	Fungi	Ascomycota	Sordariomycetes	Hypocreales	Nectriaceae	Fusarium	Fusarium equiseti	CBS 107.07	Fusarium equiseti
 MH854571	Fungi	Ascomycota	Eurotiomycetes	Eurotiales	Aspergillaceae	Monascus	Monascus purpureus	CBS 109.07	Monascus purpureus
@@ -2307,7 +2307,7 @@ MH856877	Fungi	Ascomycota	Sordariomycetes	Amphisphaeriales	Sporocadaceae	Seiridi
 MH856878	Fungi	Ascomycota				Monosporium	Monosporium venezuelense	CBS 325.51	Monosporium venezuelense
 MH856879	Fungi	Basidiomycota	Agaricomycetes	Agaricales	Agaricaceae	Montagnea	Montagnea candollei	CBS 326.51	Montagnea candollei
 MH856880	Fungi	Ascomycota	Dothideomycetes	Pleosporales	Didymellaceae	Peyronellaea	Peyronellaea pinodes	CBS 329.51	Didymella pinodes
-MH856881	Fungi	Ascomycota	Dothideomycetes	Mycosphaerellales	Mycosphaerellaceae	Mycosphaerellaceae	Pseudopericoniella	CBS 330.51	Pseudopericoniella
+MH856881	Fungi	Ascomycota	Dothideomycetes	Mycosphaerellales	Mycosphaerellaceae	Pseudopericoniella		CBS 330.51	Pseudopericoniella
 MH856882	Fungi	Ascomycota	Sordariomycetes	Hypocreales	Stachybotryaceae	Paramyrothecium	Paramyrothecium foeniculicola	CBS 331.51	Paramyrothecium foeniculicola
 MH856883	Fungi	Ascomycota				Myxosporella	Myxosporella schini	CBS 332.51	Myxosporella schini
 MH856884	Fungi	Ascomycota	Sordariomycetes	Cephalothecales	Cephalothecaceae	Phialemonium	Phialemonium inflatum	CBS 336.51	Phialemonium inflatum
