@@ -47,6 +47,15 @@ cd /data/ProgLang/Python/dnabarcoder/data/CBSITS2
 ../../dnabarcoder.py predict -i CBSITS2.fasta -c ITS_20211006.classification -rank class -higherrank phylum  -minseqno 30
 #Visualize the sequence distribution based on DNA comparison (dnabarcoder/CBSITS2.sim). If the similarity matrix is not given, dnabarcoder will compute it.
 ../../dnabarcoder.py visualize -i CBSITS2.fasta  -c ITS_20211006.classification -p 3 -n 10 -size 0.3
-#Compute the best local cutoffs:
+#Compute the best local cutoffs. The best local cutoffs will be saved in the file dnabarcoder/CBSITS2.cutoffs.best.json
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS2.cutoffs.json -c ITS_20211006.classification
+#To classify a new dataset globalsoil_ITS2.fasta against the reference dataset CBSITS2.fasta, we first need to search for the best matches:
+../../dnabarcoder.py search -i globalsoil_ITS2.fasta -r CBSITS2.fasta -ml 50
+#Classify the global soil sequences based on the best matches and the local similarity cutoffs:
+../../dnabarcoder.py classify -i dnabarcoder/globalsoil_ITS2.CBSITS2_BLAST.bestmatch -c ITS_20211006.classification  -cutoffs dnabarcoder/CBSITS2.cutoffs.best.json -f globalsoil_ITS2.fasta
+#If there exists an BLAST output (fmt6), we can also take it as the input for classification:
+../../dnabarcoder.py classify -i globalsoil_ITS2.BLAST.output -c ITS_20211006.classification  -cutoffs dnabarcoder/CBSITS2.cutoffs.best.json -f globalsoil_ITS2.fasta
+#The results are saved in file  dnabarcoder/globalsoil_ITS2.CBSITS2_BLAST.classified and dnabarcoder/globalsoil_ITS2.CBSITS2_BLAST.classification.
+#The unclassified sequences are saved in the file dnabarcoder/soil_ITS2.moldITS2_BLAST.unclassified.fasta.
+#The krona report and html are saved in files dnabarcoder/globalsoil_ITS2.CBSITS2_BLAST.krona.report and dnabarcoder/globalsoil_ITS2.moldITS2_BLAST.krona.html.
 
