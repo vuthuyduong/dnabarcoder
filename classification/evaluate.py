@@ -24,12 +24,14 @@ parser.add_argument('-i','--input', required=True, help='the assigment/classifie
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--queryclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
 parser.add_argument('-r','--refclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
-parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
-parser.add_argument('-givenlabelpos','--givenlabelposition', type=int,default=-1, help='the position of given labels in the prediction file.')
-parser.add_argument('-predpos','--predictionposition', type=int,default=-1, help='the position of predicted labels in the prediction file.')
-parser.add_argument('-rankpos','--rankposition', type=int,default=-1, help='the position of ranks in the prediction file.')
+# parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
+# parser.add_argument('-givenlabelpos','--givenlabelposition', type=int,default=-1, help='the position of given labels in the prediction file.')
+# parser.add_argument('-predpos','--predictionposition', type=int,default=-1, help='the position of predicted labels in the prediction file.')
+# parser.add_argument('-rankpos','--rankposition', type=int,default=-1, help='the position of ranks in the prediction file.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
-
+parser.add_argument('-givenlabelcolumnname','--givenlabelcolumnname',default="given label", help='the column name of the given labels in the classification file.')
+parser.add_argument('-predictedlabelcolumnname','--predictedlabelcolumnname',default="prediction", help='the column name of the predicted labels in the classification file.')
+parser.add_argument('-rankcolumnname','--rankcolumnname',default="rank", help='the column name of the ranks in the classification file.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -262,11 +264,11 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa
 		i=0
 		for text in texts:
 			text=text.rstrip()
-			if "givenlabel" in text.lower().replace(" ",""):
+			if args.givenlabelcolumnname.lower() in text.lower():
 				p_givenlabel=i
-			if "prediction" in text.lower().replace(" ",""):
+			if args.predictedlabelcolumnname.lower() in text.lower():
 				p_predlabel=i	
-			if "rank" in text.lower().replace(" ",""):
+			if args.rankcolumnname.lower() in text.lower():
 				p_rank=i		
 			i=i+1	
 	if outputname!="":
