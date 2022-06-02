@@ -4,7 +4,7 @@ Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/dnbarcoder_flowchart.jpg" width="1000" height="300">
 
-For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file [data/CBSITS2.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS2.sh).
+For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file [data/CBSITS2.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS2.sh). The explanation for each command of the file is given below.
 
 Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification.
 
@@ -51,7 +51,7 @@ conda install -c duong.t.vu dnabarcoder
 
 ## Inputs
 
-As mentioned earlier, most of the functions dnabarcoder requires two files as inputs: a FASTA file containing reference sequences (data/CBSITS.fasta) with unique sequence ids, and a classification file in a tab-delimited format containing the taxonomic classification of the sequences (data/CBSITS.current.classification) where the header contains the ranks of the sequences as follows:
+As mentioned earlier, most of the functions dnabarcoder requires two files as inputs: a FASTA file containing reference sequences ([data/CBSITS.fasta](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS.fasta)) with unique sequence ids, and a classification file in a tab-delimited format containing the taxonomic classification of the sequences ([data/CBSITS.current.classification](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS.current.classification)) where the header contains the ranks of the sequences as follows:
 
 id	kingdom	phylum	class	order	family	genus	species	strain number
 
@@ -61,7 +61,7 @@ MH854570	Fungi	Ascomycota	Sordariomycetes	Hypocreales	Nectriaceae	Fusarium	Fusar
 
 We can use [mkCOInr](https://github.com/meglecz/mkCOInr) to obtain this tab-delimited format for a reference database.
 
-The taxonomic classification of the sequences can be provided in the sequence headers as well where the taxonomic classification should have the following format: k__kingdom;p__phylum;c__class;o__order;f__family;s__species (see data/CBSITS_classification.fasta)
+The taxonomic classification of the sequences can be provided in the sequence headers as well where the taxonomic classification should have the following format: k__kingdom;p__phylum;c__class;o__order;f__family;s__species (see [data/CBSITS_classification.fasta](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS_classification.fasta))
 
 
 ## Outputs
@@ -296,7 +296,7 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 
 - To visualize the classification/assignment results with Krona:
 
-../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c filamentousfungalITS.current.classification
+../../dnabarcoder.py krona -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification
 
 ## Verification
 
