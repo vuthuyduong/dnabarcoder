@@ -4,7 +4,7 @@ Dnabarcoder is a tool to predict global and local similarity cut-offs for fungal
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/dnbarcoder_flowchart.jpg" width="1000" height="300">
 
-For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file data/CBSITS2.sh.
+For every function of dnabarcoder, a figure is generated to interpret the result. An example of a complete workflow of dnabarcoder can be found in file [data/CBSITS2.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS2.sh).
 
 Although dnabarcoder was initially developed for fungi, it is applicable to any other organisms using DNA barcodes for identification.
 
