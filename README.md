@@ -213,7 +213,7 @@ The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfun
 - If the similarity matrix is not given because of a large dataset, we can just simply use the following command to remove species complexes and predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
 
 
-../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS 
+../../dnabarcoder.py predict -i CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS 
 
 
 - To visualize the global prediction for all ranks, use the following command:
