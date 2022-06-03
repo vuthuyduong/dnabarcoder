@@ -21,6 +21,7 @@ parser.add_argument('-c','--classification', default="", help='The taxonomic cla
 parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks for getting sequence dscriptions.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-alignmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -110,23 +111,16 @@ def LoadClassificationFromDescription(seqrecords,ranklist):
 		classificationdict.setdefault(seqid,classification)	
 	return classificationdict	
 
-def lookup_by_names(tree):
-	names = {}
-	for clade in tree.find_clades():
-		if clade.name:
-			if clade.name in names:
-				raise ValueError("Duplicate key: %s" % clade.name)
-			names[clade.name] = clade
-	return names
+# def lookup_by_names(tree):
+# 	names = {}
+# 	for clade in tree.find_clades():
+# 		if clade.name:
+# 			if clade.name in names:
+# 				raise ValueError("Duplicate key: %s" % clade.name)
+# 			names[clade.name] = clade
+# 	return names
 #
 #
-def computeBranchLength(treefilename):
-	tree = Phylo.read(treefilename, "newick")
-	names = lookup_by_names(tree)
-	for name in names:
-		clade=names[name]
-		print(clade.name + " " + str(clade.branch_length))
-
 
 def PrintTree_ete(treefilename):
 	svgfilename=GetWorkingBase(fastafilename) + ".tree.svg"
@@ -150,23 +144,46 @@ def PrintTree_ete(treefilename):
 	t.render(svgfilename, tree_style=ts)
 	print("A iq-tree and its svg file are saved in " + treefilename + " and " + svgfilename + ".")	
 	
-def PrintTree(treefilename):
-	svgfilename=GetWorkingBase(fastafilename) + ".tree.svg"
+# def lookup_by_names(tree):
+# 	names = {}
+# 	for clade in tree.find_clades():
+# 		if clade.name:
+# 			if clade.name in names:
+# 				raise ValueError("Duplicate key: %s" % clade.name)
+# 			clade.name=clade.name + "hello"
+# 	print(tree)		
+# 	return names	
+# 	
+def PrintTree(treefilename,classificationdict):
+	svgfilename=treefilename + ".svg"
 	tree = Phylo.read(treefilename, "newick")
+	newtreefilename=treefilename
+	if args.classificationranks!="":
+		newtreefilename=GetWorkingBase(treefilename) + "." + args.classificationranks.replace(",",".") +".treefile"
+	#change the names of the branches
+	for clade in tree.find_clades():
+		if clade.name:
+# 			if clade.name in names:
+# 				raise ValueError("Duplicate key: %s" % clade.name)
+			if clade.name in classificationdict.keys():
+				classification=classificationdict[clade.name]
+				if classification!="":
+					clade.name=clade.name + "|" + classification
+	#save the new tree
+	Phylo.write(tree,newtreefilename,"newick")
+	#Draw the tree				
 	Phylo.draw(tree,do_show=True)	
 	#Phylo.draw_ascii(tree,do_show=False)	
 	pylab.savefig(svgfilename,format='svg', bbox_inches='tight', dpi=300)
-	print("A iq-tree and its svg file are saved in " + treefilename + " and " + svgfilename + ".")	
+	if newtreefilename!=treefilename:
+		print("A iq-tree with branches labeled with taxa and its svg file are saved in " + newtreefilename + " and " + svgfilename + ".")		
+	else:
+		print("The svg file is saved in " + svgfilename + ".")
 	
-def CreateTree(fastafilename):
-	alignmentfilename =  GetWorkingBase(fastafilename) + ".aligned.fas"
-	#make the alignment
-	if not os.path.exists(alignmentfilename):
-		command="clustalo -i " + fastafilename + " -o " + alignmentfilename
-		print(command)
-		os.system(command)
+def CreateTree(fastafilename,alignmentmethod,classificationdict):
+	alignmentfilename = CreateAlignment(fastafilename,alignmentmethod)
 	#make tree
-	treefilename=GetWorkingBase(fastafilename) + ".aligned.fas.treefile"
+	treefilename=alignmentfilename + ".treefile"
 	if not os.path.exists(treefilename):
 		#command="iqtree -pers 0.2 -s " + alignmentfilename + " -nt " +  str(nproc)
 		command="iqtree version > dnabarcoder.iqtree.log"
@@ -180,29 +197,45 @@ def CreateTree(fastafilename):
 		#command="fasttree -nt -quote " + alignmentfilename + " > " + treefilename
 		print(command)
 		os.system(command)
+		print("A iq-tree in newick format is saved in file " + treefilename + ".")		
 	#print tree
-	PrintTree(treefilename)
+	PrintTree(treefilename,classificationdict)
 	return treefilename
 
-def CreateFastaFileWithClassification(fastafilename,classificationdict):
-	newfastafilename=GetWorkingBase(fastafilename) + ".classification.fasta"
-	outputfile=open(newfastafilename,"w")	
-	fastafile=open(fastafilename)
-	for line in fastafile:
-		if line.startswith(">"):
-			seqid=line.rstrip().replace(">","")
-			if " " in seqid:
-				seqid=seqid.split(" ")[0]
-			classification=""
-			if seqid in classificationdict.keys():
-				classification=unicode(classificationdict[seqid])
-			header=">" + seqid + "|" + classification.replace(" ","_") + "\n"
-			outputfile.write(header)	
-		else:		
-			outputfile.write(line)
-	outputfile.close()		
-	fastafile.close()
-	return newfastafilename
+def CreateAlignment(fastafilename,alignmentmethod):
+	alignmentfilename=GetWorkingBase(fastafilename) +"." + alignmentmethod + ".aligned.fas"
+	#make the alignment
+	command=""
+	if not os.path.exists(alignmentfilename):
+		if alignmentmethod.lower()=="clustalo":	
+			command="clustalo -i " + fastafilename + " -o " + alignmentfilename
+		else:
+			command="mafft " + fastafilename + " > " + alignmentfilename
+		print(command)
+		os.system(command)		
+	return alignmentfilename
+
+# def CreateFastaFileWithClassification(fastafilename,classificationdict):
+# 	newfastafilename=GetWorkingBase(fastafilename) + ".classification.fasta"
+# 	outputfile=open(newfastafilename,"w")	
+# 	fastafile=open(fastafilename)
+# 	for line in fastafile:
+# 		if line.startswith(">"):
+# 			seqid=line.rstrip().replace(">","")
+# 			if " " in seqid:
+# 				seqid=seqid.split(" ")[0]
+# 			classification=""
+# 			if seqid in classificationdict.keys():
+# 				classification=unicode(classificationdict[seqid])
+# 			header=line.rstrip()
+# 			if classification!="":
+# 				header=">" + seqid + "|" + classification.replace(" ","_") + "\n"
+# 			outputfile.write(header)	
+# 		else:		
+# 			outputfile.write(line)
+# 	outputfile.close()		
+# 	fastafile.close()
+# 	return newfastafilename
 
 def GetPositionList(classificationfilename,rankslist):
 	positionlist=[]
@@ -245,6 +278,6 @@ if os.path.exists(classificationfilename):
 	classificationdict=LoadClassification(seqrecords.keys(),classificationfilename,positionlist,seqidpos)	
 else:
 	classificationdict=LoadClassificationFromDescription(seqrecords,ranklist)
-newfastafilename=CreateFastaFileWithClassification(fastafilename,classificationdict)
-treefilename=CreateTree(newfastafilename)
+#newfastafilename=CreateFastaFileWithClassification(fastafilename,classificationdict)
+treefilename=CreateTree(fastafilename,args.alignmentmethod,classificationdict)
 
