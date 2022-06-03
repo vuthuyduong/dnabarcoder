@@ -16,7 +16,9 @@ import os, argparse
 #import json
 from Bio import SeqIO
 from Bio import Phylo
-import pylab
+#import pylab
+import matplotlib.pyplot as plt
+plt.rc('font',size=4)
 import random
 import multiprocessing
 nproc=multiprocessing.cpu_count()
@@ -36,6 +38,7 @@ parser.add_argument('-m','--maxseqno', type=int, default=50, help='Maximum numbe
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 parser.add_argument('-redo','--redo', default="", help='the classification rank')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
@@ -450,13 +453,15 @@ def verifyBasedOnBranchLengths(seqid,treefilename):
 	return verified,length,max_length,average
 
 def PrintTree(treefilename,redo):
-	svgfilename=GetWorkingBase(fastafilename) + ".tree.svg"
-	if (not os.path.exists(svgfilename)) or redo!="":
+	figfilename=GetWorkingBase(fastafilename) + ".tree.png"
+	if (not os.path.exists(figfilename)) or redo!="":
 		tree = Phylo.read(treefilename, "newick")
 		Phylo.draw(tree,do_show=False)	
 		#Phylo.draw_ascii(tree,do_show=False)	
-		pylab.savefig(svgfilename,format='svg', bbox_inches='tight', dpi=300)
-		print("A iq-tree and its svg file are saved in " + treefilename + " and " + svgfilename + ".")	
+		#pylab.savefig(svgfilename,format='svg', bbox_inches='tight', dpi=300)
+		plt.tight_layout()
+		plt.savefig(figfilename,dpi=500,bbox_inches='tight')
+		print("A figure of the tree in png format is saved in  file " + figfilename + ".")	
 	
 def CreateTree(fastafilename,redo):
 	alignmentfilename =  GetBase(fastafilename) + ".aligned.fas"
@@ -471,8 +476,10 @@ def CreateTree(fastafilename,redo):
 		command="iqtree -pers 0.2 -n 500 -s " + alignmentfilename
 		#command="iqtree -s " + alignmentfilename
 		os.system(command)
+		print("A iq-tree in newick format is saved in file " + treefilename + ".")	
 	#print tree
-	PrintTree(treefilename,redo)
+	if args.savefig=="yes":
+		PrintTree(treefilename,redo)
 	return treefilename	
 
 def CreateFastaFile(seqrecord,taxonname,classeswithsequences,numberofrefsequences,maxseqno,redo):
