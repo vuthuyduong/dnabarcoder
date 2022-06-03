@@ -146,24 +146,40 @@ def ReportAtLevel(seqids,level,higherlevel,classificationdict):
 		if level >-1:
 			taxon=classification[level].rstrip()
 		highertaxon=classification[higherlevel].rstrip()
-		if taxon=="" or ("unidentified" in taxon) or ("uncultured" in taxon) or ("_sp_" in taxon):
-			continue
-		seqNo=seqNo+1
-		if not (taxon in taxa):
-			taxa.append(taxon)
 		if not( highertaxon=="" or ("unidentified" in highertaxon) or ("uncultured" in highertaxon)):
 			if not (highertaxon in highertaxa.keys()):
-				highertaxa.setdefault(highertaxon,[])
-			if not (taxon in highertaxa[highertaxon]):
-				highertaxa[highertaxon].append(taxon)
+				highertaxa.setdefault(highertaxon,{})
+			if taxon=='' or ("unidentified" in taxon) or ("uncultured" in taxon) or ("_sp_" in taxon):
+				if not ("unidentified" in highertaxa[highertaxon].keys()):	
+					highertaxa[highertaxon].setdefault("unidentified",0)
+				highertaxa[highertaxon]["unidentified"]=highertaxa[highertaxon]["unidentified"]+1	
+			else:
+				if not (taxon in highertaxa[highertaxon].keys()):
+					highertaxa[highertaxon].setdefault(taxon,0)
+				highertaxa[highertaxon][taxon]=highertaxa[highertaxon][taxon]+1
+		if not (taxon=='' or ("unidentified" in taxon) or ("uncultured" in taxon) or ("_sp_" in taxon)):
+			seqNo=seqNo+1
+			if not (taxon in taxa):
+				taxa.append(taxon)
 	numberoftaxa=len(taxa)		
 	return numberoftaxa,seqNo,count,highertaxa
 
 def SaveOverview(rank,taxa,outputname):
 	outfile=open(outputname,"w")
-	outfile.write("Taxon\t"+ rank + " number\n")
+	outfile.write("Taxon\t"+ rank + " number\tidentified sequence number at the " + rank + " level\tunidentified sequence number at the " + rank + "level\n")
 	for taxon in taxa.keys():
-		outfile.write(taxon + "\t" + str(len(taxa[taxon])) + "\n")
+		tmp=taxa[taxon]
+		seqnumber=0
+		unidentifiedsequencenumber=0
+		lowertaxno=len(tmp.keys())
+		for lowertaxon in tmp.keys():
+			if lowertaxon!="unidentified":
+				seqnumber=seqnumber + tmp[lowertaxon]
+			else:
+				unidentifiedsequencenumber=unidentifiedsequencenumber+tmp[lowertaxon]
+		if unidentifiedsequencenumber>0:
+			lowertaxno=len(tmp.keys())-1
+		outfile.write(taxon + "\t" + str(lowertaxno) + "\t"+ str(seqnumber) + "\t" + str(unidentifiedsequencenumber) +"\n")
 	outfile.close()
 
 ######MAIN################################################################
