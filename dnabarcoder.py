@@ -98,7 +98,7 @@ Description: The script computes the distribution of the sequences
     
 Arguments:   -i, --input             		Fasta file of Dna sequences, required
              -c, --classification    		The taxonomic classification file in tab delimited format, required
-             -ranks, --classificationranks 	The classification ranks for computing sequence distribution, required			 
+             -rank, --classificationranks 	The classification ranks for computing sequence distribution, required			 
              -n, --numberofdisplayedlabels  The number of the largest taxa to be displayed in the figure, default=8	
              -method, --visualizationmethod The visualization method: krona or plot, default=plot		 			 
              -o, --out                      The output folder, default= "dnabarcoder"
@@ -123,7 +123,7 @@ Description: The script computes the variation of the sequences
     
 Arguments:   -i, --input             	    FASTA file of Dna sequences, required
              -c, --classification    	    The taxonomic classification file in tab delimited format, required
-             -ranks, --classificationranks  The classification ranks for computing sequence variation, default=""		 
+             -rank, --classificationranks  The classification ranks for computing sequence variation, default=""		 
              -ml, --minalignmentlength      Minimum sequence alignment length required for BLAST, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should be set to smaller, 50 for instance.	
              -m, --maxSeqNo                 The maximum number of randomly selected sequences to be computed in the case the groups are too big, default=0 (no maximum is given).		 	
              -plt, --plottype               The type of visualization: boxplot or plot, default=boxplot
@@ -203,7 +203,7 @@ Description: The script visualizes the sequences based on BLAST similarity
     
 Arguments:   -i, --input             	   	     FASTA file of Dna sequences, required
              -c, --classification    	         The taxonomic classification file in tab delimited format 
-             -ranks, --classificationranks       The classification ranks for getting sequence descriptions
+             -rank, --classificationranks       The classification ranks for getting sequence descriptions
              -o, --out                           The output folder, default= "dnabarcoder"			 
 Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		""" # % (sys.argv[1], version)
@@ -280,8 +280,8 @@ Arguments:   -i, --input             	                   Fasta file of Dna seque
              -sim, --simfilename                           The similarity matrix file if exists				 
              -ml, --minalignmentlength                     Minimum sequence alignment length required for BLAST in case simmatrix is not given, default=400. For short barcode sequences like ITS2 (ITS1) sequences, ml should probably be set to smaller, 50 for instance.	
              -c, --classification    	                   The taxonomic classification file in tab delimited format 			 
-             -ranks, --classificationranks                 The classification ranks for prediction, separated by ","
-             -higherranks, --higherclassificationranks     The higher classification ranks for the prediction. If hp=="", the whole dataset will be used for prediction
+             -rank, --classificationranks                 The classification ranks for prediction, separated by ","
+             -higherrank, --higherclassificationranks     The higher classification ranks for the prediction. If hp=="", the whole dataset will be used for prediction
              -st, --startingthreshold                      The starting threshold of the prediction
              -et, --endthreshold                           The ending threshold of the prediction		
              -s, --step       	           ,               The step for the prediction				  
