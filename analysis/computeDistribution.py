@@ -31,6 +31,7 @@ parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The la
 parser.add_argument('-method','--visualizationmethod', default="plot", help='The visualization method. There are two methods to be selected: krona and plot.')
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 
 args=parser.parse_args()
 referencename= args.input
@@ -214,7 +215,8 @@ def PlotPieChart(figoutput,title,classification,displayed):
 	#plt.subplots_adjust(left=0.1, bottom=0.1, right=0.5)
 	plt.savefig(figoutput, dpi = 500)
 	if displayed==True:
-		plt.show()
+		if args.display=="yes":
+			plt.show()	
 
 def PlotNestedPieCharts(figoutput,title,classificationlist,labels):
 	#colors = plt.cm.Set1(np.linspace(0, 1,len(data)))	
@@ -276,7 +278,9 @@ def PlotNestedPieCharts(figoutput,title,classificationlist,labels):
 	plt.rcParams['font.size'] = 6.0
 	plt.tight_layout()
 	plt.savefig(figoutput, dpi = 500)
-	plt.show()
+	if args.display=="yes":
+		if args.display=="yes":
+			plt.show()
 	
 def KronaPieCharts(classification,kronareport,kronahtml):
 	kronareportfile=open(kronareport,"w")
@@ -287,7 +291,8 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	command="ImportText.pl " + kronareport + " -o " + kronahtml
 	print(command)
 	os.system(command)
-	os.system("firefox " + kronahtml) 
+	if args.display=="yes":
+		os.system("firefox " + kronahtml) 
 	
 def GetPositionList(classificationfilename,ranklist):	
 	positionlist=[]
