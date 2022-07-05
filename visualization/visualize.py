@@ -40,6 +40,7 @@ parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help=
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -378,9 +379,9 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 	 #Set1, primse 
 	fig, ax = plt.subplots(figsize=(4,3)) 
 	if prefix=="":
-		ax.set_title("Sequence distribution \n at the " + rank + " level.",loc='left')
+		title="Sequence distribution at the " + rank + " level."
 	else:
-		ax.set_title(prefix + ": sequence distribution \n at the " + rank + " level.",loc='left')
+		title=prefix + ": sequence distribution at the " + rank + " level."
 	labels=[]
 	if dim==2:
 		# Hide grid lines
@@ -388,6 +389,7 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 		# Hide axes ticks
 		#ax.set_xticks([])
 		#ax.set_yticks([])
+		ax.set_title(title,loc='left')
 		for color, item in zip(colors, sorted_data):
 			x = [t[0] for t in item[1][1]]
 			y = [t[1] for t in item[1][1]]
@@ -401,7 +403,7 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 			labels.append(label)	
 	elif dim==3:
 		ax = plt.axes(projection='3d')
-		ax.set_title(prefix + ": visualization of the sequences \n at the " + rank + " level.", loc='left')
+		ax.set_title(title,loc='left')
 		# Hide grid lines
 		#ax.grid(False)
 		# Hide axes ticks
@@ -422,8 +424,8 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 			labels.append(label)	
 			#ax.scatter3D(x, y, z, '.', color = color)
 			#ax.axis('off')
-	leg=fig.legend(labels[0:numberofdisplayedlabels],loc='best')
-	#leg=fig.legend(labels[0:numberofdisplayedlabels],loc='lower left')
+	#leg=fig.legend(labels[0:numberofdisplayedlabels],loc='best')
+	leg=fig.legend(labels[0:numberofdisplayedlabels],loc='lower right')
 	i=0
 	for text in leg.get_texts():
 		color= colors[i]
@@ -436,7 +438,8 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
     #plt.ylim(-lim, lim)
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(output, dpi = 500)
-	plt.show()		
+	if args.display=="yes":
+		plt.show()		
 	
 if __name__ == "__main__":
 	#load sequences

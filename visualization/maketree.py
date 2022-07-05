@@ -5,7 +5,9 @@ if sys.version_info[0] >= 3:
 import os, argparse
 from Bio import SeqIO
 from Bio import Phylo
-import pylab
+#import pylab
+import matplotlib.pyplot as plt
+plt.rc('font',size=4)
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 
@@ -22,6 +24,7 @@ parser.add_argument('-rank','--classificationranks', default="", help='the class
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-alignmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -155,7 +158,7 @@ def PrintTree_ete(treefilename):
 # 	return names	
 # 	
 def PrintTree(treefilename,classificationdict):
-	svgfilename=treefilename + ".svg"
+	figfilename=treefilename + ".png"
 	tree = Phylo.read(treefilename, "newick")
 	newtreefilename=treefilename
 	if args.classificationranks!="":
@@ -172,13 +175,17 @@ def PrintTree(treefilename,classificationdict):
 	#save the new tree
 	Phylo.write(tree,newtreefilename,"newick")
 	#Draw the tree				
-	Phylo.draw(tree,do_show=True)	
+	Phylo.draw(tree,do_show=False)	
 	#Phylo.draw_ascii(tree,do_show=False)	
-	pylab.savefig(svgfilename,format='svg', bbox_inches='tight', dpi=300)
+	#pylab.savefig(figfilename,format='svg', bbox_inches='tight', dpi=300)
+	plt.tight_layout()
+	plt.savefig(figfilename,dpi=500,bbox_inches='tight')
+	if args.display=="yes":
+		plt.show()	
 	if newtreefilename!=treefilename:
-		print("A iq-tree with branches labeled with taxa and its svg file are saved in " + newtreefilename + " and " + svgfilename + ".")		
+		print("A iq-tree with branches labeled with taxa and its svg file are saved in " + newtreefilename + " and " + figfilename + ".")		
 	else:
-		print("The svg file is saved in " + svgfilename + ".")
+		print("The svg file is saved in " + figfilename + ".")
 	
 def CreateTree(fastafilename,alignmentmethod,classificationdict):
 	alignmentfilename = CreateAlignment(fastafilename,alignmentmethod)
