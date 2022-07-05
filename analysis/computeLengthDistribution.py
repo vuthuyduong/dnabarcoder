@@ -20,6 +20,7 @@ parser.add_argument('-l','--intervallength', required=True, type=int, default=10
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -59,7 +60,8 @@ def BarPlot(datasetname,labels,sums):
 	plt.tight_layout()
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(figoutput, dpi = 500)
-	plt.show()
+	if args.display=="yes":
+		plt.show()
 	
 ####MAIN
 if prefix=="":
