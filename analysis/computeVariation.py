@@ -34,7 +34,7 @@ parser.add_argument('-prefix','--prefix',default="", help='The prefix of the out
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
-
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 
 args=parser.parse_args()
 referencename= args.input
@@ -370,7 +370,8 @@ def Plot(datasetname,figoutput,variations,rank,displayed):
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(figoutput, dpi = 500)
 	if displayed==True:
-		plt.show()
+		if args.display=="yes":
+			plt.show()
 
 def PlotAll(datasetname,figoutput,variationlist,labels):
 	data=[]
@@ -404,7 +405,8 @@ def PlotAll(datasetname,figoutput,variationlist,labels):
 	plt.tight_layout()
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(figoutput, dpi = 500)
-	plt.show()
+	if args.display=="yes":
+		plt.show()
 	
 def BoxPlot(datasetname,figoutput,variations,rank,displayed):
 	#sort variations based on median thresholds with decreasing order
@@ -477,7 +479,8 @@ def BoxPlot(datasetname,figoutput,variations,rank,displayed):
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(figoutput, dpi = 500)
 	if displayed==True:
-		plt.show()
+		if args.display=="yes":
+			plt.show()
 		
 def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	data=[]
@@ -553,7 +556,8 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	plt.tight_layout()
 	plt.rcParams['font.size'] = 6.0
 	plt.savefig(figoutput, dpi = 500)
-	plt.show()		
+	if args.display=="yes":
+		plt.show()		
 
 def GetPositionList(classificationfilename,ranks):
 	ranklist=[]	
