@@ -25,7 +25,7 @@ Description: dnabarcoder is a tool for the analysis, visualization, classificati
     
 Command:     overview     	             Get an overview of the dataset 
              length                          Compute length distribution
-             distribution                    Compute sequence distribution
+             distribute                      Compute sequence distribution
              variation                       Compute sequence variation
              sim                             Compute similarity matrix	                          
              visualize                       Visualize the sequences
@@ -89,7 +89,7 @@ Written by Duong Vu duong.t.vu@gmail.com/d.vu@wi.knaw.nl
 		else:
 			print(help)
 			sys.exit(1)	
-	elif sys.argv[1] == 'distribution':
+	elif sys.argv[1] == 'distribute':
 		help = """
 Usage:       dnabarcoder %s <arguments>
 version:     %s
