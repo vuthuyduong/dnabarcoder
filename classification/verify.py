@@ -40,6 +40,7 @@ parser.add_argument('-redo','--redo', default="", help='the classification rank'
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -634,7 +635,8 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	command="ImportText.pl " + kronareport + " -o " + kronahtml
 	#print(command)
 	os.system(command)
-	os.system("firefox " + kronahtml) 
+	if args.display=="yes":
+		os.system("firefox " + kronahtml) 
 if __name__ == "__main__":
 	if prefix=="" or prefix==None:
 		prefix=GetBase(predictionfilename)

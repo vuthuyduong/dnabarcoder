@@ -41,6 +41,7 @@ parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the min
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-save','--save',default="", help='The option to save all (default) or only classified sequences (-save classified) in the classification output.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -840,7 +841,8 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	command="ImportText.pl " + kronareport + " -o " + kronahtml
 	#print(command)
 	os.system(command)
-	os.system("firefox " + kronahtml) 
+	if args.display=="yes":
+		os.system("firefox " + kronahtml) 
 	
 if __name__ == "__main__":
 	if prefix=="" or prefix==None:
