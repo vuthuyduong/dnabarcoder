@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# FILE: addclassificationtosequenceheaders.py
+# FILE: addclassificationfromsequenceheaders.py
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2019
 import sys, argparse
@@ -11,22 +11,22 @@ from Bio import SeqIO
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 
-parser=argparse.ArgumentParser(prog='splitclassificationtosequenceheaders.py',  
-							   usage="%(prog)s [options] -i fastafile -c classificationfilename -o output",
+parser=argparse.ArgumentParser(prog='splitclassificationfromsequenceheaders.py',
+							   usage="%(prog)s [options] -i fastafile -prefix prefix",
 							   description='''Script that remove classification from sequence headers. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
-parser.add_argument('-o','--out', help='The fasta filename with sequence headers containing classification.') 
-parser.add_argument('-c','--classification', required=True, help='the output file containing classification file in tab. format.')
-parser.add_argument('-p','--classificationposition', default="", help='the classification positions of the features to kept for sequence headers.')
+parser.add_argument('-prefix','--prefix', help='The prefix of the output fasta and classification filenames.')
+parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks to compute distribution, separated by ",".')
+parser.add_argument('-sep','--separator', default="|", help='the separator that separates the features in sequence headers.')
 
 args=parser.parse_args()
 fastafilename= args.input
-classificationfilename=args.classification
-output=args.out
-classificationpos=args.classificationposition
+classificationfilename=args.prefix + ".classification"
+output=args.prefix + ".fasta"
+sep=args.separator
 
 #fastafilename=sys.argv[1]
 #classificationfilename=sys.argv[2]
@@ -35,54 +35,61 @@ classificationpos=args.classificationposition
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 
+def LoadClassificationFromDescription(seqrecords):
+	classificationdict = {}
+	for seqid in seqrecords.keys():
+		description = seqrecords[seqid].description
+		species = "unidentified"
+		genus = "unidentified"
+		family = "unidentified"
+		order = "unidentified"
+		bioclass = "unidentified"
+		phylum = "unidentified"
+		kingdom = "unidentified"
+		if " " in description:
+			description = description.split(" ")[1]
+		texts=[]
+		if args.separator!="":
+			texts = description.split(args.separator)
+		else:
+			texts=[description]
+		for text in texts:
+			text = text.rstrip()
+			taxa = text.split(";")
+			for taxon in taxa:
+				if taxon.startswith("k__"):
+					kingdom = taxon.replace("k__", "")
+				elif taxon.startswith("p__"):
+					phylum = taxon.replace("p__", "")
+				elif taxon.startswith("c__"):
+					bioclass = taxon.replace("c__", "")
+				elif taxon.startswith("o__"):
+					order = taxon.replace("o__", "")
+				elif taxon.startswith("f__"):
+					family = taxon.replace("f__", "")
+				elif taxon.startswith("g__"):
+					genus = taxon.replace("g__", "")
+				elif taxon.startswith("s__") and (" " in taxon.replace("s__", "") or "_" in taxon.replace("s__", "")):
+					species = taxon.replace("s__", "")
+					species = species.replace("_", " ")
+		classification =kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + species
+		newseqid=seqid
+		if args.separator in seqid:
+			newseqid=seqid.split(args.separator)[0]
+		classificationdict.setdefault(newseqid,[classification,str(seqrecords[seqid].seq)])
+	return classificationdict
+
 #####main###
-poslist=[]
-if "," in classificationpos:
-	texts=args.classificationpos.split(",")
-	for t in texts:
-		poslist.append(int(t))
-elif classificationpos!="":
-	poslist.append(int(classificationpos))
-if len(poslist)==0:
-	poslist.append(0)
-#seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
+#load train seq records
+seqrecords = SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+classificationdict=LoadClassificationFromDescription(seqrecords)
 classificationfile=open(classificationfilename,"w")
 outputfile=open(output,"w")
-fastafile=open(fastafilename)
-write=True
-seqids=[]
-for line in fastafile:
-	if line.startswith(">"):
-		write=True
-		header=line.rstrip().replace(">","")
-		classification=header
-		seqid=header
-		if "|" in header:
-			classfication=header.replace("|","\t")
-			texts=header.split("|")
-			header=""
-			seqid=texts[0]
-			for pos in poslist:
-				if header=="":
-					seqid=texts[pos].replace(" ","")
-					header=header + seqid + "|"
-				else:
-					header=header + texts[pos] + "|"
-			classification=header.replace("|","\t")
-			for i in range(0,len(texts)):
-				if i not in poslist:
-					classification=classification + texts[i] + "\t"
-			header=header[:-1]	
-			classification=classification[:-1]
-		if not (seqid in seqids):
-			seqids.append(seqid)
-			classificationfile.write(classification + "\n")	
-			outputfile.write(">" + header + "\n")	
-		else:
-			write=False
-	else:
-		if write==True:		
-			outputfile.write(line)
-outputfile.close()		
+classificationfile.write("id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\n")
+for seqid in classificationdict.keys():
+	classificationfile.write(seqid + "\t" + classificationdict[seqid][0] + "\n")
+	outputfile.write(">" + seqid + "\n")
+	outputfile.write(classificationdict[seqid][1] + "\n")
 classificationfile.close()
-fastafile.close()
+outputfile.close()
+print("The new fasta file and tab-deliminated classification files are saved in " + output + " and " + classificationfilename +".")
