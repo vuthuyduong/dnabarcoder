@@ -17,6 +17,7 @@ parser.add_argument('-i','--input', default="", help='the fasta input file.')
 parser.add_argument('-c','--classification', default="", help='The taxonomic classification file.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-rank','--classificationranks', default="species,genus,family,order,class,phylum", help='the classification ranks to compute distribution, separated by ",".')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -159,9 +160,8 @@ def ReportAtLevel(seqids,level,higherlevel,classificationdict):
 				highertaxa[highertaxon][taxon]=highertaxa[highertaxon][taxon]+1
 		if not (taxon=='' or ("unidentified" in taxon) or ("uncultured" in taxon) or ("_sp_" in taxon)):
 			seqNo=seqNo+1
-			if not (taxon in taxa):
-				taxa.append(taxon)
-	numberoftaxa=len(taxa)		
+			taxa.append(taxon)
+	numberoftaxa=len(set(taxa))		
 	return numberoftaxa,seqNo,count,highertaxa
 
 def SaveOverview(rank,taxa,outputname):
@@ -183,7 +183,12 @@ def SaveOverview(rank,taxa,outputname):
 	outfile.close()
 
 ######MAIN################################################################
-
+ranklist=[]
+if "," in args.classificationranks:
+	ranklist=args.classificationranks.split(",")
+else:
+	ranklist=[args.classificationranks]	
+    
 outputfilename=""
 seqids=[]
 if fastafilename != "":
@@ -198,43 +203,41 @@ if classificationfilename!="":
 else:
 	classificationdict=LoadClassificationFromDescription(seqrecords)	
 outputfile=open(outputfilename,"w")
-seqnumber,seqnumber,count,species=ReportAtLevel(seqids,-1,6,classificationdict)
-speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(seqids,6,5,classificationdict)
-genusnumber,genusseqnumber,count,families=ReportAtLevel(seqids,5,4,classificationdict)
-familynumber,familyseqnumber,count,orders=ReportAtLevel(seqids,4,3,classificationdict)
-ordernumber,orderseqnumber,count,classes=ReportAtLevel(seqids,3,2,classificationdict)
-classnumber,classseqnumber,count,phyla=ReportAtLevel(seqids,2,1,classificationdict)
-phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(seqids,1,0,classificationdict)
 if len(seqids) >0:
 	count=len(seqids)
-print("Number of sequences: " + str(count))
-print("Taxonomic level\tNumber of taxa\tNumber of sequences")
-print("Species" + "\t" + str(speciesnumber) + "\t" + str(speciesseqnumber))
-print("Genus" + "\t" + str(genusnumber) + "\t" + str(genusseqnumber))
-print("Family" + "\t" + str(familynumber) + "\t" + str(familyseqnumber))
-print("Order" + "\t" + str(ordernumber) + "\t" + str(orderseqnumber))
-print("Class" + "\t" + str(classnumber) + "\t" + str(classseqnumber))
-print("Phylum" + "\t" + str(phylumnumber) + "\t" + str(phylumseqnumber))	
-outputfile.write("Number of sequences: " + str(count) + "\n")
+outputfile.write("Number of sequences: " + str(count) + "\n")    
 outputfile.write("Taxonomic level\tNumber of taxa\tNumber of sequences\n")
-outputfile.write("Species" + "\t" + str(speciesnumber) + "\t" + str(speciesseqnumber) + "\n")
-outputfile.write("Genus" + "\t" + str(genusnumber) + "\t" + str(genusseqnumber) + "\n")
-outputfile.write("Family" + "\t" + str(familynumber) + "\t" + str(familyseqnumber) + "\n")
-outputfile.write("Order" + "\t" + str(ordernumber) + "\t" + str(orderseqnumber) + "\n")
-outputfile.write("Class" + "\t" + str(classnumber) + "\t" + str(classseqnumber) + "\n")
-outputfile.write("Phylum" + "\t" + str(phylumnumber) + "\t" + str(phylumseqnumber) + "\n")
-outputfile.close()
-print("The overview is saved in  file " + outputfilename + ".")
+seqnumber,seqnumber,count,species=ReportAtLevel(seqids,-1,6,classificationdict)
 SaveOverview("sequence",species,outputfilename + ".species")
 print("The overview at the species level is saved in  file " + outputfilename + ".species")
-SaveOverview("species",genera,outputfilename + ".genus")
-print("The overview at the genus level is saved in  file " + outputfilename + ".genus")
-SaveOverview("genus",families,outputfilename + ".family")
-print("The overview at the family level is saved in  file " + outputfilename + ".family")
-SaveOverview("family",orders,outputfilename + ".order")
-print("The overview at the order level is saved in  file " + outputfilename + ".order")
-SaveOverview("order",classes,outputfilename + ".class")
-print("The overview at the class level is saved in  file " + outputfilename + ".class")
-SaveOverview("class",phyla,outputfilename + ".phylum")
-print("The overview at the phylum level is saved in  file " + outputfilename + ".phylum")
-
+if "species" in ranklist:
+    speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(seqids,6,5,classificationdict)
+    outputfile.write("Species" + "\t" + str(speciesnumber) + "\t" + str(speciesseqnumber) + "\n")
+    SaveOverview("species",genera,outputfilename + ".genus")
+    print("The overview at the genus level is saved in  file " + outputfilename + ".genus")
+if "genus" in ranklist:
+    genusnumber,genusseqnumber,count,families=ReportAtLevel(seqids,5,4,classificationdict)
+    outputfile.write("Genus" + "\t" + str(genusnumber) + "\t" + str(genusseqnumber) + "\n")
+    SaveOverview("genus",families,outputfilename + ".family")
+    print("The overview at the family level is saved in  file " + outputfilename + ".family")
+if "family" in ranklist:    
+    familynumber,familyseqnumber,count,orders=ReportAtLevel(seqids,4,3,classificationdict)
+    outputfile.write("Family" + "\t" + str(familynumber) + "\t" + str(familyseqnumber) + "\n")
+    print("The overview at the order level is saved in  file " + outputfilename + ".order")
+if "order" in ranklist:
+    ordernumber,orderseqnumber,count,classes=ReportAtLevel(seqids,3,2,classificationdict)
+    outputfile.write("Order" + "\t" + str(ordernumber) + "\t" + str(orderseqnumber) + "\n")
+    SaveOverview("family",orders,outputfilename + ".order")
+    print("The overview at the order level is saved in  file " + outputfilename + ".order")
+if "class" in ranklist:    
+    classnumber,classseqnumber,count,phyla=ReportAtLevel(seqids,2,1,classificationdict)
+    outputfile.write("Class" + "\t" + str(classnumber) + "\t" + str(classseqnumber) + "\n")
+    SaveOverview("order",classes,outputfilename + ".class")
+    print("The overview at the class level is saved in  file " + outputfilename + ".class")
+if "phylum" in ranklist:
+    phylumnumber,phylumseqnumber,count,kingdoms=ReportAtLevel(seqids,1,0,classificationdict)
+    outputfile.write("Phylum" + "\t" + str(phylumnumber) + "\t" + str(phylumseqnumber) + "\n")
+    SaveOverview("class",phyla,outputfilename + ".phylum")
+    print("The overview at the phylum level is saved in  file " + outputfilename + ".phylum")
+outputfile.close()
+print("The overview is saved in  file " + outputfilename + ".")
