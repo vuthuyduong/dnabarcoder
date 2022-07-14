@@ -39,7 +39,7 @@ parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-parser.add_argument('-save','--save',default="", help='The option to save all (default) or only classified sequences (-save classified) in the classification output.')
+parser.add_argument('-save','--save',default="all", help='The option to save all (default) or only classified sequences (-save classified) in the classification output.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 
