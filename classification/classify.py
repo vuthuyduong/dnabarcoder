@@ -18,19 +18,19 @@ from Bio import SeqIO
 import random
 import multiprocessing
 parser=argparse.ArgumentParser(prog='classify.py',  
-							   usage="%(prog)s [options] -i bestmatch/classified file -f the fasta file -r referencefastafilename -c classificationfile -mp minproba -mc mincoverage -cutoffs cutoffsfile -o output",
+							   usage="%(prog)s [options] -i bestmatch/classified file -r referencefastafilename -c classificationfile -ml minalignment -cutoffs cutoffsfile -o output",
 							   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the classified file.')
-parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
-parser.add_argument('-f','--fasta', default="", help='the fasta file')
-parser.add_argument('-r','--reference', default="", help='the reference fasta file')
-parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-mp','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
+parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
+parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
+parser.add_argument('-f','--fasta', default="", help='the fasta file, optional for verification.')
+parser.add_argument('-r','--reference', default="", help='the reference fasta file, optional for verification')
+parser.add_argument('-mp','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
 parser.add_argument('-m','--maxseqno', type=int, default=0, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-cutoff','--cutoff', type=float, default=0,help='The cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 parser.add_argument('-confidence','--confidence', type=float,default=0,help='The confidence of the cutoff to assign the sequences to predicted taxa')
@@ -214,7 +214,8 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 		i=i+1
 	if 	seqidpos==-1:
 		print("Please specify the sequence id columnname by using -idcolumnname.")
-		isError=True	
+		isError=True
+		return classificationdict, classes, isError
 	for line in classificationfile:
 		texts=line.split("\t")
 		seqid = texts[seqidpos].rstrip()
@@ -652,7 +653,7 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 			rank=""
 		cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		#save all classification"
-		if args.save=="":
+		if args.save=="all" or args.save=="":
 			#save all including unidentified sequences in the classification file
 			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
@@ -886,10 +887,13 @@ if __name__ == "__main__":
 			sys.exit()
 	else:
 		refclassificationdict,refclasses = LoadClassificationFromDescription(refseqrecords)		
-		queryclassificationdict,queryclasses = LoadClassificationFromDescription(seqrecords)	
-	predictedclassificationdict,predictedclasses,isError= LoadClassification(seqrecords,predictionfilename,args.idcolumnname)	
-	if isError==True:
-		sys.exit()
+		queryclassificationdict,queryclasses = LoadClassificationFromDescription(seqrecords)
+	predictedclassificationdict={}
+	predictedclasses={}
+	if args.inputformat != "blast":
+		predictedclassificationdict,predictedclasses,isError= LoadClassification(seqrecords,predictionfilename,args.idcolumnname)
+		if isError==True:
+			sys.exit()
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
