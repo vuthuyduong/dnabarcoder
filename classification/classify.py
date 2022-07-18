@@ -213,7 +213,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			seqidpos=i
 		i=i+1
 	if 	seqidpos==-1:
-		print("Please specify the sequence id columnname by using -idcolumnname.")
+		print("Please specify the sequence id columnname by using -idcolumnname or check the format of the classification file.")
 		isError=True
 		return classificationdict, classes, isError
 	for line in classificationfile:
