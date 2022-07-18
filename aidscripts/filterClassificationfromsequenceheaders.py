@@ -73,7 +73,7 @@ def LoadClassificationFromDescription(seqrecords):
 				elif taxon.startswith("s__") and (" " in taxon.replace("s__", "") or "_" in taxon.replace("s__", "")):
 					species = taxon.replace("s__", "")
 					species = species.replace("_", " ")
-					if species[:-3]==" sp" or ("unculture" in species):
+					if species[-3:]==" sp" or ("unculture" in species):
 						species="unidentified"
 		classification =kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
 		taxonomy = "k__" + kingdom + ";p__" + phylum + ";c__" + bioclass + ";o__" + order + ";f__" + family + "g__" + genus +  ";s__" + species.replace(" ","_")
