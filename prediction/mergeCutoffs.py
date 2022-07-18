@@ -9,13 +9,13 @@ import json
 #from copy import deepcopy
 
 parser=argparse.ArgumentParser(prog='mergeCutoffs.py',  
-							   usage="%(prog)s [options] -i listofdict -o outputname",
-							   description='''The script that merges a list of dictionaries to one dictionary. ''',
+							   usage="%(prog)s [options] -i listofjson_cutoffs_files -o outputname",
+							   description='''The script that merges a list of cutoffs files in json format, separated by commas, to one cutoffs' file. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
-parser.add_argument('-i','--input', required=True, help='A list of dictionaries separated by commas.')
-parser.add_argument('-o','--out', help='The merged dictionary.')
+parser.add_argument('-i','--input', required=True, help='A list of cutoffs filenames separated by commas.')
+parser.add_argument('-o','--out', help='The merged file of cutoffs.')
 
 
 args=parser.parse_args()
