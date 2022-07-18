@@ -37,22 +37,52 @@ for line in fastafile:
 	if line.startswith(">"):
 		header=line.rstrip()
 		seqid=header
+		if " " in seqid:
+			seqid=seqid.split(" ")[0]
 		if "|" in header:
 			seqid=header.split("|")[0]	
-		if seqid in seqids:
-			counts[seqids.index(seqid)]=counts[seqids.index(seqid)]+1
-			seqid=seqid + "_" + str(counts[seqids.index(seqid)])
-		else:	
-			seqids.append(seqid)
-			counts.append(1)
+		# if seqid in seqids:
+		# 	counts[seqids.index(seqid)]=counts[seqids.index(seqid)]+1
+		# 	seqid=seqid + "_" + str(counts[seqids.index(seqid)])
+		# else:
+		seqids.append(seqid)
+		#counts.append(1)
 		outputfile.write(seqid + "\n")	
 	else:		
 		outputfile.write(line)
 fastafile.close()
 outputfile.close()		
-i=0
-for seqid in seqids:
-	if counts[i] >1:
-		print("Sequence " + seqid.replace(">","") + " has " + str(counts[i]) + " sequences.")
-	i=i+1
+if len(seqids)==len(set(seqids)):
+	print("The new fasta file is saved in " + output + ".")
+else:
+	print("Some sequend ids are duplicated.")
+	outputfile = open(output, "w")
+	fastafile = open(fastafilename)
+	seqids = []
+	counts = []
+	for line in fastafile:
+		if line.startswith(">"):
+			header = line.rstrip()
+			seqid = header
+			if " " in seqid:
+				seqid = seqid.split(" ")[0]
+			if "|" in header:
+				seqid = header.split("|")[0]
+			if seqid in seqids:
+			 	counts[seqids.index(seqid)]=counts[seqids.index(seqid)]+1
+			 	seqid=seqid + "_" + str(counts[seqids.index(seqid)])
+			else:
+				seqids.append(seqid)
+				counts.append(1)
+			outputfile.write(seqid + "\n")
+		else:
+			outputfile.write(line)
+	fastafile.close()
+	outputfile.close()
+	for seqid in seqids:
+		if counts[i] > 1:
+			print("Sequence " + seqid.replace(">", "") + " has " + str(counts[i]) + " sequences.")
+		i = i + 1
+
+
 
