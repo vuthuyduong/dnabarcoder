@@ -327,8 +327,13 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 The CBSITS barcode dataset was released in Vu et al. (2019), while the UNITErelease.fasta dataset is the [UNITE general FASTA release](https://plutof.ut.ee/#/doi/10.15156/BIO/786368). The CBSITS.current.classification and UNITErelease.current.classification were updated from [Mycobank](https://www.mycobank.org/).
 
 
+## Citation
+
+Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-source software package for analyzing and predicting DNA sequence similarity cut-offs for fungal sequence identification.  Molecular Ecology Resources. https://doi.org/10.1111/1755-0998.13651
 
 ## References
+
+The data used in Vu et al. (2022) were released in the following paper:
 
 Vu D. et al. (2019). Large-scale generation and analysis of filamentous fungal DNA barcodes boosts coverage for kingdom fungi and reveals thresholds for fungal species and higher taxon delimitation. Studies in Mycology 92, 135-154.
 
