@@ -201,7 +201,7 @@ For this action, a complete similarity matrix will be computed if dnabarcoder/CB
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank phylum -ml 400 -taxa Ascomycota
 
-- To predict <strong> global similarity cut-offs </strong> for the CBSITS dataset for <strong> species identification </strong>, we first need to <strong> remove <strong> sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
+- To predict <strong> global similarity cut-offs </strong> for the CBSITS dataset for <strong> species identification </strong>, we first need to <strong> remove </strong> sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
 
 ../../dnabarcoder.py remove -i CBSITS.fasta -c CBSITS.current.classification -rank species -sim dnabarcoder/CBSITS.sim -ml 400 -t 1
 
