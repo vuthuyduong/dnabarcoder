@@ -226,7 +226,7 @@ The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfun
 
 ../../dnabarcoder.py predict -i CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS 
 
- - For <strong> large datasets </strong> such as UNITE datasets, we can remove species complexes during the prediction:
+ - For <strong> large datasets  such as UNITE datasets </strong>, we can remove species complexes during the prediction:
  
  ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 <strong> -removecomplexes yes </strong> -prefix CBSITS
  
@@ -234,7 +234,7 @@ The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfun
  
   ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS <strong> -m 1000 </strong>
 
-- To <strong> visualize <strong> the global prediction for all ranks, use the following command:
+- To <strong> visualize </strong> the global prediction for all ranks, use the following command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -rank species,genus,family,order,class
 
