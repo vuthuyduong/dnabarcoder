@@ -42,7 +42,7 @@ parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separa
 parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
-
+parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -261,34 +261,51 @@ def ComputeFmeasure(classes,clusters):
 				m=v		
 		n = n + len(group)
 		f = f +	(len(group)*m)	
-	return float(f)/float(n) 
+	return float(f)/float(n)
 
-def LoadClasses(seqids,classificationfilename,pos,seqidpos):
-	classificationfile= open(classificationfilename)
-#	records= open(classificationfilename,errors='ignore')
-	classification={}
-	classes={}
+def LoadClassification(classificationfilename,rank,higherranklist):
+	allclassification={}
+	allhigherclassification={}
+	seqidpos,positionlist,higherpositionlist,isError = GetPositionList(classificationfilename,[rank],higherranklist)
+	pos=positionlist[0]
+	if isError == True:
+		sys.exit()
+	classificationfile = open(classificationfilename)
 	for line in classificationfile:
-		words=line.split("\t")
-		seqid= words[seqidpos].rstrip()
-		if seqid in seqids:
-			classname=""
-			if pos < len(words):
-				classname=words[pos].rstrip()
-			classification[seqid]=classname
-			if classname in classes.keys():
-				classes[classname].append(seqid)
-			else:
-				classes.setdefault(classname,[seqid]) 
+		texts = line.rstrip().split("\t")
+		seqid = texts[seqidpos].rstrip()
+		classname = ""
+		higherclassname = ""
+		if pos >-1 and pos < len(texts):
+			classname = texts[pos].rstrip()
+		if classname=="" or classname=="unidentified":
+			continue
+		allclassification.setdefault(seqid,{})
+		allclassification[seqid][rank]=classname
+		i=0
+		for higherpos in higherpositionlist:
+			higherclassname=""
+			if higherpos > -1 and higherpos < len(texts):
+			 	higherclassname = texts[higherpos].rstrip()
+			allclassification[seqid][higherranklist[i]] = higherclassname
+			i = i + 1
 	classificationfile.close()
-	return classes,classification
+	return allclassification
 
-def LoadClassesFromDescription(records,rank):
+def LoadClasses(records,rank,allclassification):
 	classification={}
 	classes={}
 	for seqid in records.keys():
+		seqrec=records[seqid]
 		description=seqrecords[seqid].description
-		classname=GetTaxonName(description,rank)
+		classname=""
+		if allclassification=={}:
+			classname=GetTaxonName(description,rank)
+		else:
+			try:
+				classname = allclassification[seqid][rank]
+			except KeyError:
+				continue
 		classification[seqid]=classname
 		if classname in classes.keys():
 			classes[classname].append(seqid)
@@ -299,12 +316,14 @@ def LoadClassesFromDescription(records,rank):
 def LoadClassesFromClassification(records,classification):
 	classes={}
 	for seqid in records.keys():
-		if seqid in classification.keys():
+		try:
 			classname=classification[seqid]
-			if classname in classes.keys():
-				classes[classname].append(seqid)
-			else:
-				classes.setdefault(classname,[seqid]) 
+		except KeyError:
+			continue
+		if classname in classes.keys():
+			classes[classname].append(seqid)
+		else:
+			classes.setdefault(classname,[seqid])
 	return classes
 
 def isfloat(value):
@@ -488,54 +507,46 @@ def GetPositionList(classificationfilename,ranklist,higherranklist):
 				isError=True
 	return seqidpos,positionlist,higherpositionlist,isError
 	
-def GenerateDatasetsForPrediction(seqrecords,classificationfilename,seqidpos,pos,higherpos,taxa):
+def GenerateDatasetsForHigherTaxa(seqrecords,allclassification,higherrank,taxa):
 	taxalist=[]
 	if "," in taxa:
 		taxalist=taxa.split(",")
 	elif taxa!="":
 		taxalist.append(taxa)
 	datasets={}
-	classificationfile= open(classificationfilename)
-	for line in classificationfile:
-		if line.startswith("#"):
-			continue 		
-		texts=line.rstrip().split("\t")
-		seqid=texts[seqidpos].rstrip()
-		classname=""
-		higherclassname=""
-		if pos < len(texts):
-			classname=texts[pos].rstrip()
-		if higherpos > 0:
-			if higherpos < len(texts):
-				higherclassname=texts[higherpos].rstrip()
-		if (len(taxalist) >0) and higherclassname!="" and not (higherclassname in taxalist) :
+	for seqid in seqrecords.keys():
+		seqrec=seqrecords[seqid]
+		try:
+			higherclassname=allclassification[seqid][higherrank]
+		except KeyError:
 			continue
-		if classname != "" and higherclassname !="" and classname != "unidentified" and higherclassname !="unidentified" and seqid in seqrecords.keys():
+		else:
+			if higherclassname=="" or higherclassname=="unidentified":
+				continue
+			if (len(taxalist) > 0) and not (higherclassname in taxalist):
+				continue
 			if not higherclassname in datasets.keys():
-				datasets.setdefault(higherclassname,{})
-			datasets[higherclassname][seqid]=seqrecords[seqid]	
-	classificationfile.close()
+				datasets.setdefault(higherclassname, {})
+			datasets[higherclassname][seqid] = seqrec
 	return datasets
 
-def GenerateDatasets(seqrecords,classificationfilename,seqidpos,pos,higherpositionlist,taxa):
+def GenerateDatasets(seqrecords,allclassification,higherranklist,taxa):
 	alldatasets={}
-	if len(higherpositionlist) !=0:		
-		for higherpos in higherpositionlist:
-			datasets=GenerateDatasetsForPrediction(seqrecords,classificationfilename,seqidpos,pos,higherpos,taxa)
+	if len(higherranklist) !=0:
+		for higherrank in higherranklist:
+			datasets=GenerateDatasetsForHigherTaxa(seqrecords,allclassification,higherrank,taxa)
 			alldatasets.update(datasets)
 		return alldatasets	
 	else:
 		alldatasets.setdefault("All",{})
-		classificationfile= open(classificationfilename)
-		for line in classificationfile:
-			texts=line.rstrip().split("\t")
-			seqid=texts[seqidpos].rstrip()
-			classname=""
-			if pos < len(texts):
-				classname=texts[pos].rstrip()	
-			if classname != "" and classname != "unidentified" and seqid in seqrecords.keys():
-				alldatasets["All"][seqid]=seqrecords[seqid]
-		classificationfile.close()
+		for seqid in seqrecords.keys():
+			seqrec = seqrecords[seqid]
+			try:
+				taxonomy=allclassification[seqid]
+			except KeyError:
+				continue
+			else:
+				alldatasets["All"][seqid] = seqrec
 	return alldatasets
 
 def GetTaxonName(description,rank):
@@ -584,7 +595,6 @@ def GetTaxonName(description,rank):
 	elif rank.lower()=="kingdom":
 		taxonname=kingdom		
 	return taxonname
-
 
 def GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa):
 	taxalist=[]
@@ -747,7 +757,9 @@ def PlotPrediction(datasetname,thresholdlist,fmeasurelist,optthresholds,bestFmea
 	plt.legend(labels, loc="lower left", bbox_transform=plt.gcf().transFigure,prop={'style': args.labelstyle})
 	plt.tight_layout()
 	plt.savefig(figoutput, dpi = 500)
-	plt.show()	
+	print("The prediction plot is saved in file " + figoutput + ".")
+	if args.display=="yes":
+		plt.show()	
 	
 def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfigoutput):
 	#sort all according to increasing order of optthresholds
@@ -781,7 +793,9 @@ def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfi
 	ax.legend()
 	plt.tight_layout()
 	plt.savefig(localfigoutput, dpi = 500)
-	plt.show()	
+	print("The prediction plot is saved in file " + localfigoutput + ".")
+	if args.display=="yes":
+		plt.show()	
 	
 if __name__ == "__main__":
 	if prefix=="" or prefix==None:
@@ -820,7 +834,6 @@ if __name__ == "__main__":
 	simmatrix={}
 	#load or compute simmatrix
 	if endthreshold >=threshold and endthreshold >0:
-		print(simfilename)
 		if os.path.exists(simfilename):
 			#question=input("Do you want to load the similarity matrix from the file " + simfilename + " (yes/no)?")
 			#if question=="yes":
@@ -855,9 +868,12 @@ if __name__ == "__main__":
 			prediction_datasets=predictiondict[rank]
 		#load datasets for prediction
 		datasets={}
+		allclassification={}
 		if classificationfilename!="":
-			pos=positionlist[i]
-			datasets=GenerateDatasets(seqrecords,classificationfilename,seqidpos,pos,higherpositionlist,args.taxa)	
+			#pos=positionlist[i]
+			#load classification
+			allclassification=LoadClassification(classificationfilename,rank,higherranklist)
+			datasets=GenerateDatasets(seqrecords,allclassification,higherranklist,args.taxa)
 		else:
 			datasets=GenerateDatasetsFromDescription(seqrecords,rank,higherranklist,args.taxa)	
 		if datasets=={}:
@@ -892,10 +908,7 @@ if __name__ == "__main__":
 				#load classification at the given rank
 				classes={}
 				classification={}
-				if classificationfilename!="":				
-					classes,classification=LoadClasses(records.keys(),classificationfilename,pos,seqidpos)
-				else:
-					classes,classification=LoadClassesFromDescription(records,rank)
+				classes, classification=LoadClasses(records,rank,allclassification)
 				#only predict when the numbers of the groups > 1
 				if len(classes) < 2:
 					continue
@@ -962,7 +975,6 @@ if __name__ == "__main__":
 			if label=="":
 				label=prefix
 			PlotPrediction(label,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,globalfigoutput)	
-			print("The prediction plot is saved in the file " + globalfigoutput + ".")
 		else:
 			print("Please check the parameters.")
 	else:	
@@ -971,7 +983,6 @@ if __name__ == "__main__":
 			if label=="":
 				label=prefix
 			PlotResults(label,optthresholds,bestFmeasures,features,datasetnames,localfigoutput)
-			print("The prediction plot is saved in the file " + localfigoutput + ".")	
 		else:
 			print("Please check the parameters.")	
 	if os.path.exists(GetWorkingBase((os.path.basename(args.input))) + ".predict.log"):		
