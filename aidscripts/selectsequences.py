@@ -71,12 +71,14 @@ def LoadClassification(classificationfilename,taxa,classificationpos,seqidpos):
 	if not os.path.exists(classificationfilename):
 		return {}
 	classnames={}
+	classification={}
 	taxalist = []
 	if "," in taxa:
 		taxalist = taxa.split(",")
 	elif taxa != "" and taxa != "unidentified":
 		taxalist.append(taxa)
 	classificationfile = open(classificationfilename)
+	header=next(classificationfile)
 	for line in classificationfile:
 		elements = line.rstrip().split("\t")
 		seqid = elements[seqidpos].rstrip()
@@ -92,7 +94,8 @@ def LoadClassification(classificationfilename,taxa,classificationpos,seqidpos):
 						classnames.setdefault(seqid,classname)
 		else:
 			classnames.setdefault(seqid,classname)
-	return classnames
+			classification.setdefault(seqid, line)
+	return classnames,classification,header
 
 def GetTaxonName(description,rank):
 	taxonname=""
@@ -141,7 +144,7 @@ def GetTaxonName(description,rank):
 		taxonname=kingdom
 	return taxonname
 
-def SelectClassName(seqid,description,rank,taxa,classnames):
+def SelectClassName(seqid,description,rank,taxa,classname):
 	classname=""
 	taxalist=[]
 	if "," in taxa:
@@ -166,14 +169,26 @@ def SelectClassName(seqid,description,rank,taxa,classnames):
 classificationpos=-1
 seqidpos=-1
 classnames={}
+classification={}
+header=""
 if classificationfilename!="":
 	seqidpos,classificationpos,isError=GetPosition(classificationfilename,classificationrank)
 	if isError==True:
 		os.sys.exit()
-	classnames=LoadClassification(classificationfilename,taxa,classificationpos,seqidpos)
+	classnames,classification,header=LoadClassification(classificationfilename,taxa,classificationpos,seqidpos)
 seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
 selectedclassnames={}
+newclassificationfilename=""
+if classificationfilename !="":
+	if "." in output:
+		newclassificationfilename = output[0:output.rindex(".")] + ".classification"
+	else:
+		newclassificationfilename = output + ".classification"
+newclassificationfile=None
+if newclassificationfilename!="":
+	newclassificationfile=open(newclassificationfilename,"w")
+	newclassificationfile.write(header)
 for seqid in seqrecords.keys():
 	seqrec=seqrecords[seqid]
 	description=seqrec.description
@@ -182,6 +197,8 @@ for seqid in seqrecords.keys():
 		if n==0: #no limit for number of sequences for a group
 			if len(str(seqrec.seq)) >= l: # the length of the sequence must be >=l
 				selectedrecords.append(seqrec)
+				if newclassificationfilename != "":
+					newclassificationfile.write(classification[seqid])
 		else:
 			if not classname in selectedclassnames.keys():
 				selectedclassnames.setdefault(classname,0)
@@ -189,10 +206,16 @@ for seqid in seqrecords.keys():
 				if len(str(seqrec.seq))>l:
 					selectedclassnames[classname]=selectedclassnames[classname]+1
 					selectedrecords.append(seqrec)
+					if newclassificationfilename != "":
+						newclassificationfile.write(classification[seqid])
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
+if newclassificationfilename != "":
+	newclassificationfile.close()
 if len(selectedrecords) >0:
 	print("The selected sequences are saved in " + output + ".")
+	if newclassificationfilename!="":
+		print("The new classification filename is saved in " + newclassificationfilename + ".")
 else:
 	print("No sequences are selected.")
 
