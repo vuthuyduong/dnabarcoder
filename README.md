@@ -164,7 +164,7 @@ If the simmatrix is not given, dnabarcoder will compute it and save it in the fi
 
 The third component is to cluster and predict a similarity cut-off for sequence identification based on taxonomic classification. Given a taxonomic level, if higher taxonomic levels are not given, then whole dataset will be used for the prediction. The local similarity cut-offs assign more sequences than the global similarity cut-offs, and less computationally expensive to compute.
 
-- To predict a \bf{global} similarity cut-off at the genus level of the CBSITS dataset for example, use the followig command. Note that this action should not be used for a very large dataset as it might take quite sometime to finish.
+- To predict a <strong> global similarity cut-off </strong> for genus identification of the CBSITS dataset for example, use the followig command. Note that this action should not be used for a very large dataset as it might take quite sometime to finish.
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -ml 400
 
