@@ -43,37 +43,6 @@ classificationrank=args.classificationrank
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 
-def SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos):
-	if not os.path.exists(classificationfilename):
-		return [],[]
-	taxalist=[]
-	classnames=[]
-	if "," in taxa:
-		taxalist=taxa.split(",")
-	elif taxa!="" and taxa!="unidentified":
-		taxalist.append(taxa)
-	classificationfile= open(classificationfilename)
-	#header=next(classificationfile)
-	seqids=[]
-	for line in classificationfile:
-		elements=line.rstrip().split("\t")
-		seqid = elements[seqidpos].rstrip()
-		classname=""
-		if classificationpos >=0 and classificationpos < len(elements):
-			classname=elements[classificationpos]
-		if classname=="" or classname=="unidentified":
-			continue
-		if taxa!="":
-			for taxonname in taxalist:
-				if taxonname!="" and taxonname!="unidentified":
-					if taxonname in elements:
-						seqids.append(seqid)				
-						classnames.append(classname)
-		else:
-			seqids.append(seqid)
-			classnames.append(classname)
-	return seqids,classnames
-
 def GetPosition(classificationfilename,rank):
 	pos=-1
 	seqidpos=-1
@@ -98,31 +67,132 @@ def GetPosition(classificationfilename,rank):
 		isError=True
 	return seqidpos,pos,isError
 
+def LoadClassification(classificationfilename,taxa,classificationpos,seqidpos):
+	if not os.path.exists(classificationfilename):
+		return {}
+	classnames={}
+	taxalist = []
+	if "," in taxa:
+		taxalist = taxa.split(",")
+	elif taxa != "" and taxa != "unidentified":
+		taxalist.append(taxa)
+	classificationfile = open(classificationfilename)
+	for line in classificationfile:
+		elements = line.rstrip().split("\t")
+		seqid = elements[seqidpos].rstrip()
+		classname = ""
+		if classificationpos >= 0 and classificationpos < len(elements):
+			classname = elements[classificationpos]
+		if classname == "" or classname == "unidentified":
+			continue
+		if taxa != "":
+			for taxonname in taxalist:
+				if taxonname != "" and taxonname != "unidentified":
+					if taxonname in elements:
+						classnames.setdefault(seqid,classname)
+		else:
+			classnames.setdefault(seqid,classname)
+	return classnames
+
+def GetTaxonName(description,rank):
+	taxonname=""
+	species=""
+	genus=""
+	family=""
+	order=""
+	bioclass=""
+	phylum=""
+	kingdom=""
+	if " " in description:
+		description=description.split(" ")[1]
+	texts=description.split("|")
+	for text in texts:
+		text=text.rstrip()
+		taxa=text.split(";")
+		for taxon in taxa:
+			if taxon.startswith("k__"):
+				kingdom=taxon.replace("k__","")
+			elif taxon.startswith("p__"):
+				phylum=taxon.replace("p__","")
+			elif taxon.startswith("c__"):
+				bioclass=taxon.replace("c__","")
+			elif taxon.startswith("o__"):
+				order=taxon.replace("o__","")
+			elif taxon.startswith("f__"):
+				family=taxon.replace("f__","")
+			elif taxon.startswith("g__"):
+				genus=taxon.replace("g__","")
+			elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
+				species=taxon.replace("s__","")
+				species=species.replace("_"," ")
+	if rank.lower()=="species":
+		taxonname=species
+	elif rank.lower()=="genus":
+		taxonname=genus
+	elif rank.lower()=="family":
+		taxonname=family
+	elif rank.lower()=="order":
+		taxonname=order
+	elif rank.lower()=="class":
+		taxonname=bioclass
+	elif rank.lower()=="phylum":
+		taxonname=phylum
+	elif rank.lower()=="kingdom":
+		taxonname=kingdom
+	return taxonname
+
+def SelectClassName(seqid,description,rank,taxa,classnames):
+	classname=""
+	taxalist=[]
+	if "," in taxa:
+		taxalist=taxa.split(",")
+	elif taxa!="" and taxa!="unidentified":
+		taxalist.append(taxa)
+	if classnames=={}:
+		classname=GetTaxonName(description,rank)
+		if classname=="unidentified":
+			classname=""
+	else:
+		try:
+			classname=classnames[seqid]
+		except KeyError:
+			pass
+	if taxa != "" and classname!="":
+		if not (classname in taxalist):
+			classname = ""
+	return classname
+
 #####main###
 classificationpos=-1
 seqidpos=-1
+classnames={}
 if classificationfilename!="":
 	seqidpos,classificationpos,isError=GetPosition(classificationfilename,classificationrank)
-if isError==True:
-	os.sys.exit()	
-seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos)
-seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
+	if isError==True:
+		os.sys.exit()
+	classnames=LoadClassification(classificationfilename,taxa,classificationpos,seqidpos)
+seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
 selectedclassnames={}
-for seqrec in seqrecords:
-	if seqrec.id in seqids or len(seqids)==0:
-		if n==0:
-			if len(str(seqrec.seq))>l:
+for seqid in seqrecords.keys():
+	seqrec=seqrecords[seqid]
+	description=seqrec.description
+	classname=SelectClassName(seqid,description,classificationrank,taxa,classnames)
+	if classname != "":
+		if n==0: #no limit for number of sequences for a group
+			if len(str(seqrec.seq)) >= l: # the length of the sequence must be >=l
 				selectedrecords.append(seqrec)
 		else:
-			classname=classnames[seqids.index(seqrec.id)]
 			if not classname in selectedclassnames.keys():
 				selectedclassnames.setdefault(classname,0)
 			if 	selectedclassnames[classname] <n:
 				if len(str(seqrec.seq))>l:
 					selectedclassnames[classname]=selectedclassnames[classname]+1
-					selectedrecords.append(seqrec)			
+					selectedrecords.append(seqrec)
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
-print("The selected sequences are saved in " + output + ".")
+if len(selectedrecords) >0:
+	print("The selected sequences are saved in " + output + ".")
+else:
+	print("No sequences are selected.")
 
