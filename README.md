@@ -185,7 +185,7 @@ For this action, a complete similarity matrix will be computed if dnabarcoder/CB
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -ml 400 -prefix existingCBSITS
 
 
-- To predict local similarity cut-offs at the genus level of the CBSITS dataset for example, use the followig command:
+- To predict <strong> local similarity cut-offs </strong> for genus identification of the CBSITS dataset for example, use the followig command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank family,order,class,phylum -ml 400
 
@@ -193,7 +193,7 @@ For this action, a complete similarity matrix will be computed if dnabarcoder/CB
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim
 
-- We can also predict the local cutoffs at a given rank individually:
+- We can also predict the <strong> local cutoffs </strong> at a given rank individually:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank family -ml 400
 
@@ -201,33 +201,40 @@ For this action, a complete similarity matrix will be computed if dnabarcoder/CB
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank phylum -ml 400 -taxa Ascomycota
 
-- To predict global similarity cut-offs for the CBSITS dataset at the species level, we first need to remove sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
+- To predict <strong> global similarity cut-offs </strong> for the CBSITS dataset for <strong> species identification </strong>, we first need to <strong> remove <strong> sequences of species complexes that are indistinguishable by ITS with 100% similarity score:
 
 ../../dnabarcoder.py remove -i CBSITS.fasta -c CBSITS.current.classification -rank species -sim dnabarcoder/CBSITS.sim -ml 400 -t 1
 
 Here t is the threshold or similarity cut-off for removing sequences of the same complex. The results will be saved in dnabarcoder/CBSITS.species.diff.fasta dna dnabarcoder/CBSITS.similar
 
-- To predict global similarity cut-off for species identification of the CBSITS dataset:
+- To predict <strong> global similarity cut-off for species identification </strong> of the CBSITS dataset:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS
 
-- To predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
+- To predict <strong> local similarity cut-offs for species identification for the genera </strong> of the CBSITS dataset:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
-- For higher taxonomic levels:
+- For <strong> higher taxonomic levels </strong>:
 
 ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.diff.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim -prefix CBSITS 
 
 The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfungalITS.predicted, dnabarcoder/CBSITS.cutoffs.json and dnabarcoder/CBSITS.cutoffs.json.txt.
+ 
 
 - If the similarity matrix is not given because of a large dataset, we can just simply use the following command to remove species complexes and predict local similarity cut-offs for species identification for the genera of the CBSITS dataset:
 
-
 ../../dnabarcoder.py predict -i CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS 
 
+ - For <strong> large datasets </strong> such as UNITE datasets, we can remove species complexes during the prediction:
+ 
+ ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 <strong> -removecomplexes yes </strong> -prefix CBSITS
+ 
+ We can also set up a maximum number of sequences loaded for each clade for prediction
+ 
+  ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS <strong> -m 1000 </strong>
 
-- To visualize the global prediction for all ranks, use the following command:
+- To <strong> visualize <strong> the global prediction for all ranks, use the following command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -rank species,genus,family,order,class
 
@@ -245,7 +252,7 @@ The output is given below:
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.7.local.png" width="600" height="300">
 
 
-- To compute the best cutoffs:
+- To compute <strong> the best cutoffs </strong>:
 
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json -c CBSITS.current.classification
 
@@ -256,7 +263,7 @@ Or if the classifications are given in the sequence headers:
 The best similarity cut-offs are saved in json and text format files dnabarcoder/CBSITS.cutoffs.best.json and dnabarcoder/CBSITS.cutoffs.best.txt.
 
 
-- To merge two or more similarity cut-offs files, use the following commands. For a taxonomic level and group, the output file will keep the similarity cut-off having the highest confidence:
+- To <strong> merge <strong> two or more similarity cut-offs files, use the following commands. For a taxonomic level and group, the output file will keep the similarity cut-off having the highest confidence:
 
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
 
