@@ -224,7 +224,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			classificationdict.setdefault(seqid,{})
 			classificationdict[seqid]["classification"]=classification
 			classificationdict[seqid]["taxonname"]=taxonname
-			classificationdict[seqid]["rank"]=rank	
+			classificationdict[seqid]["rank"]=rank
 		if seqid in seqrecords.keys():
 			taxonnames=classification.split(";")
 			for taxonname in taxonnames:
@@ -621,10 +621,15 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 		coverage=bestmatchdict[seqid]["alignmentlength"]
 		if  proba >= minprobaforBlast:
 			if refid=="":
-				if seqid in seqdict.keys():
+				# look for the best match reference sequences
+				try:
+					seqrec=seqdict[seqid]
+				except KeyError:
+					pass
+				else:
 					reffilename,numberofsequences=CreateFastaFile(predictedname,classeswithsequences,maxseqno)
 					if reffilename!="":
-						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqdict[seqid],reffilename,mincoverage)
+						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrec,reffilename,mincoverage)
 						os.system("rm " + reffilename)	
 						if newbestscore > bestscore:
 							refid=newrefid
@@ -637,8 +642,12 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 				classification,predictedname,rank,level,cutoff,confidence=GetAssignment(seqid,predictedclassificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank)			
 			if sys.version_info[0] < 3:
 				predictedname=unicode(predictedname,'latin1')
-		if seqid in refclassificationdict.keys():
-			giventaxa=refclassificationdict[seqid]['classification']
+		try:
+			giventaxadict=refclassificationdict[seqid]
+		except KeyError:
+			pass
+		else:
+			giventaxa=giventaxadict['classification']
 			giventaxa=giventaxa.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
 			giventaxonname=giventaxa.split(";")[level]		
 		if giventaxonname!="" and giventaxonname!="unidentified":	
