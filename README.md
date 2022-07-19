@@ -272,43 +272,43 @@ The best similarity cut-offs are saved in json and text format files dnabarcoder
 
 The last component of dnabarcode is to classify a dataset against a reference/barcode dataset using a similarity cut-off or the local cut-offs given by the users or predicted by dnabarcoder for the reference dataset. The similarity cut-offs file should be in json format and have a structure similar to the structure of the file data/CBSITS.cutoffs.json. For classification, dnabarcoder will use the cut-off given in the 'cut-off' tag for classification.
 
-- To search for the best match of the sequences in the UNITErelease.fasta file, use the following command:
+- To <strong> search </strong> for the best match of the sequences in the UNITErelease.fasta file, use the following command:
 
-../../dnabarcoder.py search -i UNITErelease.fasta -r CBSITS.fasta -ml 400
+../../dnabarcoder.py <strong> search </strong> -i UNITErelease.fasta -r CBSITS.fasta -ml 400
 
 The result is saved in the file dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch
 
-To classify the UNITE sequences based on best matches, using the following commands:
+- To <strong> classify </strong> the UNITE sequences based on best matches, using the following commands:
 
  - Globally, based on only one similarity cut-off:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS.fasta -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
+../../dnabarcoder.py <strong> classify </strong> -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
 
 Or if classifications are given in sequence headers:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS_classification.fasta -cutoff 0.994 -rank species -confidence 0.8334 
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -r CBSITS_classification.fasta -cutoff 0.994 -rank species -confidence 0.8334 
 
 Here 0.994 is the global similarity cut-off for sequence identification at the species level. The result including unidentified sequences will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.0994.classified. If we want to save only the classified sequences, use the following command:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS_classification.fasta -cutoff 0.994 -rank species -confidence 0.8334 -save classified
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -r CBSITS_classification.fasta -cutoff 0.994 -rank species -confidence 0.8334 -save classified
 
-- Note that dnabarcoder could also take the output of BLAST (fmt 6) as the input for classification. Please use the following command:
+- Note that dnabarcoder could also take <strong> the output of BLAST (fmt 6) </strong> as the input for classification. Please use the following command:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.blastoutput -f UNITErelease.fasta -r CBSITS.fasta -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.blastoutput -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
 
 - Locally, based on the similarity cut-off predicted for the best match:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS.fasta -c CBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs.best.json 
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -c CBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs.best.json 
 
 The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.classified. 
 
 - Only classify at the species level:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -f UNITErelease.fasta -r CBSITS.fasta -c fCBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs  -rank species
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -c fCBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs  -rank species
 
 The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classified. 
 
-- To compute classification/assigment accuracy and precision, use the following commands:
+- To compute <strong> classification/assigment accuracy and precision </strong>, use the following commands:
 
 ../../dnabarcoder.py accuracy -i dnabarcoder/UNITErelease.CBSITS_BLAST.species.classified -c UNITErelease.current.classification -r CBSITS.current.classification
 
@@ -318,7 +318,7 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 
 ## Verification
 
-- To verify the classification results based on phylogenic trees at the species level:
+- To <strong> verify </strong> the classification results based on phylogenic trees at the species level:
 
 ../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank species
 
