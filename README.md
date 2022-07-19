@@ -263,7 +263,7 @@ Or if the classifications are given in the sequence headers:
 The best similarity cut-offs are saved in json and text format files dnabarcoder/CBSITS.cutoffs.best.json and dnabarcoder/CBSITS.cutoffs.best.txt.
 
 
-- To <strong> merge <strong> two or more similarity cut-offs files, use the following commands. For a taxonomic level and group, the output file will keep the similarity cut-off having the highest confidence:
+- To <strong> merge </strong> two or more similarity cut-offs files, use the following commands. For a taxonomic level and group, the output file will keep the similarity cut-off having the highest confidence:
 
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
 
