@@ -146,7 +146,7 @@ Together with sequence distribution and variation, visualization helped evaluate
 
 ../../dnabarcoder.py visualize -i CBSITS.fasta -c CBSITS.current.classification -rank class -ml 400 -sim dnabarcoder/CBSITS.sim
 
-Note that the minimum BLAST alignment length ml fpr ITS sequences is set to 400. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. 
+Note that the minimum BLAST alignment length ml for ITS sequences is set to 400. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. 
 
 Here the sequences of the same taxonomic class will have the same color. The output is given below:
 
@@ -172,7 +172,7 @@ Or:
 
 ../../dnabarcoder.py predict -i CBSITS_classification.fasta -st 0.7 -et 1 -s 0.001 -rank genus -ml 400
 
-Note that the minimum BLAST alignment length ml fpr ITS sequences is set to 400. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. 
+Note that the minimum BLAST alignment length ml for ITS sequences is set to 400. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. 
 
 For this action, a complete similarity matrix will be computed if dnabarcoder/CBSITS.sim does not exist. The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
 
