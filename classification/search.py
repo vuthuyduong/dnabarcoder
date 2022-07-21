@@ -86,14 +86,17 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 	bestrefidlist = [""] * len(queryrecords)
 
 	#blast
-	makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out db"
-	print(makedbcommand)
-	os.system(makedbcommand)
+	db= reference + ".blastdb"
+	blastoutput="out.txt"
+	if not os.path.exists(db + ".nsq"):
+		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out " + db
+		print(makedbcommand)
+		os.system(makedbcommand)
 	#for short read
-	blastcommand = "blastn -query " + indexed_query + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + indexed_query + " -db  "+ db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	#for long read
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + indexed_query + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
+		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	print(blastcommand)	
 	os.system(blastcommand)
 	
