@@ -13,6 +13,7 @@ plt.rc('font',size=6)
 import numpy as np
 import multiprocessing
 import json
+import random
 
 parser=argparse.ArgumentParser(prog='predict.py', 
 							   usage="%(prog)s [options] -i fastafile -c classificationfile -p classificationposition -st startingthreshold -et endthreshold -s step -ml minalignmentlength",
@@ -37,6 +38,7 @@ parser.add_argument('-sim','--simfilename', help='The similarity matrix of the s
 parser.add_argument('-higherrank','--higherclassificationranks', default="", help='The prediction is done on the whole dataset if higherranks="". Otherwise it will be predicted for different datasets obtained at the higher classifications, separated by ",".')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
+parser.add_argument('-maxseqno','--maxseqno', type=int, default=20000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
 parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
@@ -506,48 +508,6 @@ def GetPositionList(classificationfilename,ranklist,higherranklist):
 				print("The higher rank " + rank + " is not given in the classification." )
 				isError=True
 	return seqidpos,positionlist,higherpositionlist,isError
-	
-def GenerateDatasetsForHigherTaxa(seqrecords,allclassification,higherrank,taxa):
-	taxalist=[]
-	if "," in taxa:
-		taxalist=taxa.split(",")
-	elif taxa!="":
-		taxalist.append(taxa)
-	datasets={}
-	for seqid in seqrecords.keys():
-		seqrec=seqrecords[seqid]
-		try:
-			higherclassname=allclassification[seqid][higherrank]
-		except KeyError:
-			continue
-		else:
-			if higherclassname=="" or higherclassname=="unidentified":
-				continue
-			if (len(taxalist) > 0) and not (higherclassname in taxalist):
-				continue
-			if not higherclassname in datasets.keys():
-				datasets.setdefault(higherclassname, {})
-			datasets[higherclassname][seqid] = seqrec
-	return datasets
-
-def GenerateDatasets(seqrecords,allclassification,higherranklist,taxa):
-	alldatasets={}
-	if len(higherranklist) !=0:
-		for higherrank in higherranklist:
-			datasets=GenerateDatasetsForHigherTaxa(seqrecords,allclassification,higherrank,taxa)
-			alldatasets.update(datasets)
-		return alldatasets	
-	else:
-		alldatasets.setdefault("All",{})
-		for seqid in seqrecords.keys():
-			seqrec = seqrecords[seqid]
-			try:
-				taxonomy=allclassification[seqid]
-			except KeyError:
-				continue
-			else:
-				alldatasets["All"][seqid] = seqrec
-	return alldatasets
 
 def GetTaxonName(description,rank):
 	taxonname=""
@@ -596,13 +556,43 @@ def GetTaxonName(description,rank):
 		taxonname=kingdom		
 	return taxonname
 
-def GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa):
+def SelectList(higherclasses,maxseqno):
+	##we make sure that most classes having at least one sequence selected
+	selectedids = []
+	for higherclassname in higherclasses.keys():
+		seqids=[]
+		classes=higherclasses[higherclassname]
+		for classname in classes.keys():
+			for seqid in classes[classname]:
+				seqids.append(seqid)
+		tmpids = []
+		if maxseqno > 0 and maxseqno < len(seqids):
+			if maxseqno < len(classes.keys()):
+				selectedclassnames = random.sample(list(classes.keys()), k=maxseqno)
+				for classname in selectedclassnames:
+					tmp=random.sample(classes[classname], k=1)
+					tmpids.append(tmp[0])
+			else:
+				m=int(maxseqno/len(classes.keys()))
+				for classname in classes.keys():
+					tmp = random.sample(classes[classname], k=m)
+					tmpids=tmpids + tmp
+				notyetselected = list(set(seqids) - set(tmpids))
+				furtherselected = random.sample(notyetselected, k=maxseqno - len(tmpids))
+				tmpids = tmpids + furtherselected
+			selectedids = selectedids + tmpids
+		else:
+			selectedids=selectedids + seqids
+	return selectedids
+
+def GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa,maxseqno):
 	taxalist=[]
 	if "," in taxa:
 		taxalist=taxa.split(",")
 	elif taxa!="":
 		taxalist.append(taxa)
 	datasets={}
+	higherclasses={}
 	for seqid in seqrecords.keys():
 		description=seqrecords[seqid].description
 		classname=GetTaxonName(description,rank)
@@ -610,25 +600,104 @@ def GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa
 		if (len(taxalist) >0) and higherclassname!="" and not (higherclassname in taxalist) :
 			continue
 		if classname != "" and higherclassname !="" and classname != "unidentified" and higherclassname !="unidentified":
-			if not higherclassname in datasets.keys():
-				datasets.setdefault(higherclassname,{})
-			datasets[higherclassname][seqid]=seqrecords[seqid]	
+			if not higherclassname in higherclasses.keys():
+				higherclasses.setdefault(higherclassname, {})
+			if not (classname in higherclasses[higherclassname].keys()):
+				higherclasses[higherclassname].setdefault(classname,[])
+			higherclasses[higherclassname][classname].append(seqid)
+	selectedseqids=SelectList(higherclasses,maxseqno)
+	for seqid in selectedseqids:
+		description = seqrecords[seqid].description
+		higherclassname = GetTaxonName(description, higherrank)
+		if not higherclassname in datasets.keys():
+			datasets.setdefault(higherclassname, {})
+		datasets[higherclassname][seqid] = seqrecords[seqid]
 	return datasets
 
-def GenerateDatasetsFromDescription(seqrecords,rank,higherranks,taxa):
+def GenerateDatasetsFromDescription(seqrecords,rank,higherranks,taxa,maxseqno):
 	alldatasets={}
 	if len(higherranks) !=0:		
 		for higherrank in higherranks:
-			datasets=GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa)
+			datasets=GenerateDatasetsForPredictionFromDescription(seqrecords,rank,higherrank,taxa,maxseqno)
 			alldatasets.update(datasets)
 		return alldatasets	
 	else:
 		alldatasets.setdefault("All",{})
+		classes={}
 		for seqid in seqrecords.keys():
 			description=seqrecords[seqid].description
 			classname=GetTaxonName(description,rank)
 			if classname != "" and classname != "unidentified":
-				alldatasets["All"][seqid]=seqrecords[seqid]
+				#alldatasets["All"][seqid]=seqrecords[seqid]
+				if not (classname in classes.keys()):
+					classes.setdefault(classname, [])
+				classes[classname].append(seqid)
+		higherclasses = {}
+		higherclasses.setdefault("All", classes)
+		selectedseqids=SelectList(higherclasses,maxseqno)
+		for seqid in selectedseqids:
+			alldatasets["All"][seqid] = seqrecords[seqid]
+	return alldatasets
+
+def GenerateDatasetsForHigherTaxa(seqrecords,allclassification,higherrank,taxa,maxseqno):
+	taxalist=[]
+	if "," in taxa:
+		taxalist=taxa.split(",")
+	elif taxa!="":
+		taxalist.append(taxa)
+	datasets={}
+	higherclasses={}
+	for seqid in seqrecords.keys():
+		seqrec=seqrecords[seqid]
+		try:
+			higherclassname=allclassification[seqid][higherrank]
+		except KeyError:
+			continue
+		else:
+			if higherclassname=="" or higherclassname=="unidentified":
+				continue
+			if (len(taxalist) > 0) and not (higherclassname in taxalist):
+				continue
+			if not higherclassname in higherclasses.keys():
+				higherclasses.setdefault(higherclassname, {})
+			classname = allclassification[seqid][rank]
+			if not (classname in higherclasses[higherclassname].keys()):
+				higherclasses[higherclassname].setdefault(classname,[])
+			higherclasses[higherclassname][classname].append(seqid)
+	selectedseqids=SelectList(higherclasses,maxseqno)
+	for seqid in selectedseqids:
+		higherclassname = allclassification[seqid][higherrank]
+		if not higherclassname in datasets.keys():
+			datasets.setdefault(higherclassname, {})
+		datasets[higherclassname][seqid] = seqrecords[seqid]
+	return datasets
+
+def GenerateDatasets(seqrecords,allclassification,higherranklist,taxa,maxseqno):
+	alldatasets={}
+	if len(higherranklist) !=0:
+		for higherrank in higherranklist:
+			datasets=GenerateDatasetsForHigherTaxa(seqrecords,allclassification,higherrank,taxa,maxseqno)
+			alldatasets.update(datasets)
+		return alldatasets
+	else:
+		alldatasets.setdefault("All",{})
+		classes={}
+		for seqid in seqrecords.keys():
+			classname=""
+			try:
+				classname=allclassification[seqid][rank]
+			except KeyError:
+				continue
+			else:
+				#alldatasets["All"][seqid] = seqrec
+				if not (classname in classes.keys()):
+					classes.setdefault(classname, [])
+				classes[classname].append(seqid)
+		higherclasses={}
+		higherclasses.setdefault("All",classes)
+		selectedseqids=SelectList(higherclasses,maxseqno)
+		for seqid in selectedseqids:
+			alldatasets["All"][seqid] = seqrecords[seqid]
 	return alldatasets
 
 def LoadPrediction(predictionfilename):
@@ -873,9 +942,9 @@ if __name__ == "__main__":
 			#pos=positionlist[i]
 			#load classification
 			allclassification=LoadClassification(classificationfilename,rank,higherranklist)
-			datasets=GenerateDatasets(seqrecords,allclassification,higherranklist,args.taxa)
+			datasets=GenerateDatasets(seqrecords,allclassification,higherranklist,args.taxa,args.maxseqno)
 		else:
-			datasets=GenerateDatasetsFromDescription(seqrecords,rank,higherranklist,args.taxa)	
+			datasets=GenerateDatasetsFromDescription(seqrecords,rank,higherranklist,args.taxa,args.maxseqno)
 		if datasets=={}:
 			print("Please provide classification for the rank " + rank + ".")	
 			sys.exit()	
@@ -944,8 +1013,8 @@ if __name__ == "__main__":
 			outputwithoutfmeasures=GetBase(outputname) + ".cutoffs.json"	
 			SavePrediction(predictiondict,outputname,outputwithoutfmeasures)
 			#SaveCutoffs(predictiondict,outputcutoffs)
-			print("Only cutoffs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", respectively. If you wish to predict also for clades with less numbers of sequences and groups, please reset -minseqno and -mingroupno.")
-			print("The prediction and cutoffs are saved in the files " + outputname + ", " + outputwithoutfmeasures + " and " + outputwithoutfmeasures + ".txt.")
+			print("Only cut-offs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", are saved. If you wish to save cut-offs for clades with less numbers of sequences and groups, please reset -minseqno and -mingroupno.")
+			print("The prediction and cut-offs are saved in the files " + outputname + ", " + outputwithoutfmeasures + " and " + outputwithoutfmeasures + ".txt.")
 	else:
 		#load existing prediction for plotting
 		for rank in predictiondict.keys():
