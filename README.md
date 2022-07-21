@@ -6,7 +6,7 @@ Dnabarcoder consists of five components namely analysis, visualization, predicti
 
 The analysis and visualization components are to analyze and give an overview about the reference sequences.
 
-The prediction component is designed to predict local and global similarity cut-offs for a reference dataset for sequence identification. For big datasets like the UNITE database, it is practical to compute local similarity cut-offs for sequence identification at the immediate higher taxonomic level. To avoid memory constraints, it is practical to provide a maximum number of sequences selected for each clades for the prediction (see the examples below).
+The prediction component is designed to predict local and global similarity cut-offs for a reference dataset for sequence identification. For big datasets like the UNITE database, it is practical to compute local similarity cut-offs for sequence identification at the immediate higher taxonomic level. To avoid memory constraints, it is practical to provide a maximum number of sequences selected for each clades for the prediction (see the examples below). The default for maximum number of sequences loaded for the prediction for each clade is 20.000. 
 
 The classification component is used to classify unidentified sequences (DNA barcodes, ASVs, or OTUs) provided in a FASTA file against the reference dataset with the predicted similarity cut-offs, while the verification component verifies the classification results. These components are described below. For every function in a component of dnabarcoder, a figure is generated automatically to aid in the interpretation of the results.
 
@@ -230,9 +230,9 @@ The prediction and cutoffs will be saved in the files dnabarcoder/filamentousfun
  
  ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 <strong> -removecomplexes yes </strong> -prefix CBSITS
  
- We can also set up a maximum number of sequences loaded for each clade for prediction
+ We can also set up a maximum number of sequences loaded for each clade for prediction (default is 20000)
  
-  ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS <strong> -m 1000 </strong>
+  ../../dnabarcoder.py predict -i dnabarcoder/CBSITS.species.fasta -c CBSITS.current.classification -st 0.9 -et 1 -s 0.001 -rank species -higherrank genus -ml 400 -removecomplexes yes -prefix CBSITS <strong> -maxseqno 10000 </strong>
 
 - To <strong> visualize </strong> the global prediction for all ranks, use the following command:
 
