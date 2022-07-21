@@ -39,7 +39,7 @@ parser.add_argument('-higherrank','--higherclassificationranks', default="", hel
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxseqno','--maxseqno', type=int, default=20000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
-parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
+#parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
 parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
@@ -125,11 +125,11 @@ def LoadSim(simfilename):
 		if not (seqid1 in simmatrix.keys()):
 			simmatrix.setdefault(seqid1, {})
 			simmatrix[seqid1][seqid1]=1	
-		if len(seqids) < args.maxSimMatrixSize: #load full matrix	
-			for seqid2 in seqids:
-				if not seqid2 in simmatrix[seqid1].keys():
-					#simmatrix[seqid1].setdefault(seqid2,0)
-					simmatrix[seqid1][seqid2]=0
+		#if len(seqids) < args.maxSimMatrixSize: #load full matrix
+		for seqid2 in seqids:
+			if not seqid2 in simmatrix[seqid1].keys():
+				#simmatrix[seqid1].setdefault(seqid2,0)
+				simmatrix[seqid1][seqid2]=0
 	simfile.close()		
 	return simmatrix
 
@@ -169,7 +169,8 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		for seqid2 in seqrecords.keys():
 			if seqid1==seqid2:
 				simmatrix[seqid1][seqid2]=1
-			elif len(seqrecords.keys()) < args.maxSimMatrixSize: #load full matrix	
+			#elif len(seqrecords.keys()) < args.maxSimMatrixSize: #load full matrix
+			else:
 				simmatrix[seqid1][seqid2]=0
 	#read blast output
 	blastoutputfile = open(blastoutput)
@@ -188,19 +189,21 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		score=sim
 		if coverage < mincoverage:
 			score=float(score * coverage)/mincoverage
-		if len(seqrecords.keys()) < args.maxSimMatrixSize: #the full sim matrix has been loaded 
-			if simmatrix[i][j] < score:
-				simmatrix[i][j]=round(score,4)
-				simmatrix[j][i]=round(score,4)
-		else:		
-			if j in simmatrix[i].keys():
-				if simmatrix[i][j] < score:
-					simmatrix[i][j]=round(score,4)
-					simmatrix[j][i]=round(score,4)
-			else:
-				simmatrix[i][j]=round(score,4)
-				simmatrix[j][i]=round(score,4)	
-		#simmatrix[j][i]=score
+		if simmatrix[i][j] < score:
+			simmatrix[i][j] = round(score, 4)
+			simmatrix[j][i] = round(score, 4)
+		# if len(seqrecords.keys()) < args.maxSimMatrixSize: #the full sim matrix has been loaded
+		# 	if simmatrix[i][j] < score:
+		# 		simmatrix[i][j]=round(score,4)
+		# 		simmatrix[j][i]=round(score,4)
+		# else:
+		# 	if j in simmatrix[i].keys():
+		# 		if simmatrix[i][j] < score:
+		# 			simmatrix[i][j]=round(score,4)
+		# 			simmatrix[j][i]=round(score,4)
+		# 	else:
+		# 		simmatrix[i][j]=round(score,4)
+		# 		simmatrix[j][i]=round(score,4)
 	os.system("rm " + blastoutput)
 	os.system("rm " + blastdb + "*")
 	#os.system("rm " + blastdb + ".*")
@@ -210,20 +213,24 @@ def LoadNeighbors(seqids,subsimmatrix,threshold):
 	neighbordict={}
 	for seqid in seqids:
 		neighbordict.setdefault(seqid, [])
-	if len(subsimmatrix.keys()) < args.maxSimMatrixSize:	 #the full matrix has been loaded
-		for i in seqids:
-			for j in seqids:
-				if subsimmatrix[i][j] >= threshold:
-					neighbordict[i].append(j)
-					neighbordict[j].append(i)
-	else:
-		for i in seqids:
-			for j in seqids:
-				if j in subsimmatrix[i].keys():
-					if subsimmatrix[i][j] >= threshold:
-						neighbordict[i].append(j)
-						neighbordict[j].append(i)					
-	#os.system("rm out.txt")
+	for i in seqids:
+		for j in seqids:
+			if subsimmatrix[i][j] >= threshold:
+				neighbordict[i].append(j)
+				neighbordict[j].append(i)
+	# if len(subsimmatrix.keys()) < args.maxSimMatrixSize:	 #the full matrix has been loaded
+	# 	for i in seqids:
+	# 		for j in seqids:
+	# 			if subsimmatrix[i][j] >= threshold:
+	# 				neighbordict[i].append(j)
+	# 				neighbordict[j].append(i)
+	# else:
+	# 	for i in seqids:
+	# 		for j in seqids:
+	# 			if j in subsimmatrix[i].keys():
+	# 				if subsimmatrix[i][j] >= threshold:
+	# 					neighbordict[i].append(j)
+	# 					neighbordict[j].append(i)
 	return neighbordict
 
 def LoadPoints(neigbordict,seqrecords):
@@ -909,10 +916,11 @@ if __name__ == "__main__":
 			print("Loading similarity matrix " + simfilename)
 			simmatrix=LoadSim(simfilename)
 		elif higherclassificationranks=="":	#predict globally
-			print("Computing similarity matrix...")
-			simmatrix=ComputeSim(fastafilename,seqrecords,mincoverage)
-			print("Save similarity matrix " + simfilename)
-			SaveSim(simmatrix,simfilename)	
+			if len(seqrecords.keys()) <= args.maxseqno:
+				print("Computing similarity matrix...")
+				simmatrix=ComputeSim(fastafilename,seqrecords,mincoverage)
+				print("Save similarity matrix " + simfilename)
+				SaveSim(simmatrix,simfilename)
 	thresholdlist=[]
 	intrathresholdlist=[]
 	fmeasurelist=[]
