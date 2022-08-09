@@ -58,28 +58,49 @@ def GetSeqIndex(seqname,seqrecords):
 		i = i + 1
 	return -1
 
+def IndexSequences(filename):
+	indexedfilename = GetBase(filename) + ".indexed.fasta"
+	fastafile = open(filename)
+	indexedfile = open(indexedfilename, "w")
+	i=0
+	for line in fastafile:
+		if line.startswith('>'):
+			indexedfile.write(">" + str(i) + "|" + line.rstrip()[1:] + "\n")
+			i=i+1
+		else:
+			indexedfile.write(line)    
+	fastafile.close()
+	indexedfile.close()
+	return indexedfilename
+
 def ComputeBestBLASTscore(query,reference,mincoverage):
-	bestmatches={}
-	
+	indexed_query= IndexSequences(query)
+
+	#load sequeces from the fasta files
+	queryrecords = list(SeqIO.parse(indexed_query, "fasta"))
+	#refrecords = list(SeqIO.parse(reference, "fasta"))
+
+	bestscorelist =[0] * len(queryrecords)
+	bestsimlist =[0] * len(queryrecords)
+	bestcoveragelist =[0] * len(queryrecords)
+	bestrefidlist = [""] * len(queryrecords)
+
 	#blast
-	db= reference[:-(len(reference)-reference.rindex("."))]  + ".blastdb"
-	print(db)
-	blastoutput=query[:-(len(query)-query.rindex("."))] + "." + os.path.basename(reference)[:-(len(os.path.basename(reference))-os.path.basename(reference).rindex("."))] + ".blastoutput"
-	print(blastoutput)
-	if not os.path.exists(db + ".nsq"):
-		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out " + db
+	dbfilename="db.nsq"
+	if not os.path.exists(dbfilename):
+		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out db"
 		print(makedbcommand)
 		os.system(makedbcommand)
 	#for short read
-	blastcommand = "blastn -query " + query + " -db  "+ db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + indexed_query + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
 	#for long read
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+		blastcommand = "blastn -query " + indexed_query + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
 	print(blastcommand)	
 	os.system(blastcommand)
 	
 	#read blast output
-	blastoutputfile = open(blastoutput)
+	blastoutputfile = open("out.txt")
 	refid = ""
 	score=0
 	queryid=""
@@ -89,48 +110,30 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 		pos1 = int(words[6])
 		pos2 = int(words[7])
 		iden = float(words[2]) 
-		sim=round(float(iden)/100,4)
+		sim=float(iden)/100
 		coverage=abs(pos2-pos1)
 		refid=words[1]
 		score=sim
 		if coverage < mincoverage:
-				score=round(float(score * coverage)/mincoverage,4)
-		#i = int(queryid.split("|")[0])
-		if queryid in bestmatches.keys():
-			bestmatch=bestmatches[queryid]
-			bestscore=bestmatch["score"]
-			bestcoverage=bestmatch["coverage"]		
-			if score > bestscore or (score == bestscore and coverage > bestcoverage):	
-				bestmatch["score"]= score
-				bestmatch["refid"]=refid
-				bestmatch["sim"]=sim
-				bestmatch["coverage"]=coverage
-		else:
-			bestmatches.setdefault(queryid,{"score":score,"refid":refid,"sim":sim,"coverage":coverage})					
-		
-		
-	#os.system("rm " + indexed_query)		
-	#os.system("rm " + blastoutput)
-	return bestmatches
+				score=float(score * coverage)/mincoverage
+		i = int(queryid.split("|")[0])		
+		#if score > bestscorelist[i]:
+		if score > bestscorelist[i] or (score == bestscorelist[i] and coverage > bestcoveragelist[i]):	
+			bestscorelist[i]= score
+			bestrefidlist[i]=refid
+			bestsimlist[i]=sim
+			bestcoveragelist[i]=coverage
+	os.system("rm " + indexed_query)		
+	os.system("rm out.txt")
+	return bestrefidlist,bestscorelist,bestsimlist,bestcoveragelist
 
-
-def SavePrediction(testseqIDs,bestmatches,outputname):
+def SavePrediction(testseqIDs,bestscorelist,bestsimlist,bestcoveragelist,bestrefidlist,outputname):
 	output=open(outputname,"w")
 	output.write("ID\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
+	i=0
 	for seqid in testseqIDs:
-		refid=""
-		score=0
-		sim=0
-		coverage=0
-		try:
-			bestmatch=bestmatches[seqid]
-			refid=bestmatch["refid"]
-			score=bestmatch["score"]
-			sim=bestmatch["sim"]
-			coverage=bestmatch["coverage"]
-		except KeyError:
-			pass
-		output.write(seqid + "\t"  + refid + "\t" +  str(score) + "\t" + str(sim) + "\t" + str(coverage) +"\n")
+		output.write(seqid + "\t"  + bestrefidlist[i] + "\t" +  str(bestscorelist[i]) + "\t" + str(bestsimlist[i]) + "\t" + str(bestcoveragelist[i]) +"\n")
+		i=i+1
 	output.close()
 	
 ##############################################################################
@@ -146,8 +149,7 @@ refseqrecords = SeqIO.to_dict(SeqIO.parse(traindataset, "fasta"))
 testseqrecords = SeqIO.to_dict(SeqIO.parse(testdataset, "fasta"))
 
 #search for a best match of a test sequence in a train dataset
-#bestmatchlist,bestscorelist,bestsimlist,bestcoveragelist=ComputeBestBLASTscore(testdataset,traindataset,mincoverage)
-bestmatches=ComputeBestBLASTscore(testdataset,traindataset,mincoverage)
+bestmatchlist,bestscorelist,bestsimlist,bestcoveragelist=ComputeBestBLASTscore(testdataset,traindataset,mincoverage)
 
 #Save prediction by searching 
 if prefix=="" or prefix==None:
@@ -158,6 +160,6 @@ basename=GetBase(traindataset)
 if "/" in basename:
 	basename=basename[basename.rindex("/")+1:]		
 reportfilename=GetWorkingBase(prefix) + "." + basename + "_BLAST.bestmatch"
-SavePrediction(testseqrecords.keys(),bestmatches,reportfilename)
+SavePrediction(testseqrecords.keys(),bestscorelist,bestsimlist,bestcoveragelist,bestmatchlist,reportfilename)
 print("The results are saved in file  " + reportfilename)
 
