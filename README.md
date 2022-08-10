@@ -318,9 +318,15 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 
 ## Verification
 
-- To <strong> verify </strong> the classification results based on phylogenic trees at the species level:
+- To <strong> verify </strong> the classification results based on phylogenic trees or cutoffs.
+
+- To verify the classifications based on phylogenic trees at the species level:
 
 ../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank species
+
+- To verify the classifications based on cutoffs:
+
+../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank -cutoffs CBSITS.cutoffs.best.json
 
 ## Data
 
