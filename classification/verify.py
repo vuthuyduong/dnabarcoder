@@ -8,6 +8,7 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
+import json
 #from sklearn.metrics import precision_recall_fscore_support
 #from sklearn.metrics import cohen_kappa_score
 #from sklearn.metrics import matthews_corrcoef
@@ -25,7 +26,7 @@ nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='verify.py',  
 							   usage="%(prog)s [options] -i classified file -f the fasta file -r referencefastafilename -c classificationfile -o output",
-							   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
+							   description='''Script that verifies the classified sequences of the prediction file to their BLAST best match based on the given cutoffs or phylogenetic trees.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
@@ -41,6 +42,14 @@ parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
+parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
+parser.add_argument('-cutoff','--cutoff', type=float, default=0,help='The cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
+parser.add_argument('-confidence','--confidence', type=float,default=0,help='The confidence of the cutoff to assign the sequences to predicted taxa')
+parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
+parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+parser.add_argument('-proba','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -48,8 +57,13 @@ fastafilename= args.fasta
 referencefastafilename= args.reference
 classificationfilename=args.classification
 maxseqno=args.maxseqno
+mincoverage = args.minalignmentlength
 prefix=args.prefix
 verifyingrank=args.classificationrank
+method=args.method
+cutoff=args.cutoff
+confidence=args.confidence
+cutoffsfilename=args.cutoffs
 redo=args.redo
 outputpath=args.out
 
@@ -167,6 +181,7 @@ def GetTaxonomicClassification(level,header,texts):
 def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 	classificationdict={}
 	classes={}
+	taxonomy={}
 	isError=False
 	if classificationfilename != "":
 		classificationfile= open(classificationfilename)
@@ -199,7 +214,11 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 						continue
 					if not taxonname in classes.keys():
 						classes.setdefault(taxonname,{})
+						taxonomy.setdefault(taxonname,{})
 					classes[taxonname][seqid]=seqrecords[seqid]
+					taxonomy[taxonname]["rank"]=rank
+					level=GetLevel(rank)
+					taxonomy[taxonname]["classification"]=GetRankClassification(level, classification)
 		classificationfile.close()	
 	else:
 		for seqid in seqrecords.keys():
@@ -236,25 +255,29 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			ranks=["kingdom","phylum","class","order","family","genus","species"]
 			level=0
 			rank=""
-			taxonname=""
-			for t in taxonnames:
-				t=t.split("__")[1]
-				t=t.replace("_"," ")		
-				if t=="unidentified" or t=="":
+			currenttaxonname=""
+			currentclassification=""
+			for taxonname in taxonnames:
+				taxonname=taxonname.split("__")[1]
+				taxonname=taxonname.replace("_"," ")		
+				if taxonname=="unidentified" or taxonname=="":
 					level=level+1
 					continue
 				rank=ranks[level]
-				taxonname=t
-				if not (t in classes.keys()):
-					classes.setdefault(t,{})
-				classes[t][seqid]=seqrecords[seqid]
+				currenttaxonname=taxonname
+				if not (taxonname in classes.keys()):
+					classes.setdefault(taxonname,{})
+					taxonomy.setdefault(taxonname,{})
+				classes[taxonname][seqid]=seqrecords[seqid]
+				taxonomy[taxonname]["rank"]=rank
+				taxonomy[taxonname]["classification"]=GetRankClassification(level, classification)
 				level=level+1	
-			if taxonname!="":
+			if currenttaxonname!="":
 				classificationdict.setdefault(seqid,{})
 				classificationdict[seqid]["classification"]=classification
-				classificationdict[seqid]["taxonname"]=taxonname
+				classificationdict[seqid]["taxonname"]=currenttaxonname
 				classificationdict[seqid]["rank"]=rank	
-	return classificationdict,classes,isError
+	return classificationdict,classes,taxonomy,isError
 
 def LoadPrediction(predictionfilename,idcolumnname):
 	isError=False
@@ -483,43 +506,344 @@ def CreateTree(fastafilename,redo):
 		PrintTree(treefilename,redo)
 	return treefilename	
 
-def CreateFastaFile(seqrecord,taxonname,classeswithsequences,numberofrefsequences,maxseqno,redo):
-	if not os.path.exists(outputpath + "/trees"):
-		os.system("mkdir " + outputpath + "/trees")
+def CreateFastaFileForTrees(seqrecord,taxonname,sequences,maxseqno,redo):
+	if not os.path.exists(outputpath + "/verification"):
+		os.system("mkdir " + outputpath + "/verification")
 	if sys.version_info[0] < 3:
 		taxonname=unicode(taxonname,errors='ignore')
-	newfastafilename=outputpath + "/trees/" + seqrecord.id.replace("|","_") + ".fasta"
+	newfastafilename=outputpath + "/verification/" + seqrecord.id.replace("|","_") + ".fasta"
+	numberofrefsequences=len(sequences.keys())
 	if not os.path.exists(newfastafilename) or redo!="":
-		if taxonname in classeswithsequences.keys():
-			seqrecords=[]
-			seqrecords.append(seqrecord)
-			sequences=classeswithsequences[taxonname]
-			numberofrefsequences=len(sequences.keys())
-			if len(sequences) >=2:#only make tree of more than 3 sequences
-				if (maxseqno >0) and (len(sequences) > maxseqno):
-					#select randomly 100 sequences to compare
-					selectedlist=random.sample(range(0, len(sequences)), k=maxseqno)
-					for i in selectedlist:
-						seqids=list(sequences.keys())
-						sequenceid=seqids[i]
-						if sequenceid != seqrecord.id:
-							seqrecords.append(sequences[sequenceid])
-				else:	
-					for sequenceid in sequences.keys():
-						if sequenceid != seqrecord.id:
-							seqrecords.append(sequences[sequenceid])
-				if len(seqrecords) >=3:			
-					SeqIO.write(seqrecords,newfastafilename,"fasta")
-				else:
-					newfastafilename=""
-			else:
-				newfastafilename=""
-	if numberofrefsequences==0 and os.path.exists(newfastafilename):
-		records=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-		numberofrefsequences=len(records)-1
+		seqrecords=[]
+		seqrecords.append(seqrecord)
+		numberofrefsequences=len(sequences.keys())
+		if len(sequences) >=2:#only make tree of more than 3 sequences
+			if (maxseqno >0) and (len(sequences) > maxseqno):
+				#select randomly 100 sequences to compare
+				selectedlist=random.sample(range(0, len(sequences)), k=maxseqno)
+				seqids=list(sequences.keys())
+				for i in selectedlist:
+					sequenceid=seqids[i]
+					if sequenceid != seqrecord.id:
+						seqrecords.append(sequences[sequenceid])
+			else:	
+				for sequenceid in sequences.keys():
+					if sequenceid != seqrecord.id:
+						seqrecords.append(sequences[sequenceid])
+		if len(seqrecords) >=3:			
+			SeqIO.write(seqrecords,newfastafilename,"fasta")
+			numberofrefsequences=len(seqrecords)
+		else:
+			newfastafilename=""
 	return newfastafilename,numberofrefsequences
+
+def CreateFastaFileForBLAST(seqrecord,taxonname,sequences,maxseqno,redo,method):
+	if not os.path.exists(outputpath + "/verification"):
+		os.system("mkdir " + outputpath + "/verification")
+	if sys.version_info[0] < 3:
+		taxonname=unicode(taxonname,errors='ignore')
+	newfastafilename=""
+	numberofrefsequences=0
+	newfastafilename=outputpath + "/verification/" + taxonname.replace("|","_").replace(" ","_") + ".fasta"
+	if not os.path.exists(newfastafilename):
+		seqrecords=[]
+		numberofrefsequences=len(sequences.keys())
+		if (maxseqno >0) and (len(sequences) > maxseqno):
+				#select randomly 100 sequences to compare
+			selectedlist=random.sample(range(0, len(sequences)), k=maxseqno)
+			seqids=list(sequences.keys())
+			for i in selectedlist:
+				sequenceid=seqids[i]
+				seqrecords.append(sequences[sequenceid])
+		else:	
+			for sequenceid in sequences.keys():
+				seqrecords.append(sequences[sequenceid])
+	if len(seqrecords) >=1:			
+		SeqIO.write(seqrecords,newfastafilename,"fasta")
+	else:
+		newfastafilename=""			
+	return newfastafilename,numberofrefsequences
+
+def GetLevel(rank):
+	level=-1
+	if rank=="species":	
+		level=6
+	elif rank=="genus":	
+		level=5
+	elif rank=="family":	
+		level=4
+	elif rank=="order":	
+		level=3
+	elif rank=="class":	
+		level=2
+	elif rank=="phylum":
+		level=1
+	elif rank=="kingdom":
+		level=0	
+	return level
+
+def GetHigherTaxa(rank,classification):
+	highertaxa=[]
+	taxa=classification.split(";")
+	species=""
+	genus=""
+	family=""
+	order=""
+	bioclass=""
+	phylum=""
+	kingdom=""
+	for taxon in taxa:
+		if taxon.startswith("k__"):
+			kingdom=taxon.replace("k__","")
+		if taxon.startswith("p__"):
+			phylum=taxon.replace("p__","")	
+		if taxon.startswith("c__"):
+			bioclass=taxon.replace("c__","")	
+		if taxon.startswith("o__"):
+			order=taxon.replace("o__","")	
+		if taxon.startswith("f__"):
+			family=taxon.replace("f__","")	
+		if taxon.startswith("g__"):
+			genus=taxon.replace("g__","")	
+		if taxon.startswith("s__"):
+			species=taxon.replace("s__","")	
+	level=GetLevel(rank)	
+	if level >=6 and species!="" and species!="unidentified":
+		highertaxa.append(species)
+	if level >=5 and genus!="" and genus!="unidentified":
+		highertaxa.append(genus)
+	if level >=4 and family!="" and family!="unidentified":
+		highertaxa.append(family)	
+	if level >=3 and order!="" and order!="unidentified":
+		highertaxa.append(order)	
+	if level >=2 and bioclass!="" and bioclass!="unidentified":
+		highertaxa.append(bioclass)	
+	if level >=1 and phylum!="" and phylum!="unidentified":
+		highertaxa.append(phylum)
+	if level >=0 and kingdom!="" and kingdom!="unidentified":
+		highertaxa.append(kingdom)
+	return highertaxa
+
+def GetCutoffAndConfidence(rank,classification,cutoffs):
+	if not rank in cutoffs.keys():
+		return [0,0]
+	#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
+	#taxa=cleanclassification.split(";")
+	#taxa.append("All") 
+	highertaxa=GetHigherTaxa(rank,classification)
+	highertaxa.append("All") 
+	localcutoff=0
+	seqno=0
+	groupno=0
+	datasets=cutoffs[rank]
+	maxconfidence=0
+	bestcutoff=0
+	for highertaxonname in highertaxa:
+		if not highertaxonname in datasets.keys():
+			continue
+		if "cut-off" in datasets[highertaxonname].keys():
+			localcutoff=datasets[highertaxonname]["cut-off"]
+		else:
+			continue
+		confidence=1	
+		if "confidence" in datasets[highertaxonname].keys():
+			confidence=datasets[highertaxonname]["confidence"]
+		if "sequence number" in datasets[highertaxonname].keys():
+			seqno=datasets[highertaxonname]["sequence number"]	
+		if "group number" in datasets[highertaxonname].keys():
+			groupno=datasets[highertaxonname]["group number"]	
+		if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
+			if maxconfidence < confidence:
+				maxconfidence =confidence
+				bestcutoff=localcutoff
+				break
+	return [bestcutoff,maxconfidence]
+
+def GetRank(taxonname,classification):
+	rank=""
+	level=-1
+	texts=classification.split(";")
+	for text in texts:
+		if not taxonname in text:
+			continue
+		if text.startswith("k__"):
+			rank="kingdom"
+			level=0
+		if text.startswith("p__"):
+			rank="phylum"
+			level=1
+		if text.startswith("c__"):
+			rank="class"	
+			level=2
+		if text.startswith("o__"):
+			rank="order"	
+			level=3
+		if text.startswith("f__"):
+			rank="family"
+			level=4
+		if text.startswith("g__"):
+			rank="genus"
+			level=5
+		if text.startswith("s__"):
+			rank="species"	
+			level=6
+	return rank,level
+
+def GetRankClassification(level,classification):
+	if classification=="" or level ==-1:
+		return "k__unidentified;p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
+	species=classification.split(";")[6].replace("s__","")
+	genus=classification.split(";")[5].replace("g__","")
+	family=classification.split(";")[4].replace("f__","")
+	order=classification.split(";")[3].replace("o__","")
+	bioclass=classification.split(";")[2].replace("c__","")
+	phylum=classification.split(";")[1].replace("p__","")
+	kingdom=classification.split(";")[0].replace("k__","")
+	newclassification=""
+	if level >=0 and kingdom!="unidentified":
+		newclassification="k__" + kingdom +";p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
+	if level >=1 and phylum!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+	if level >=2 and bioclass!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass+";o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+	if level >=3 and order!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order + ";f__unidentified;g__unidentified;s__unidentified"
+	if level >=4 and family!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family +";g__unidentified;s__unidentified"
+	if level >=5 and genus!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus + ";s__unidentified"
+	if level >=6 and species!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
+	return newclassification
+
+def AddCutoffsToTaxonomy(taxonomy,cutoff,confidence,cutoffs):
+	for taxonname in taxonomy.keys():
+		if cutoffs!={}:
+			classification=taxonomy[taxonname]["classification"]
+			rank=taxonomy[taxonname]["rank"]
+			cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
+			taxonomy[taxonname]["cutoff"]=cutoff_confidence[0]
+			taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
+		else:
+			taxonomy[taxonname]["cutoff"]=cutoff
+			taxonomy[taxonname]["confidence"]=confidence
+		
+# def GetCutoff(taxonname,refid,classificationdict,cutoff,cutoffs):
+# 	taxon_cutoff=0
+# 	taxon_confidence=0
+# 	taxon_classification=GetRankClassification(-1,"")
+# 	if cutoffs=={}:
+# 		taxon_cutoff=cutoff
+# 	elif refid in classificationdict.keys():
+# 		classification=classificationdict[refid]['classification']
+# 		rank,level=GetRank(taxonname,classification)
+# 		cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)	
+# 		taxon_cutoff=cutoff_confidence[0]
+# 		taxon_confidence=cutoff_confidence[1]
+# 		taxon_classification=GetRankClassification(level,classification)
+# 	return taxon_cutoff,taxon_confidence,taxon_classification
+
+def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
+	#Create fasta file of the test record 
+	queryname=testrecord.id + "." + "fasta"
+	if "|" in testrecord.id:
+		queryname=testrecord.id.split("|")[0] + "." + "fasta"
+	SeqIO.write(testrecord, queryname , "fasta")
+	#Create fasta file of predictedname
+	if reffilename=="":
+		return "",0,0,0
+	#Blast the test record to fastafilename:
+	#makedbcommand = "makeblastdb -in " + refname + " -dbtype \'nucl\' " +  " -out db"
+	#os.system(makedbcommand)
+	blastoutput = testrecord.id 
+	if "|" in testrecord.id:
+		blastoutput=blastoutput.split("|")[0]
+	#blast
+	makedbcommand = "makeblastdb -in " + reffilename + " -dbtype \'nucl\' " +  " -out db"
+	os.system(makedbcommand)
 	
-def Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
+	blastoutput= blastoutput + ".blast.out"
+	#blastcommand = "blastn -query " + queryname + " -db  db -outfmt 6 -out " + blastoutput
+	blastcommand = "blastn -query " + queryname + " -db  db -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	#for long read
+	if mincoverage >=300:
+		blastcommand = "blastn -query " + queryname + " -db  db -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	os.system(blastcommand)
+	#read output of Blast
+	blastoutputfile = open(blastoutput)
+	bestlocalscore=0
+	bestlocalsim=0
+	bestlocalcoverage=0
+	bestrefid=""
+	for line in blastoutputfile:
+		words = line.split("\t")
+		pos1 = int(words[6])
+		pos2 = int(words[7])
+		iden = float(words[2]) 
+		sim=float(iden)/100
+		coverage=abs(pos2-pos1)
+		refid=words[1]
+		score=sim
+		if coverage < mincoverage:
+				score=float(score * coverage)/mincoverage
+		if score > bestlocalscore:
+			bestrefid=refid
+			bestlocalscore=score
+			bestlocalsim=sim
+			bestlocalcoverage=coverage
+	os.system("rm " + blastoutput)
+	os.system("rm " + queryname)
+	return bestrefid,bestlocalscore,bestlocalsim,bestlocalcoverage
+
+def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy):
+	count=0
+	total=0
+	#create Fasta files
+	for seqid in predictiondict.keys():
+		predictedname=predictiondict[seqid]["predlabel"]
+		rank=predictiondict[seqid]["rank"]
+		refid=predictiondict[seqid]["refid"]
+		coverage=predictiondict[seqid]["coverage"]
+		sim=predictiondict[seqid]["sim"]
+		score=predictiondict[seqid]["score"]
+		numberofrefsequences=0
+		if score==0:
+			score=sim
+		verifiedlabel=""
+		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)):
+			#only predict when the tree file name does not exist
+			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
+				total=total+1
+				seqrecord=seqrecords[seqid]
+				if score==0 or (redo !=""):
+					sequences=refclasses[predictedname]
+					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno,redo)
+					if os.path.exists(reffilename):
+						#compute BLAST score
+						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrecord,reffilename,mincoverage)
+						os.system("rm " + reffilename)	
+						if newbestscore > score:
+							refid=newrefid
+							score=newbestscore
+							sim=newsim
+							coverage=newcoverage
+				predicted_cutoff=taxonomy[predictedname]["cutoff"]
+				predicted_confidence=taxonomy[predictedname]["confidence"]
+				predicted_classification=taxonomy[predictedname]["classification"]
+				if 	score >= predicted_cutoff:
+					verifiedlabel=predictedname
+					count=count+1
+					predictiondict[seqid]["verifiedlabel"]=verifiedlabel
+					predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+					predictiondict[seqid]["classification"]=predicted_classification
+					predictiondict[seqid]["sim"]=sim
+					predictiondict[seqid]["score"]=score
+					predictiondict[seqid]["coverage"]=coverage
+					predictiondict[seqid]["cutoff"]=predicted_cutoff
+					predictiondict[seqid]["confidence"]=predicted_confidence
+	return count,total
+	
+def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
 	count=0
 	notree_count=0
 	total=0
@@ -541,7 +865,8 @@ def Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
 				total=total+1
 				seqrecord=seqrecords[seqid]
 				if treefilename=="" or (redo !=""):
-					treefastafilename,numberofrefsequences=CreateFastaFile(seqrecord,predictedname,refclasses,numberofrefsequences,maxseqno,redo)
+					sequences=refclasses[predictedname]
+					treefastafilename,numberofrefsequences=CreateFastaFileForTrees(seqrecord,predictedname,sequences,maxseqno,redo)
 					if os.path.exists(treefastafilename):
 						treefilename= CreateTree(treefastafilename,redo)
 				verified=False		
@@ -551,7 +876,7 @@ def Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
 					notree_count=notree_count+1
 				if verified==True:
 					verifiedlabel=predictedname
-					count=count+1
+					count=count+1		
 		predictiondict[seqid]["verifiedlabel"]=verifiedlabel
 		predictiondict[seqid]["treefilename"]=treefilename		
 		predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
@@ -564,8 +889,8 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 	classificationreportfile=open(classificationreportfilename,"w")
 	outputfile=open(output,"w")
 	notverifiedoutputfile=open(notverifiedoutput,"w")
-	notverifiedoutputfile.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
-	outputfile.write("#SequenceID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	notverifiedoutputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	outputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
 	classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
 	for seqid in predictiondict.keys():
 		prediction=predictiondict[seqid]
@@ -665,16 +990,30 @@ if __name__ == "__main__":
 	refseqrecords={}
 	if os.path.exists(referencefastafilename):
 		refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
-	refclassificationdict,refclasses,isError= LoadClassification(refseqrecords,classificationfilename,args.idcolumnname)
-	if isError==True:
+	refclassificationdict,refclasses,taxonomy,isError= LoadClassification(refseqrecords,classificationfilename,args.idcolumnname)
+	if isError==True or refclasses=={} or refclassificationdict=={}:
+		print("Please check the classification of reference sequences.")
 		sys.exit()
 	#verifying...	
-	count,notree_count,total=Verify(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank)
-	if total >0:
-		print("Number of classified sequences: " + str(total))
-		print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
-		print("Number of sequences without alignment: " + str(notree_count) + "(" + str(round(notree_count*100/total,2)) + " %).")
-		print("Number of sequences with failt verification: " + str(total - count - notree_count) + "(" + str(round((total - count - notree_count)*100/total,2)) + " %).")
+	if args.method=="tree":
+		count,notree_count,total=VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank)
+		if total >0:
+			print("Number of classified sequences: " + str(total))
+			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
+			print("Number of sequences without alignment: " + str(notree_count) + "(" + str(round(notree_count*100/total,2)) + " %).")
+			print("Number of sequences with failt verification: " + str(total - count - notree_count) + "(" + str(round((total - count - notree_count)*100/total,2)) + " %).")
+			if notree_count==0:
+				print("Please check if clustalo and/or iqtree have been installed.")
+	else:
+		cutoffs={}
+		if cutoffsfilename!="" and cutoffsfilename!=None:
+			with open(cutoffsfilename) as cutoffsfile:
+				cutoffs = json.load(cutoffsfile)
+		AddCutoffsToTaxonomy(taxonomy,cutoff,confidence,cutoffs)		
+		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy)
+		if total >0:
+			print("Number of classified sequences: " + str(total))
+			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
 	#print("The results are saved in file  " + outputname)
 	SaveVerification(predictiondict,outputname,notverifiedoutputname,classificationfilename)
 	print("The results are saved in file  " + outputname + ", " + notverifiedoutputname + " and " + classificationreportfilename + ".")
