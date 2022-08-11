@@ -48,7 +48,7 @@ parser.add_argument('-confidence','--confidence', type=float,default=0,help='The
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-parser.add_argument('-proba','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
+parser.add_argument('-minproba','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 
 args=parser.parse_args()
@@ -60,6 +60,7 @@ maxseqno=args.maxseqno
 mincoverage = args.minalignmentlength
 prefix=args.prefix
 verifyingrank=args.classificationrank
+minproba=args.minproba
 method=args.method
 cutoff=args.cutoff
 confidence=args.confidence
@@ -256,7 +257,6 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			level=0
 			rank=""
 			currenttaxonname=""
-			currentclassification=""
 			for taxonname in taxonnames:
 				taxonname=taxonname.split("__")[1]
 				taxonname=taxonname.replace("_"," ")		
@@ -806,11 +806,12 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 		coverage=predictiondict[seqid]["coverage"]
 		sim=predictiondict[seqid]["sim"]
 		score=predictiondict[seqid]["score"]
+		proba=predictiondict[seqid]["proba"]
 		numberofrefsequences=0
 		if score==0:
 			score=sim
 		verifiedlabel=""
-		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)):
+		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba): #verifying only for classification results with probability greater than min proba
 			#only predict when the tree file name does not exist
 			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
 				total=total+1
@@ -836,6 +837,7 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 					predictiondict[seqid]["verifiedlabel"]=verifiedlabel
 					predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
 					predictiondict[seqid]["classification"]=predicted_classification
+					predictiondict[seqid]["refid"]=refid
 					predictiondict[seqid]["sim"]=sim
 					predictiondict[seqid]["score"]=score
 					predictiondict[seqid]["coverage"]=coverage
@@ -856,10 +858,11 @@ def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingra
 		branchlength=predictiondict[seqid]["branchlength"]
 		maxbranchlength=predictiondict[seqid]["maxbranchlength"]
 		averagebranchlength=predictiondict[seqid]["averagebranchlength"]
+		proba=predictiondict[seqid]["proba"]
 		#if sys.version_info[0] < 3:
 			#predictedname=unicode(predictedname,'latin1')
 		verifiedlabel=""
-		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)):
+		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba):#verifying only for classification results with probability greater than min proba
 			#only predict when the tree file name does not exist
 			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
 				total=total+1
