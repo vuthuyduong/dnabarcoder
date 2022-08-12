@@ -15,7 +15,6 @@ import os, argparse
 #from sklearn.metrics import accuracy_score
 import json
 from Bio import SeqIO
-import random
 import multiprocessing
 parser=argparse.ArgumentParser(prog='classify.py',  
 							   usage="%(prog)s [options] -i bestmatch/classified file -r referencefastafilename -c classificationfile -ml minalignment -cutoffs cutoffsfile -o output",
@@ -24,14 +23,11 @@ parser=argparse.ArgumentParser(prog='classify.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the classified file.')
+parser.add_argument('-f','--fasta', default="", help='The fasta file of the sequences for saving unidentified sequences. Optional.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
+parser.add_argument('-r','--reference', default="", help='the reference fasta file, in case the classification of the sequences is given in the sequence headers.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
-parser.add_argument('-f','--fasta', default="", help='the fasta file, optional for verification.')
-parser.add_argument('-r','--reference', default="", help='the reference fasta file, optional for verification')
-parser.add_argument('-mp','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
-parser.add_argument('-m','--maxseqno', type=int, default=0, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-cutoff','--cutoff', type=float, default=0,help='The cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 parser.add_argument('-confidence','--confidence', type=float,default=0,help='The confidence of the cutoff to assign the sequences to predicted taxa')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
@@ -39,24 +35,24 @@ parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-save','--save',default="all", help='The option to save all (default) or only classified sequences (-save classified) in the classification output.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 
 args=parser.parse_args()
 predictionfilename=args.input
-fastafilename= args.fasta
-referencefastafilename= args.reference
-minprobaforBlast=args.minproba
-mincoverage = args.minalignmentlength
 cutoff=args.cutoff
+globalconfidence=args.confidence
+cutoffsfilename=args.cutoffs
 classificationfilename=args.classification
 classificationrank=args.classificationrank
-maxseqno=args.maxseqno
+fastafilename= args.fasta
+referencefastafilename= args.reference
+mincoverage = args.minalignmentlength
 prefix=args.prefix
 outputpath=args.out
-cutoffsfilename=args.cutoffs
-globalconfidence=args.confidence
+
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
@@ -298,98 +294,6 @@ def LoadClassificationFromDescription(seqrecords):
 			classificationdict[seqid]["rank"]=rank	
 	return classificationdict,classes
 
-#def LoadTaxa(classificationfilename):
-#	taxa=[]
-#	classificationfile=open(classificationfilename)
-#	for line in classificationfile:
-#		line=line.rstrip()
-#		texts=line.split("\t")
-#		for text in texts:
-#			if text!="":
-#				taxa.append(text)
-#	classificationfile.close()			
-#	return taxa
-
-def CreateFastaFile(taxonname,classeswithsequences,maxseqno):
-	if sys.version_info[0] < 3:
-		taxonname=unicode(taxonname,errors='ignore')
-	newfastafilename=""
-	sequences=[]
-	if taxonname in classeswithsequences.keys():
-		sequences=classeswithsequences[taxonname]
-		if len(sequences) >0:
-			newfastafilename=taxonname.replace(" ","_").replace(".","_") + ".fasta"
-			fastafile=open(newfastafilename,"w")
-			if (maxseqno >0) and (len(sequences) > maxseqno):
-				#select randomly 100 sequences to compare
-				selectedlist=random.sample(range(0, len(sequences)), k=maxseqno)
-				for i in selectedlist:
-					sequence=sequences[i]
-					seqid=sequence.id
-					seq=str(sequence.seq)
-					fastafile.write(">" + seqid + "\n")
-					fastafile.write(seq + "\n")
-			else:	
-				for sequence in sequences:
-					seqid=sequence.id
-					seq=str(sequence.seq)
-					fastafile.write(">" + seqid + "\n")
-					fastafile.write(seq + "\n")
-			fastafile.close()
-	return newfastafilename,len(sequences)
-
-def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
-	#Create fasta file of the test record 
-	queryname=testrecord.id + "." + "fasta"
-	if "|" in testrecord.id:
-		queryname=testrecord.id.split("|")[0] + "." + "fasta"
-	SeqIO.write(testrecord, queryname , "fasta")
-	#Create fasta file of predictedname
-	if reffilename=="":
-		return "",0,0,0
-	#Blast the test record to fastafilename:
-	#makedbcommand = "makeblastdb -in " + refname + " -dbtype \'nucl\' " +  " -out db"
-	#os.system(makedbcommand)
-	blastoutput = testrecord.id 
-	if "|" in testrecord.id:
-		blastoutput=blastoutput.split("|")[0]
-	#blast
-	makedbcommand = "makeblastdb -in " + reffilename + " -dbtype \'nucl\' " +  " -out db"
-	os.system(makedbcommand)
-	
-	blastoutput= blastoutput + ".blast.out"
-	#blastcommand = "blastn -query " + queryname + " -db  db -outfmt 6 -out " + blastoutput
-	blastcommand = "blastn -query " + queryname + " -db  db -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
-	#for long read
-	if mincoverage >=300:
-		blastcommand = "blastn -query " + queryname + " -db  db -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
-	os.system(blastcommand)
-	#read output of Blast
-	blastoutputfile = open(blastoutput)
-	bestlocalscore=0
-	bestlocalsim=0
-	bestlocalcoverage=0
-	bestrefid=""
-	for line in blastoutputfile:
-		words = line.split("\t")
-		pos1 = int(words[6])
-		pos2 = int(words[7])
-		iden = float(words[2]) 
-		sim=float(iden)/100
-		coverage=abs(pos2-pos1)
-		refid=words[1]
-		score=sim
-		if coverage < mincoverage:
-				score=float(score * coverage)/mincoverage
-		if score > bestlocalscore:
-			bestrefid=refid
-			bestlocalscore=score
-			bestlocalsim=sim
-			bestlocalcoverage=coverage
-	os.system("rm " + blastoutput)
-	os.system("rm " + queryname)
-	return bestrefid,bestlocalscore,bestlocalsim,bestlocalcoverage
-
 def GetLevel(rank):
 	level=-1
 	if rank=="species":	
@@ -454,9 +358,6 @@ def GetHigherTaxa(rank,classification):
 def GetCutoffAndConfidence(rank,classification,cutoffs):
 	if not rank in cutoffs.keys():
 		return [0,0]
-	#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
-	#taxa=cleanclassification.split(";")
-	#taxa.append("All") 
 	highertaxa=GetHigherTaxa(rank,classification)
 	highertaxa.append("All") 
 	localcutoff=0
@@ -591,21 +492,19 @@ def GetAssignment(refid,classificationdict,bestscore,cutoffs,cutoff,globalconfid
 		classification=GetRankClassification(-1,classification)
 	return classification,taxonname,rank,level,localcutoff,confidence
 
-def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,predictedclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqdict,bestmatchdict,maxseqno,outputname,classificationreportfilename):
+def Assign(refclassificationdict,cutoffs,cutoff,globalconfidence,bestmatchdict,outputname,classificationreportfilename):
 	#classificationlevel=GetLevel(classificationrank)
 	output=open(outputname,"w")
 	classificationreportfile=open(classificationreportfilename,"w")
-	output.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
+	output.write("ID\tGiven label\tPrediction\tFull classification\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\n")
 	classificationreportfile.write("ID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
 	given_labels=[]
 	assigned_labels=[]
 	unclassifiedseqids=[]
 	count=0
 	for seqid in bestmatchdict.keys():
-		proba =1
 		rank=""
-		if "proba" in bestmatchdict[seqid].keys():
-			proba=bestmatchdict[seqid]["proba"]
+		level=-1
 		predictedname= ""
 		if "predlabel" in bestmatchdict[seqid].keys():
 			predictedname=bestmatchdict[seqid]["predlabel"]
@@ -619,29 +518,12 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 		bestscore=bestmatchdict[seqid]["score"]
 		sim=bestmatchdict[seqid]["sim"]
 		coverage=bestmatchdict[seqid]["alignmentlength"]
-		if  proba >= minprobaforBlast:
-			if refid=="":
-				# look for the best match reference sequences
-				try:
-					seqrec=seqdict[seqid]
-				except KeyError:
-					pass
-				else:
-					reffilename,numberofsequences=CreateFastaFile(predictedname,classeswithsequences,maxseqno)
-					if reffilename!="":
-						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrec,reffilename,mincoverage)
-						os.system("rm " + reffilename)	
-						if newbestscore > bestscore:
-							refid=newrefid
-							bestscore=newbestscore
-							sim=newsim
-							coverage=newcoverage
-			if refid!="":
-				classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank)			
-			else:
-				classification,predictedname,rank,level,cutoff,confidence=GetAssignment(seqid,predictedclassificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank)			
-			if sys.version_info[0] < 3:
-				predictedname=unicode(predictedname,'latin1')
+		confidence=0
+		cutoff=0
+		if refid!="":
+			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank)			
+		if sys.version_info[0] < 3:
+			predictedname=unicode(predictedname,'latin1')
 		try:
 			giventaxadict=refclassificationdict[seqid]
 		except KeyError:
@@ -664,12 +546,12 @@ def Assign(classeswithsequences,refclassificationdict,queryclassificationdict,pr
 		#save all classification"
 		if args.save=="all" or args.save=="":
 			#save all including unidentified sequences in the classification file
-			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
+			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
 		elif args.save=="classified":
 			#save only the classified sequences in the classification file
 			if predictedname!="" and predictedname!="unidentified":
-				output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
+				output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 				classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
 	output.close()
 	classificationreportfile.close()
@@ -874,11 +756,11 @@ if __name__ == "__main__":
 		bestmatchdict=LoadBlastOutput(predictionfilename,mincoverage)	
 	else:
 		bestmatchdict=LoadPrediction(predictionfilename,mincoverage,args.idcolumnname)	
-	#load sequences
+	#load sequences if the fasta file of the sequences is given
 	seqrecords={}
 	if os.path.exists(fastafilename):
-		seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-	#load reference sequences:	
+		seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))	
+	#load reference sequences, in case the classification of the sequences is given in sequence headers
 	refseqrecords={}
 	if os.path.exists(referencefastafilename):
 		refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
@@ -891,23 +773,14 @@ if __name__ == "__main__":
 		refclassificationdict,refclasses,isError = LoadClassification(refseqrecords,classificationfilename,args.idcolumnname)
 		if isError==True:
 			sys.exit()
-		queryclassificationdict,queryclasses,isError = LoadClassification(seqrecords,classificationfilename,args.idcolumnname)	
-		if isError==True:
-			sys.exit()
 	else:
 		refclassificationdict,refclasses = LoadClassificationFromDescription(refseqrecords)		
-		queryclassificationdict,queryclasses = LoadClassificationFromDescription(seqrecords)
 	predictedclassificationdict={}
-	predictedclasses={}
-	if args.inputformat != "blast":
-		predictedclassificationdict,predictedclasses,isError= LoadClassification(seqrecords,predictionfilename,args.idcolumnname)
-		if isError==True:
-			sys.exit()
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)		
-	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclasses,refclassificationdict,queryclassificationdict,predictedclassificationdict,minprobaforBlast,mincoverage,cutoffs,cutoff,globalconfidence,seqrecords,bestmatchdict,maxseqno,outputname,classificationreportfilename)
+	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,cutoffs,cutoff,globalconfidence,bestmatchdict,outputname,classificationreportfilename)
 	print("Number of classified sequences: " + str(count))
 	#print("The results are saved in file  " + outputname)
 	print("The results are saved in file  " + outputname + " and " + classificationreportfilename + ".")
