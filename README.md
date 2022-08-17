@@ -280,7 +280,7 @@ The last component of dnabarcode is to classify a dataset against a reference/ba
 
 The result is saved in the file dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch
 
-- To <strong> classify </strong> the UNITE sequences based on best matches, using the following commands:
+- To <strong> classify </strong> the UNITE sequences based on best matches with BLAST, using the following commands:
 
  - Globally, based on only one similarity cut-off:
 
@@ -300,7 +300,13 @@ Here 0.994 is the global similarity cut-off for sequence identification at the s
 
 - Locally, based on the similarity cut-off predicted for the best match:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -c CBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs.best.json 
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -c CBSITS.current.classification -cutoffs [dnabarcoder/CBSITS.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS.cutoffs.json) 
+
+The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.classified. 
+
+- Or we can also use the cut-offs file to assign the sequences:
+
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -c CBSITS.current.classification -cutoffs [dnabarcoder/CBSITS.cutoffs.assign.json](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS.cutoffs.assign.json) 
 
 The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.classified. 
 
@@ -324,11 +330,11 @@ The result will be saved in dnabarcoder/UNITErelease.CBSITS_BLAST.species.classi
 
 - To verify the classifications based on phylogenic trees at the species level:
 
-../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank species
+../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank species -method tree
 
 - To verify the classifications based on cutoffs:
 
-../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank -cutoffs CBSITS.cutoffs.best.json
+../../dnabarcoder.py verify -i dnabarcoder/UNITErelease.CBSITS_BLAST.classified -c CBSITS.current.classification -r CBSITS.fasta -f UNITErelease.fasta -rank -cutoffs CBSITS.cutoffs.best.json -method cutoff
 
 ## Data
 
