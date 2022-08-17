@@ -251,6 +251,7 @@ The output is given below:
 
 <img src="https://github.com/vuthuyduong/dnabarcoder/blob/master/images/CBSITS.7.local.png" width="600" height="300">
 
+## Computing the best cut-offs 
 
 - To compute <strong> the best cutoffs </strong>:
 
@@ -260,12 +261,13 @@ Or if the classifications are given in the sequence headers:
 
 ../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json -f CBSITS_classification.fasta
 
-The best similarity cut-offs are saved in json and text format files dnabarcoder/CBSITS.cutoffs.best.json and dnabarcoder/CBSITS.cutoffs.best.txt.
+The best similarity cut-offs to classify the sequences at different taxonomic levels for the taxa given in the cut-offs file are saved in json and text format files [dnabarcoder/CBSITS.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS.cutoffs.json) and dnabarcoder/CBSITS.cutoffs.best.txt.
+The best similarity cut-offs to assign sequences to the taxa given in the classification file are saved in json and text format files [dnabarcoder/moldITS.cutoffs.assign.json](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS.cutoffs.assign.json) and dnabarcoder/CBSITS.cutoffs.assign.txt.
 
 
 - To <strong> merge </strong> two or more similarity cut-offs files, use the following commands. For a taxonomic level and group, the output file will keep the similarity cut-off having the highest confidence:
 
-../../dnabarcoder.py best -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
+../../dnabarcoder.py merge -i dnabarcoder/CBSITS.cutoffs.json,dnabarcoder/existing.cutoffs.json -o mergedcutoffs.json
 
 
 ## Classification 
