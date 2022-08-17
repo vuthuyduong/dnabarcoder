@@ -28,22 +28,22 @@ parser.add_argument('-c','--classification', default="", help='the classificatio
 parser.add_argument('-r','--reference', default="", help='the reference fasta file, in case the classification of the sequences is given in the sequence headers.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
-parser.add_argument('-cutoff','--cutoff', type=float, default=0,help='The cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
-parser.add_argument('-confidence','--confidence', type=float,default=0,help='The confidence of the cutoff to assign the sequences to predicted taxa')
+parser.add_argument('-cutoff','--globalcutoff', type=float, default=0,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
+parser.add_argument('-confidence','--globalconfidence', type=float,default=0,help='The global confidence to assign the sequences to predicted taxa')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
-parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
+parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the local cutoffs to assign the sequences to the predicted taxa.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
-parser.add_argument('-save','--save',default="all", help='The option to save all (default) or only classified sequences (-save classified) in the classification output.')
+parser.add_argument('-saveclassifiedonly','--saveclassifiedonly',default=False, help='The option to save all (False) or only classified sequences (True) in the classification output.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 
 args=parser.parse_args()
 predictionfilename=args.input
-cutoff=args.cutoff
-globalconfidence=args.confidence
+globalcutoff=args.globalcutoff
+globalconfidence=args.globalconfidence
 cutoffsfilename=args.cutoffs
 classificationfilename=args.classification
 classificationrank=args.classificationrank
@@ -195,9 +195,9 @@ def GetTaxonomicClassification(level,header,texts):
 		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
 	return classification,taxonname,rank
 
-def LoadClassification(seqrecords,classificationfilename,idcolumnname):
+def LoadClassification(classificationfilename,idcolumnname):
 	classificationdict={}
-	classes={}
+	taxonomy={}
 	classificationfile= open(classificationfilename)
 	header=next(classificationfile)
 	seqidpos=-1
@@ -211,7 +211,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 	if 	seqidpos==-1:
 		print("Please specify the sequence id columnname by using -idcolumnname or check the format of the classification file.")
 		isError=True
-		return classificationdict, classes, isError
+		return classificationdict, taxonomy, isError
 	for line in classificationfile:
 		texts=line.split("\t")
 		seqid = texts[seqidpos].rstrip()
@@ -221,24 +221,30 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			classificationdict[seqid]["classification"]=classification
 			classificationdict[seqid]["taxonname"]=taxonname
 			classificationdict[seqid]["rank"]=rank
-		if seqid in seqrecords.keys():
-			taxonnames=classification.split(";")
-			for taxonname in taxonnames:
-				if taxonname=="":
-					continue
-				taxonname=taxonname.split("__")[1].replace("_"," ")
-				if taxonname=="unidentified" or taxonname=="":
-					continue
-				if taxonname in classes.keys():
-					classes[taxonname].append(seqrecords[seqid])
-				else:
-					classes.setdefault(taxonname,[seqrecords[seqid]])		
+		taxonnames=classification.split(";")
+		ranks=["kingdom","phylum","class","order","family","genus","species"]
+		level=0
+		for taxonname in taxonnames:				
+			if taxonname=="":
+				level=level+1
+				continue
+			taxonname=taxonname.split("__")[1].replace("_"," ")
+			if taxonname=="unidentified" or taxonname=="":
+				level=level+1
+				continue
+			rank=ranks[level]
+			if not (taxonname in taxonomy.keys()):
+				taxonomy.setdefault(taxonname,{})	
+			rank=ranks[level]
+			taxonomy[taxonname]["rank"]=rank
+			taxonomy[taxonname]["classification"]=GetRankClassification(level, classification)	
+			level=level+1	
 	classificationfile.close()	
-	return classificationdict,classes,isError
+	return classificationdict,taxonomy,isError
 
 def LoadClassificationFromDescription(seqrecords):
 	classificationdict={}
-	classes={}
+	taxonomy={}
 	for seqid in seqrecords.keys():
 		description=seqrecords[seqid].description
 		species="s__unidentified"
@@ -273,26 +279,29 @@ def LoadClassificationFromDescription(seqrecords):
 		ranks=["kingdom","phylum","class","order","family","genus","species"]
 		level=0
 		rank=""
-		taxonname=""
-		for t in taxonnames:
-			t=t.split("__")[1]
-			t=t.replace("_"," ")		
-			if t=="unidentified" or t=="":
+		currenttaxonname=""
+		for taxonname in taxonnames:
+			if taxonname=="":
+				level=level+1
+				continue
+			taxonname=taxonname.split("__")[1]
+			taxonname=taxonname.replace("_"," ")		
+			if taxonname=="unidentified" or taxonname=="":
 				level=level+1
 				continue
 			rank=ranks[level]
-			taxonname=t
-			if t in classes.keys():
-				classes[t].append(seqrecords[seqid])
-			else:
-				classes.setdefault(t,[seqrecords[seqid]])
+			currenttaxonname=taxonname
+			if not (taxonname in taxonomy.keys()):
+				taxonomy.setdefault(taxonname,{})
+			taxonomy[taxonname]["rank"]=rank
+			taxonomy[taxonname]["classification"]=GetRankClassification(level, classification)
 			level=level+1		
-		if taxonname!="":
+		if currenttaxonname!="":
 			classificationdict.setdefault(seqid,{})
 			classificationdict[seqid]["classification"]=classification
-			classificationdict[seqid]["taxonname"]=taxonname
+			classificationdict[seqid]["taxonname"]=currenttaxonname
 			classificationdict[seqid]["rank"]=rank	
-	return classificationdict,classes
+	return classificationdict,taxonomy
 
 def GetLevel(rank):
 	level=-1
@@ -357,37 +366,40 @@ def GetHigherTaxa(rank,classification):
 
 def GetCutoffAndConfidence(rank,classification,cutoffs):
 	if not rank in cutoffs.keys():
-		return [0,0]
+		return [0,0,False]
 	highertaxa=GetHigherTaxa(rank,classification)
 	highertaxa.append("All") 
 	localcutoff=0
 	seqno=0
 	groupno=0
 	datasets=cutoffs[rank]
-	maxconfidence=0
+	maxconfidence=-1
 	bestcutoff=0
+	isComputed=False
 	for highertaxonname in highertaxa:
 		if not highertaxonname in datasets.keys():
 			continue
 		if "cut-off" in datasets[highertaxonname].keys():
 			localcutoff=datasets[highertaxonname]["cut-off"]
-		else:
-			continue
-		confidence=1	
+			isComputed=True
+		confidence=0	
 		if "confidence" in datasets[highertaxonname].keys():
 			confidence=datasets[highertaxonname]["confidence"]
+		seqno=0
 		if "sequence number" in datasets[highertaxonname].keys():
 			seqno=datasets[highertaxonname]["sequence number"]	
+		groupno=0	
 		if "group number" in datasets[highertaxonname].keys():
 			groupno=datasets[highertaxonname]["group number"]	
 		if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
 			if maxconfidence < confidence:
 				maxconfidence =confidence
 				bestcutoff=localcutoff
+			if isComputed==True:	
 				break
-	return [bestcutoff,maxconfidence]
+	return [bestcutoff,maxconfidence,isComputed]
 
-def GetCutoffs(classification,cutoffs):
+def GetCutoffs(classification,taxonomy):
 	species="unindentified"
 	genus="unindentified"
 	family="unindentified"
@@ -413,62 +425,83 @@ def GetCutoffs(classification,cutoffs):
 		if text.startswith("k__"):
 			kingdom=text.replace("k__","")	
 	taxacutoffs={}		
-	taxacutoffs["species"]=GetCutoffAndConfidence("species",classification,cutoffs)
-	taxacutoffs["genus"]=GetCutoffAndConfidence("genus",classification,cutoffs)
-	taxacutoffs["family"]=GetCutoffAndConfidence("family",classification,cutoffs)
-	taxacutoffs["order"]=GetCutoffAndConfidence("order",classification,cutoffs)
-	taxacutoffs["class"]=GetCutoffAndConfidence("class",classification,cutoffs)
-	taxacutoffs["phylum"]=GetCutoffAndConfidence("phylum",classification,cutoffs)
-	taxacutoffs["kingdom"]=GetCutoffAndConfidence("kingdom",classification,cutoffs)
+	try:
+		taxacutoffs["species"]=[taxonomy[species]["cut-off"],taxonomy[species]["confidence"],True]
+	except KeyError:
+		taxacutoffs["species"]=[0,0,False]	
+	try:
+		taxacutoffs["genus"]=[taxonomy[genus]["cut-off"],taxonomy[genus]["confidence"],True]
+	except KeyError:
+		taxacutoffs["genus"]=[0,0,False]		
+	try:
+		taxacutoffs["family"]=[taxonomy[family]["cut-off"],taxonomy[family]["confidence"],True]
+	except KeyError:
+		taxacutoffs["family"]=[0,0,False]
+	try:
+		taxacutoffs["order"]=[taxonomy[order]["cut-off"],taxonomy[order]["confidence"],True]
+	except KeyError:
+		taxacutoffs["order"]=[0,0,False]	
+	try:
+		taxacutoffs["class"]=[taxonomy[bioclass]["cut-off"],taxonomy[bioclass]["confidence"],True]
+	except KeyError:
+		taxacutoffs["class"]=[0,0,False]		
+	try:	
+		taxacutoffs["phylum"]=[taxonomy[phylum]["cut-off"],taxonomy[phylum]["confidence"],True]
+	except KeyError:
+		taxacutoffs["phylum"]=[0,0,False]	
+	try:	
+		taxacutoffs["kingdom"]=[taxonomy[kingdom]["cut-off"],taxonomy[kingdom]["confidence"],True]
+	except KeyError:
+		taxacutoffs["kingdom"]=[0,0,False]		
 	return taxacutoffs,kingdom,phylum,bioclass,order,family,genus,species
 
-def GetAssignment(refid,classificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank):
-	confidence=globalconfidence
+def GetAssignment(refid,classificationdict,bestscore,taxonomy,classificationrank):
+	confidence=-1
+	localcutoff=-1
 	rank=classificationrank
-	localcutoff=cutoff
 	taxonname=""
 	level=-1
 	classification=""
-	if cutoffs!={} and refid!="" and (refid in classificationdict.keys()):
+	if refid in classificationdict.keys():		
 		refclassification=classificationdict[refid]['classification']
-		taxacutoffs,kingdom,phylum,bioclass,order,family,genus,species=GetCutoffs(refclassification,cutoffs)
-		if bestscore >=taxacutoffs["species"][0] and taxacutoffs["species"][0] >0 and species!="unidentified" and (classificationrank=="species" or classificationrank== ""):
+		taxacutoffs,kingdom,phylum,bioclass,order,family,genus,species=GetCutoffs(refclassification,taxonomy)
+		if bestscore >=taxacutoffs["species"][0] and taxacutoffs["species"][2]==True and species!="unidentified" and (classificationrank=="species" or classificationrank== ""):
 			rank="species"
 			localcutoff=taxacutoffs["species"][0]
 			confidence=taxacutoffs["species"][1]
 			taxonname=species		
 			level=6
-		elif bestscore >=taxacutoffs["genus"][0] and taxacutoffs["genus"][0]>0 and genus!="unidentified" and (classificationrank=="genus" or classificationrank== ""):
+		elif bestscore >=taxacutoffs["genus"][0] and taxacutoffs["genus"][2]==True and genus!="unidentified" and (classificationrank=="genus" or classificationrank== ""):
 			rank="genus"
 			localcutoff=taxacutoffs["genus"][0]
 			confidence=taxacutoffs["genus"][1]
 			taxonname=genus
 			level=5
-		elif bestscore >=taxacutoffs["family"][0] and taxacutoffs["family"][0] >0 and family!="unidentified" and (classificationrank=="family" or classificationrank== ""):
+		elif bestscore >=taxacutoffs["family"][0] and taxacutoffs["family"][2]==True and family!="unidentified" and (classificationrank=="family" or classificationrank== ""):
 			rank="family"
 			localcutoff=taxacutoffs["family"][0]
 			confidence=taxacutoffs["family"][1]
 			taxonname=family	
 			level=4
-		elif bestscore >=taxacutoffs["order"][0] and taxacutoffs["order"][0] >0 and order!="unidentified" and (classificationrank=="order" or classificationrank== ""):
+		elif bestscore >=taxacutoffs["order"][0] and taxacutoffs["order"][2]==True and order!="unidentified" and (classificationrank=="order" or classificationrank== ""):
 			rank="order"
 			localcutoff=taxacutoffs["order"][0]
 			confidence=taxacutoffs["order"][1]
 			taxonname=order
 			level=3
-		elif bestscore >=taxacutoffs["class"][0] and taxacutoffs["class"][0] >0 and bioclass!="unidentified" and (classificationrank=="class" or classificationrank== ""):
+		elif bestscore >=taxacutoffs["class"][0] and taxacutoffs["class"][2]==True and bioclass!="unidentified" and (classificationrank=="class" or classificationrank== ""):
 			rank="class"
 			localcutoff=taxacutoffs["class"][0]
 			confidence=taxacutoffs["class"][1]
 			taxonname=bioclass
 			level=2
-		elif bestscore >=taxacutoffs["phylum"][0] and taxacutoffs["phylum"][0]>0 and phylum!="unidentified" and (classificationrank=="phylum" or classificationrank== ""):
+		elif bestscore >=taxacutoffs["phylum"][0] and taxacutoffs["phylum"][2]==True and phylum!="unidentified" and (classificationrank=="phylum" or classificationrank== ""):
 			rank="phylum"
 			localcutoff=taxacutoffs["phylum"][0]
 			confidence=taxacutoffs["phylum"][1]
 			taxonname=phylum
 			level=1
-		elif bestscore >=taxacutoffs["kingdom"][0] and taxacutoffs["kingdom"][0]>0 and kingdom!="unidentified" and (classificationrank=="kingdom" or classificationrank== ""):
+		elif bestscore >=taxacutoffs["kingdom"][0] and taxacutoffs["kingdom"][2]==True and kingdom!="unidentified" and (classificationrank=="kingdom" or classificationrank== ""):
 			rank="kingdom"
 			localcutoff=taxacutoffs["kingdom"][0]
 			confidence=taxacutoffs["kingdom"][1]
@@ -476,23 +509,11 @@ def GetAssignment(refid,classificationdict,bestscore,cutoffs,cutoff,globalconfid
 			level=0	
 		level=GetLevel(rank)
 		classification=GetRankClassification(level,refclassification)
-	elif refid!="" and (refid in classificationdict.keys()):
-		refclassification=classificationdict[refid]['classification']
-		if bestscore >=cutoff:
-			if classificationrank=="":
-				taxonname=classificationdict[refid]['taxonname']
-				rank=classificationdict[refid]['rank']
-				level=GetLevel(rank)	
-			else:	
-				level=GetLevel(classificationrank)	
-				rank=classificationrank
-				taxonname=(refclassification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")).split(";")[level]
-		classification=GetRankClassification(level,refclassification)
 	else:
 		classification=GetRankClassification(-1,classification)
 	return classification,taxonname,rank,level,localcutoff,confidence
 
-def Assign(refclassificationdict,cutoffs,cutoff,globalconfidence,bestmatchdict,outputname,classificationreportfilename):
+def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename):
 	#classificationlevel=GetLevel(classificationrank)
 	output=open(outputname,"w")
 	classificationreportfile=open(classificationreportfilename,"w")
@@ -521,7 +542,7 @@ def Assign(refclassificationdict,cutoffs,cutoff,globalconfidence,bestmatchdict,o
 		confidence=0
 		cutoff=0
 		if refid!="":
-			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,cutoffs,cutoff,globalconfidence,classificationrank)			
+			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,taxonomy,classificationrank)			
 		if sys.version_info[0] < 3:
 			predictedname=unicode(predictedname,'latin1')
 		try:
@@ -544,11 +565,11 @@ def Assign(refclassificationdict,cutoffs,cutoff,globalconfidence,bestmatchdict,o
 			rank=""
 		cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		#save all classification"
-		if args.save=="all" or args.save=="":
+		if args.saveclassifiedonly==False:
 			#save all including unidentified sequences in the classification file
 			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
-		elif args.save=="classified":
+		else:
 			#save only the classified sequences in the classification file
 			if predictedname!="" and predictedname!="unidentified":
 				output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
@@ -695,8 +716,6 @@ def LoadClassificationForKronaReport(classificationfilename):
 	classificationfile= open(classificationfilename)
 	next(classificationfile)
 	for line in classificationfile:
-		if line.startswith("#"):
-			continue 
 		texts=line.split("\t")
 		classification=texts[3]
 		classification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","")
@@ -717,12 +736,25 @@ def LoadClassificationForKronaReport(classificationfilename):
 	classificationfile.close()	
 	return classificationdict
 
-def mergeDict(dict1,dict2):
-	dict1.update(dict2)
-	for key, value in dict1.items():
-		if key in dict1 and key in dict2:
-			dict1[key] = value + dict2[key]
-	return dict1
+def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs):
+	for taxonname in taxonomy.keys():
+		if cutoffs!={}:
+			classification=taxonomy[taxonname]["classification"]
+			rank=taxonomy[taxonname]["rank"]
+			if taxonname in cutoffs.keys():
+				taxonomy[taxonname]["cut-off"]=cutoffs[taxonname]["cut-off"]
+				taxonomy[taxonname]["confidence"]=cutoffs[taxonname]["confidence"]
+			else:	
+				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
+				if cutoff_confidence[2]==True:
+					taxonomy[taxonname]["cut-off"]=cutoff_confidence[0]
+					taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
+			if not ("cut-off" in taxonomy[taxonname].keys()) and globalcutoff >=0: #use the globalcutoff
+				taxonomy[taxonname]["cut-off"]=globalcutoff
+				taxonomy[taxonname]["confidence"]=globalconfidence
+		else:
+			taxonomy[taxonname]["cut-off"]=globalcutoff
+			taxonomy[taxonname]["confidence"]=globalconfidence
 
 def KronaPieCharts(classification,kronareport,kronahtml):
 	kronareportfile=open(kronareport,"w")
@@ -741,8 +773,8 @@ if __name__ == "__main__":
 		prefix=GetBase(predictionfilename)
 		if "/" in prefix:
 			prefix=prefix[prefix.rindex("/")+1:]	
-		if cutoff >0:
-			prefix =prefix + "." + str(cutoff)
+		if globalcutoff >0 and cutoffsfilename=="":
+			prefix =prefix + "." + str(globalcutoff)
 	outputname=GetWorkingBase(prefix) + ".classified"
 	if classificationrank!="":
 		outputname=GetWorkingBase(prefix) + "." + classificationrank + ".classified"
@@ -756,36 +788,35 @@ if __name__ == "__main__":
 		bestmatchdict=LoadBlastOutput(predictionfilename,mincoverage)	
 	else:
 		bestmatchdict=LoadPrediction(predictionfilename,mincoverage,args.idcolumnname)	
-	#load sequences if the fasta file of the sequences is given
-	seqrecords={}
-	if os.path.exists(fastafilename):
-		seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))	
-	#load reference sequences, in case the classification of the sequences is given in sequence headers
-	refseqrecords={}
-	if os.path.exists(referencefastafilename):
-		refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
 	refclassificationdict={}
-	refclasses	={}
-	queryclassificationdict={}
-	queryclasses={}
 	#load classification for the sequences
 	if classificationfilename!="":
-		refclassificationdict,refclasses,isError = LoadClassification(refseqrecords,classificationfilename,args.idcolumnname)
+		refclassificationdict,taxonomy,isError = LoadClassification(classificationfilename,args.idcolumnname)
 		if isError==True:
 			sys.exit()
 	else:
-		refclassificationdict,refclasses = LoadClassificationFromDescription(refseqrecords)		
+		#load reference sequences, in case the classification of the sequences is given in sequence headers
+		refseqrecords={}
+		if os.path.exists(referencefastafilename):
+			refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
+		refclassificationdict,taxonomy = LoadClassificationFromDescription(refseqrecords)
 	predictedclassificationdict={}
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
-			cutoffs = json.load(cutoffsfile)		
-	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,cutoffs,cutoff,globalconfidence,bestmatchdict,outputname,classificationreportfilename)
+			cutoffs = json.load(cutoffsfile)	
+	#add cutoffs to taxa for sequence identification		
+	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)	
+	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename)
 	print("Number of classified sequences: " + str(count))
 	#print("The results are saved in file  " + outputname)
 	print("The results are saved in file  " + outputname + " and " + classificationreportfilename + ".")
 	unclassifiedseqrecords=[]
 	if len(unclassifiedseqids) > 0:
+		#load sequences if the fasta file of the sequences is given, to save unidentified sequences
+		seqrecords={}
+		if os.path.exists(fastafilename):
+			seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))	
 		for seqid in unclassifiedseqids:
 			if seqid in seqrecords.keys():
 				unclassifiedseqrecords.append(seqrecords[seqid])
@@ -793,12 +824,6 @@ if __name__ == "__main__":
 		if len(unclassifiedseqrecords)>0:
 			SeqIO.write(unclassifiedseqrecords, unclassifiedfastafilename, "fasta")	
 			print("The unclassified sequences are saved in the file " +   unclassifiedfastafilename + ".")
-	
-#	if len(given_labels) >0:
-#		reportname=GetBase(outputname) + ".report"
-#		reftaxa=LoadTaxa(classificationfilename)
-#		CalculateClassificationMetrics(given_labels,pred_labels,reftaxa,reportname)
-	#Compute classification metrices
 	#making krona report
 	if count > 0:
 		kronareport = GetBase(outputname) + ".krona.report"

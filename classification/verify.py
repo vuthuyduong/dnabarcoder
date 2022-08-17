@@ -43,13 +43,14 @@ parser.add_argument('-savefig','--savefig', default="no", help='save the figures
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
-parser.add_argument('-cutoff','--cutoff', type=float, default=0,help='The cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
-parser.add_argument('-confidence','--confidence', type=float,default=0,help='The confidence of the cutoff to assign the sequences to predicted taxa')
+parser.add_argument('-cutoff','--globalcutoff', type=float, default=0,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
+parser.add_argument('-confidence','--globalconfidence', type=float,default=0,help='The global confidence to assign the sequences to predicted taxa')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-minproba','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
+parser.add_argument('-saveverifiedonly','--saveverifiedonly',default=False, help='The option to save all (False) or only verified sequences (True) in the classification output.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -62,8 +63,8 @@ prefix=args.prefix
 verifyingrank=args.classificationrank
 minproba=args.minproba
 method=args.method
-cutoff=args.cutoff
-confidence=args.confidence
+globalcutoff=args.globalcutoff
+globalconfidence=args.globalconfidence
 cutoffsfilename=args.cutoffs
 redo=args.redo
 outputpath=args.out
@@ -207,19 +208,25 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 				classificationdict[seqid]["rank"]=rank	
 			if seqid in seqrecords.keys():
 				taxonnames=classification.split(";")
+				ranks=["kingdom","phylum","class","order","family","genus","species"]
+				level=0
 				for taxonname in taxonnames:
 					if taxonname=="":
+						level=level+1
 						continue
-					taxonname=taxonname.split("__")[1].replace("_"," ")
+					taxonname=taxonname.split("__")[1]
+					taxonname=taxonname.replace("_"," ")
 					if taxonname=="unidentified" or taxonname=="":
+						level=level+1
 						continue
+					rank=ranks[level]
 					if not taxonname in classes.keys():
 						classes.setdefault(taxonname,{})
 						taxonomy.setdefault(taxonname,{})
 					classes[taxonname][seqid]=seqrecords[seqid]
 					taxonomy[taxonname]["rank"]=rank
-					level=GetLevel(rank)
 					taxonomy[taxonname]["classification"]=GetRankClassification(level, classification)
+					level=level+1
 		classificationfile.close()	
 	else:
 		for seqid in seqrecords.keys():
@@ -255,9 +262,11 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			taxonnames=[kingdom,phylum,bioclass,order,family,genus,species]
 			ranks=["kingdom","phylum","class","order","family","genus","species"]
 			level=0
-			rank=""
 			currenttaxonname=""
 			for taxonname in taxonnames:
+				if taxonname=="":
+					level=level+1
+					continue
 				taxonname=taxonname.split("__")[1]
 				taxonname=taxonname.replace("_"," ")		
 				if taxonname=="unidentified" or taxonname=="":
@@ -396,7 +405,7 @@ def LoadPrediction(predictionfilename,idcolumnname):
 		cutoff=0
 		if p_cutoff>0 and p_cutoff<len(texts):
 			cutoff=texts[p_cutoff]
-		predictiondict[seqid]["cutoff"]=cutoff
+		predictiondict[seqid]["cut-off"]=cutoff
 		confidence=0
 		if p_confidence>0 and p_confidence<len(texts):
 			confidence=texts[p_confidence]
@@ -626,7 +635,7 @@ def GetHigherTaxa(rank,classification):
 
 def GetCutoffAndConfidence(rank,classification,cutoffs):
 	if not rank in cutoffs.keys():
-		return [0,0]
+		return [0,0,False]
 	#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","")
 	#taxa=cleanclassification.split(";")
 	#taxa.append("All") 
@@ -636,28 +645,31 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 	seqno=0
 	groupno=0
 	datasets=cutoffs[rank]
-	maxconfidence=0
+	maxconfidence=-1
 	bestcutoff=0
+	isComputed=False
 	for highertaxonname in highertaxa:
 		if not highertaxonname in datasets.keys():
 			continue
 		if "cut-off" in datasets[highertaxonname].keys():
 			localcutoff=datasets[highertaxonname]["cut-off"]
-		else:
-			continue
-		confidence=1	
+			isComputed=True
+		confidence=0	
 		if "confidence" in datasets[highertaxonname].keys():
 			confidence=datasets[highertaxonname]["confidence"]
+		seqno=0
 		if "sequence number" in datasets[highertaxonname].keys():
 			seqno=datasets[highertaxonname]["sequence number"]	
+		groupno=0
 		if "group number" in datasets[highertaxonname].keys():
 			groupno=datasets[highertaxonname]["group number"]	
 		if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
 			if maxconfidence < confidence:
 				maxconfidence =confidence
 				bestcutoff=localcutoff
+			if isComputed==True:	
 				break
-	return [bestcutoff,maxconfidence]
+	return [bestcutoff,maxconfidence,isComputed]
 
 def GetRank(taxonname,classification):
 	rank=""
@@ -721,27 +733,20 @@ def AddCutoffsToTaxonomy(taxonomy,cutoff,confidence,cutoffs):
 		if cutoffs!={}:
 			classification=taxonomy[taxonname]["classification"]
 			rank=taxonomy[taxonname]["rank"]
-			cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
-			taxonomy[taxonname]["cutoff"]=cutoff_confidence[0]
-			taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
+			if taxonname in cutoffs.keys():
+				taxonomy[taxonname]["cut-off"]=cutoffs[taxonname]["cut-off"]
+				taxonomy[taxonname]["confidence"]=cutoffs[taxonname]["confidence"]
+			else:	
+				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
+				if cutoff_confidence[2]==True:
+					taxonomy[taxonname]["cut-off"]=cutoff_confidence[0]
+					taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
+			if not ("cut-off" in taxonomy[taxonname].keys()) and globalcutoff >=0: #use the globalcutoff
+				taxonomy[taxonname]["cut-off"]=globalcutoff
+				taxonomy[taxonname]["confidence"]=globalconfidence
 		else:
-			taxonomy[taxonname]["cutoff"]=cutoff
+			taxonomy[taxonname]["cut-off"]=cutoff
 			taxonomy[taxonname]["confidence"]=confidence
-		
-# def GetCutoff(taxonname,refid,classificationdict,cutoff,cutoffs):
-# 	taxon_cutoff=0
-# 	taxon_confidence=0
-# 	taxon_classification=GetRankClassification(-1,"")
-# 	if cutoffs=={}:
-# 		taxon_cutoff=cutoff
-# 	elif refid in classificationdict.keys():
-# 		classification=classificationdict[refid]['classification']
-# 		rank,level=GetRank(taxonname,classification)
-# 		cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)	
-# 		taxon_cutoff=cutoff_confidence[0]
-# 		taxon_confidence=cutoff_confidence[1]
-# 		taxon_classification=GetRankClassification(level,classification)
-# 	return taxon_cutoff,taxon_confidence,taxon_classification
 
 def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
 	#Create fasta file of the test record 
@@ -828,7 +833,7 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 							score=newbestscore
 							sim=newsim
 							coverage=newcoverage
-				predicted_cutoff=taxonomy[predictedname]["cutoff"]
+				predicted_cutoff=taxonomy[predictedname]["cut-off"]
 				predicted_confidence=taxonomy[predictedname]["confidence"]
 				predicted_classification=taxonomy[predictedname]["classification"]
 				if 	score >= predicted_cutoff:
@@ -841,7 +846,7 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 					predictiondict[seqid]["sim"]=sim
 					predictiondict[seqid]["score"]=score
 					predictiondict[seqid]["coverage"]=coverage
-					predictiondict[seqid]["cutoff"]=predicted_cutoff
+					predictiondict[seqid]["cut-off"]=predicted_cutoff
 					predictiondict[seqid]["confidence"]=predicted_confidence
 	return count,total
 	
@@ -903,7 +908,7 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		classification=prediction["classification"]
 		rank=prediction["rank"]
 		bestscore=prediction["score"]
-		cutoff=prediction["cutoff"]
+		cutoff=prediction["cut-off"]
 		confidence=prediction["confidence"]
 		proba=prediction["proba"]
 		refid=prediction["refid"]
@@ -914,26 +919,25 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		branchlength=prediction["branchlength"]
 		maxbranchlength=prediction["maxbranchlength"]
 		averagebranchlength=prediction["averagebranchlength"]
-		if verifiedlabel!="" and verifiedlabel!="unidentified":			
-			outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
-			cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
-			if refid==seqid:
-				refid=""
-			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
-		elif verifyingrank!="" and verifyingrank==rank:
+		if args.saveverifiedonly==False:
+			outputfile.write(seqid + "\t" + givenlabel + "\t"  + verifiedlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
+			cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
+		else:
+			if verifiedlabel!="" and verifiedlabel!="unidentified":			
+				outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
+				cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
+		#save un verified sequences
+		if (verifiedlabel=="" or verifiedlabel=="unidentified") and ((verifyingrank!="" and verifyingrank==rank) or verifyingrank==""):
 			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
-	classificationreportfile.close()
+		classificationreportfile.close()
 	outputfile.close()	
 	notverifiedoutputfile.close()	
 		
-
 def LoadClassificationForKronaReport(classificationfilename):
 	classificationdict={}
 	classificationfile= open(classificationfilename)
 	next(classificationfile)
 	for line in classificationfile:
-		if line.startswith("#"):
-			continue 
 		texts=line.split("\t")
 		classification=texts[3]
 		classification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","")
@@ -971,13 +975,13 @@ if __name__ == "__main__":
 		if "/" in prefix:
 			prefix=prefix[prefix.rindex("/")+1:]	
 	outputname=GetWorkingBase(prefix) + ".verified"
-	notverifiedoutputname=GetWorkingBase(prefix) + ".notverified"
+	notverifiedoutputname=GetWorkingBase(prefix) + ".unverified"
 	classificationreportfilename=GetWorkingBase(prefix) + ".verified.classification"
 	if outputname==predictionfilename:
 		outputname=outputname+".verified"
 	if verifyingrank!="":
 		outputname=GetWorkingBase(prefix) + "." + verifyingrank + ".verified"
-		notverifiedoutputname=GetWorkingBase(prefix) + "." + verifyingrank + ".notverified"
+		notverifiedoutputname=GetWorkingBase(prefix) + "." + verifyingrank + ".unverified"
 		classificationreportfilename=GetWorkingBase(prefix) + "." + verifyingrank + ".verified.classification"
 #	if outputname==predictionfilename:
 #		outputname=outputname+".verified"
@@ -1012,7 +1016,8 @@ if __name__ == "__main__":
 		if cutoffsfilename!="" and cutoffsfilename!=None:
 			with open(cutoffsfilename) as cutoffsfile:
 				cutoffs = json.load(cutoffsfile)
-		AddCutoffsToTaxonomy(taxonomy,cutoff,confidence,cutoffs)		
+		#add cutoffs to taxa for sequence identification		
+		AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)		
 		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy)
 		if total >0:
 			print("Number of classified sequences: " + str(total))
