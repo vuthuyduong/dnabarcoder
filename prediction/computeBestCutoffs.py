@@ -165,7 +165,7 @@ def GetTaxonomicClassification(level,header,texts):
 	if level <1 and species!="unidentified":
 		taxonname=species
 		rank="species"
-		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
+		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species.replace(" ","_") 	
 	return classification,taxonname,rank
 
 def LoadClassification(classificationfilename):
@@ -187,6 +187,7 @@ def LoadClassification(classificationfilename):
 			else:	
 				newclassification=newclassification + ";"+ taxonname 
 			taxonname=taxonname.split("__")[1]
+			taxonname=taxonname.replace("_"," ")
 			if taxonname=="unidentified" or taxonname=="":
 				level=level+1
 				continue
@@ -239,7 +240,7 @@ def LoadClassificationFromDescription(fastafilename):
 				elif taxon.startswith("g__"):
 					genus=taxon
 				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
-					species=taxon
+					species=taxon.replace(" ","_")
 				
 		taxonnames=[kingdom,phylum,bioclass,order,family,genus,species]
 		ranks=["kingdom","phylum","class","order","family","genus","species"]
@@ -332,21 +333,25 @@ def GetHigherTaxa(rank,classification):
 	return highertaxa
 
 def GetCutoffAndConfidence(rank,classification,cutoffs):
+	if not (rank in cutoffs.keys()):
+		return 0,0,"",0,False
+	datasets=cutoffs[rank]
 	highertaxa=GetHigherTaxa(rank,classification)
 	highertaxa.append("All") 
 	#seqno=0
 	#groupno=0
-	datasets=cutoffs[rank]
-	maxconfidence=0
+	maxconfidence=-1
 	bestcutoff=0
 	bestminalignmentlength=0
 	besttaxon=""
+	isComputed=False
 	for highertaxonname in highertaxa:
 		if not highertaxonname in datasets.keys():
 			continue
 		cutoff=0
 		if "cut-off" in datasets[highertaxonname].keys():
 			cutoff=datasets[highertaxonname]["cut-off"]
+			isComputed=True
 		confidence=0
 		if "confidence" in datasets[highertaxonname].keys():
 			confidence=datasets[highertaxonname]["confidence"]
@@ -364,8 +369,19 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 			bestcutoff=cutoff
 			bestminalignmentlength=minalignmentlength
 			besttaxon=highertaxonname	
-	return bestcutoff,maxconfidence,besttaxon,bestminalignmentlength
+	return bestcutoff,maxconfidence,besttaxon,bestminalignmentlength,isComputed
 
+def AddCutoffsToTaxonomy(taxonomy,cutoffs):
+	for taxonname in taxonomy.keys():
+		if cutoffs!={}:
+			classification=taxonomy[taxonname]["classification"]
+			rank=taxonomy[taxonname]["rank"]
+			bestcutoff,maxconfidence,besttaxon,bestminalignmentlength,isComputed=GetCutoffAndConfidence(rank,classification,cutoffs)
+			if isComputed==True:
+				taxonomy[taxonname]["cut-off"]=bestcutoff
+				taxonomy[taxonname]["confidence"]=maxconfidence
+				taxonomy[taxonname]["minalignmentlength"]=bestminalignmentlength
+			
 def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
 	count=0
 	total=0
@@ -392,7 +408,7 @@ def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutput
 				total=total +1	
 			if datasetname in classificationdict.keys():
 				classification=classificationdict[datasetname]["classification"]
-				bestcutoff,maxconfidence,besttaxon,bestminalignmentlength=GetCutoffAndConfidence(rank,classification,cutoffs)					
+				bestcutoff,maxconfidence,besttaxon,bestminalignmentlength,isComputed=GetCutoffAndConfidence(rank,classification,cutoffs)					
 			dataset["cut-off"]=bestcutoff
 			dataset["confidence"]=maxconfidence
 			dataset["dataset with max confidence"]=besttaxon
@@ -427,6 +443,7 @@ def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutput
 			minalignmentlength=dataset["min alignment length"]
 			originalcutoff=dataset["original cut-off"]
 			originalconfidence=dataset["original confidence"]
+			originalminalignmentlength=""
 			originalminalignmentlength=dataset["original min alignment length"]
 			highertaxon=dataset["dataset with max confidence"]
 			SeqNo=dataset["sequence number"]
@@ -480,11 +497,12 @@ def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,prob
 				total=total +1	
 			if datasetname in classificationdict.keys():
 				classification=classificationdict[datasetname]["classification"]
-				bestcutoff,maxconfidence,besttaxon,bestminalignmentlength=GetCutoffAndConfidence(rank,classification,cutoffs)					
-			dataset["best cut-off"]=bestcutoff
-			dataset["max confidence"]=maxconfidence
-			dataset["dataset with max confidence"]=besttaxon
-			dataset["best min alignment length"]=bestminalignmentlength
+				bestcutoff,maxconfidence,besttaxon,bestminalignmentlength,isComputed=GetCutoffAndConfidence(rank,classification,cutoffs)	
+			if isComputed==True:	
+				dataset["best cut-off"]=bestcutoff
+				dataset["max confidence"]=maxconfidence
+				dataset["dataset with max confidence"]=besttaxon
+				dataset["best min alignment length"]=bestminalignmentlength
 	#save in json			
 	with open(jsonoutputname,"w") as json_file:
 		if sys.version_info[0] >= 3:
@@ -545,12 +563,133 @@ def SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,prob
 	problematicfile.close()
 	problematicfile1.close()
 	return count,total,count1,total1,globaltotal,globalcount
-			
+
+def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa):
+	#save as tab. format
+	textfile=open(txtoutputname_taxa,"w")	
+	textfile.write("Rank\tTaxa\tcut-off\tconfidence\tmin alignment length\tClassification\n")
+	species=[]
+	genera=[]
+	families=[]
+	orders=[]
+	classes=[]
+	phyla=[]
+	kingdoms=[]
+	for taxon in classificationdict.keys():
+		rank=classificationdict[taxon]["rank"]
+		if rank=="species":
+			species.append(taxon)
+		elif rank=="genus":
+			genera.append(taxon)
+		elif rank=="family":
+			families.append(taxon)	
+		elif rank=="order":
+			orders.append(taxon)	
+		elif rank=="class":
+			classes.append(taxon)	
+		elif rank=="phylum":
+			phyla.append(taxon)	
+		elif rank=="kingdom":
+			kingdoms.append(taxon)
+	species=list(set(species))
+	species.sort()	
+	genera=list(set(genera))
+	genera.sort()
+	families=list(set(families))
+	families.sort()
+	orders=list(set(orders))
+	orders.sort()
+	classes=list(set(classes))
+	classes.sort()
+	phyla=list(set(phyla))
+	phyla.sort()
+	kingdoms=list(set(kingdoms))
+	kingdoms.sort()
+	newclassificationdict={}
+	for taxon in species:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])
+	for taxon in genera:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])	
+	for taxon in families:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])	
+	for taxon in orders:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])	
+	for taxon in classes:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])	
+	for taxon in phyla:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])	
+	for taxon in kingdoms:
+		if not ("cut-off" in classificationdict[taxon].keys()):
+			continue
+		rank=classificationdict[taxon]["rank"]
+		cutoff=classificationdict[taxon]["cut-off"]
+		confidence=classificationdict[taxon]["confidence"]
+		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
+		classification=classificationdict[taxon]["classification"]
+		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
+		newclassificationdict.setdefault(taxon,classificationdict[taxon])	
+	textfile.close()		
+	#save in json			
+	with open(jsonoutputname_taxa,"w") as json_file:
+		if sys.version_info[0] >= 3:
+			json.dump(newclassificationdict,json_file,indent=2)
+		else:
+			json.dump(newclassificationdict,json_file,encoding='latin1',indent=2)
 if __name__ == "__main__":
 	if prefix=="" or prefix==None:
 		prefix=GetBase(os.path.basename(cutoffsfilename))
-	jsonoutputname=GetWorkingBase(prefix) + ".best.json"		
-	txtoutputname=GetWorkingBase(prefix) + ".best.txt"	
+	jsonoutputname_rank=GetWorkingBase(prefix) + ".best.json"		
+	txtoutputname_rank=GetWorkingBase(prefix) + ".best.txt"	
+	jsonoutputname_taxa=GetWorkingBase(prefix) + ".assign.json"		
+	txtoutputname_taxa=GetWorkingBase(prefix) + ".assign.txt"
 	problematicoutputname=GetWorkingBase(prefix) + ".lowerconfidence.txt"
 	problematicoutputname1=GetWorkingBase(prefix) + ".lowerconfidence.immediatehigherlevel.txt"	
 	cutoffs={}
@@ -566,16 +705,24 @@ if __name__ == "__main__":
 		print("Please give provide a tab-delimited formated file containing taxonomic classification using -c or a FASTA file with sequence description containing taxonomic classification using -f.")
 		sys.exit()
 	if args.savebestcutoffsascutoffs=="yes":
-		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1)
+		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname_rank,txtoutputname_rank,problematicoutputname,problematicoutputname1)
 	else:
-		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1)
-	if globaltotal >0:
-		print("The best similarity cut-offs are saved in json and text format files " + jsonoutputname + " and " + txtoutputname + ".")
-	print("The number of taxa having higher or equal prediction confidence than the global confidence: " + str(globalcount) + "/" + str(globaltotal) + " (" + str(round(globalcount*100/globaltotal,2)) +"%).")
-	print("The number of taxa having the best cutoff: " + str(total-count) + "/" + str(total) + " (" + str(round((total-count)*100/total,2)) +"%).")
-	print("The number of immedidate taxa having the best cutoff: " + str(total1-count1) + "/" + str(total1) + " (" + str(round((total1-count1)*100/total1,2)) +"%).")
-	print("The local cut-offs for each taxon name at different taxonomic level are saved in file " + jsonoutputname + " and " + txtoutputname + ".")
-	print("The taxa having lower prediction confidence and different cut-off than their higher taxa are saved in file " + problematicoutputname + ".")
-	print("The immediate taxa having lower prediction confidence and different cut-off than their higher taxa are saved in file " + problematicoutputname1 + ".")
+		count,total,count1,total1,globaltotal,globalcount=SaveBestCutoffs(cutoffs,classificationdict,jsonoutputname_rank,txtoutputname_rank,problematicoutputname,problematicoutputname1)
+	if globaltotal >0:	
+		print("The number of taxa having higher or equal prediction confidence than the global confidence: " + str(globalcount) + "/" + str(globaltotal) + " (" + str(round(globalcount*100/globaltotal,2)) +"%).")
+	if total >0:
+		print("The number of taxa having the best cutoff: " + str(total-count) + "/" + str(total) + " (" + str(round((total-count)*100/total,2)) +"%).")
+	if total1 >0:	
+		print("The number of immedidate taxa having the best cutoff: " + str(total1-count1) + "/" + str(total1) + " (" + str(round((total1-count1)*100/total1,2)) +"%).")
+	if count >0:
+		print("The taxa having lower prediction confidence and different cut-off than their higher taxa are saved in file " + problematicoutputname + ".")
+	if count1 >0:	
+		print("The immediate taxa having lower prediction confidence and different cut-off than their higher taxa are saved in file " + problematicoutputname1 + ".")
+	print("The best similarity cut-offs to classify the sequences at different taxonomic levels for the taxa given in the cut-offs file are saved in json and text format files " + jsonoutputname_rank + " and " + txtoutputname_rank + ".")
+	#Add cutoffs and confidence measures to classificationdict
+	AddCutoffsToTaxonomy(classificationdict, cutoffs)	
+	if classificationdict!={}:
+		SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa)
+		print("The best similarity cut-offs to assign sequences to the taxa given in the classification file are saved in json and text format files " + jsonoutputname_taxa + " and " + txtoutputname_taxa + ".")
 		
 	
