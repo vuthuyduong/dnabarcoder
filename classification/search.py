@@ -86,21 +86,28 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 	bestrefidlist = [""] * len(queryrecords)
 
 	#blast
-	dbfilename="db.nsq"
-	if not os.path.exists(dbfilename):
-		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out db"
+	#dbfilename="db.nsq"
+	db= reference[:-(len(reference)-reference.rindex("."))]  + ".blastdb"
+	#print(db)
+	#blastoutput="out.txt"
+	blastoutput=query[:-(len(query)-query.rindex("."))] + "." + os.path.basename(reference)[:-(len(os.path.basename(reference))-os.path.basename(reference).rindex("."))] + ".blastoutput"
+	#print(blastoutput)
+	if not os.path.exists(db + ".nsq"):
+		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out " + db
 		print(makedbcommand)
 		os.system(makedbcommand)
+	else:
+		print("The existing BLAST db " + db + " was used. If you wish to remake it, please delete the files " + db + ".*." )
 	#for short read
-	blastcommand = "blastn -query " + indexed_query + " -db  db -task blastn-short -outfmt 6 -out out.txt -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + indexed_query + " -db  db -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	#for long read
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + indexed_query + " -db  db -outfmt 6 -out out.txt -num_threads " + str(nproc)
+		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	print(blastcommand)	
 	os.system(blastcommand)
 	
 	#read blast output
-	blastoutputfile = open("out.txt")
+	blastoutputfile = open(blastoutput)
 	refid = ""
 	score=0
 	queryid=""
@@ -123,8 +130,8 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 			bestrefidlist[i]=refid
 			bestsimlist[i]=sim
 			bestcoveragelist[i]=coverage
-	#os.system("rm " + indexed_query)		
-	#os.system("rm out.txt")
+	os.system("rm " + indexed_query)		
+	#os.system("rm " + blastoutput)
 	return bestrefidlist,bestscorelist,bestsimlist,bestcoveragelist
 
 def SavePrediction(testseqIDs,bestscorelist,bestsimlist,bestcoveragelist,bestrefidlist,outputname):
