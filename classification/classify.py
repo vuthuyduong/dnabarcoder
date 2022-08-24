@@ -198,7 +198,7 @@ def GetTaxonomicClassification(level,header,texts):
 def LoadClassification(classificationfilename,idcolumnname):
 	classificationdict={}
 	taxonomy={}
-	classificationfile= open(classificationfilename)
+	classificationfile= open(classificationfilename,errors='ignore')
 	header=next(classificationfile)
 	seqidpos=-1
 	isError=False
@@ -462,7 +462,7 @@ def GetAssignment(refid,classificationdict,bestscore,taxonomy,classificationrank
 	taxonname=""
 	level=-1
 	classification=""
-	if refid in classificationdict.keys():		
+	try:		
 		refclassification=classificationdict[refid]['classification']
 		taxacutoffs,kingdom,phylum,bioclass,order,family,genus,species=GetCutoffs(refclassification,taxonomy)
 		if bestscore >=taxacutoffs["species"][0] and taxacutoffs["species"][2]==True and species!="unidentified" and (classificationrank=="species" or classificationrank== ""):
@@ -509,7 +509,7 @@ def GetAssignment(refid,classificationdict,bestscore,taxonomy,classificationrank
 			level=0	
 		level=GetLevel(rank)
 		classification=GetRankClassification(level,refclassification)
-	else:
+	except KeyError:
 		classification=GetRankClassification(-1,classification)
 	return classification,taxonname,rank,level,localcutoff,confidence
 
