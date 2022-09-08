@@ -95,6 +95,8 @@ for seqrec in seqrecords:
 	seqid=seqrec.id
 	if not (seqid in seqids):
 		selectedrecords.append(seqrec)
+	else:
+		print(seqid)
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
 print("The selected sequences are saved in " + output + ".")
