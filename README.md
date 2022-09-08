@@ -292,11 +292,11 @@ Or if classifications are given in sequence headers:
 
 Here 0.994 is the global similarity cut-off for sequence identification at the species level. The result including unidentified sequences will be saved in dnabarcoder/UNITErelease.filamentousfungalITS_BLAST.species.0994.classified. If we want to save only the classified sequences, use the following command:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -r CBSITS_classification.fasta -cutoff 0.994 -rank species -confidence 0.8334 -save classified
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.bestmatch -r CBSITS_classification.fasta -cutoff 0.994 -rank species -confidence 0.8334 -saveclassifiedonly True
 
 - Note that dnabarcoder could also take <strong> the output of BLAST (fmt 6) </strong> as the input for classification. Please use the following command:
 
-../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.blastoutput -c CBSITS.current.classification -cutoff 0.994 -rank species -confidence 0.8334 
+../../dnabarcoder.py classify -i dnabarcoder/UNITErelease.CBSITS_BLAST.blastoutput -c CBSITS.current.classification -cutoffs dnabarcoder/CBSITS.cutoffs.best.json 
 
 - Locally, based on the similarity cut-off predicted for the best match:
 
