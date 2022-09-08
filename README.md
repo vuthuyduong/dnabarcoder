@@ -45,7 +45,7 @@ pip3 install -U scikit-learn scipy matplotlib
 
 ## Installation:
 
-Using github:
+Using github (preferable):
 
 git clone https://github.com/vuthuyduong/dnabarcoder.git
 
