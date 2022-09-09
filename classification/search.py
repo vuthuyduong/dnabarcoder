@@ -97,9 +97,9 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 		print(makedbcommand)
 		os.system(makedbcommand)
 	else:
-		print("The existing BLAST db " + db + " was used. If you wish to remake it, please delete the files " + db + ".*." )
+		print("The existing BLAST db " + db + " is used. If you wish to remake it, please delete the files " + db + ".*." )
 	#for short read
-	blastcommand = "blastn -query " + indexed_query + " -db  db -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	#for long read
 	if mincoverage >=400:
 		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
