@@ -23,6 +23,7 @@ parser.add_argument('-c','--classification', default="", help='the classificatio
 parser.add_argument('-t','--taxa', default="", help='the taxa for the selection, separated by ","')
 parser.add_argument('-n','--number', type=int, default=0, help='the maximum number of the sequences to be selected')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for the selection.')
+parser.add_argument('-unique','--unique',default="no", help='select only unique sequences if yes otherwise no.')
 parser.add_argument('-l','--length', type=int, default=0, help='the required minimum length.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
@@ -85,6 +86,9 @@ def LoadClassification(classificationfilename,taxa,classificationpos,seqidpos):
 		classname = ""
 		if classificationpos >= 0 and classificationpos < len(elements):
 			classname = elements[classificationpos]
+		if classificationrank=="":
+			classification.setdefault(seqid, line)
+			continue
 		if classname == "" or classname == "unidentified":
 			continue
 		if taxa != "":
@@ -92,6 +96,7 @@ def LoadClassification(classificationfilename,taxa,classificationpos,seqidpos):
 				if taxonname != "" and taxonname != "unidentified":
 					if taxonname in elements:
 						classnames.setdefault(seqid,classname)
+						classification.setdefault(seqid, line)
 		else:
 			classnames.setdefault(seqid,classname)
 			classification.setdefault(seqid, line)
@@ -173,8 +178,8 @@ classification={}
 header=""
 if classificationfilename!="":
 	seqidpos,classificationpos,isError=GetPosition(classificationfilename,classificationrank)
-	if isError==True:
-		os.sys.exit()
+	#if isError==False:
+		#os.sys.exit()
 	classnames,classification,header=LoadClassification(classificationfilename,taxa,classificationpos,seqidpos)
 seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
@@ -189,6 +194,7 @@ newclassificationfile=None
 if newclassificationfilename!="":
 	newclassificationfile=open(newclassificationfilename,"w")
 	newclassificationfile.write(header)
+uniquesequences={}	
 for seqid in seqrecords.keys():
 	seqrec=seqrecords[seqid]
 	description=seqrec.description
@@ -196,18 +202,52 @@ for seqid in seqrecords.keys():
 	if classname != "":
 		if n==0: #no limit for number of sequences for a group
 			if len(str(seqrec.seq)) >= l: # the length of the sequence must be >=l
-				selectedrecords.append(seqrec)
-				if newclassificationfilename != "":
-					newclassificationfile.write(classification[seqid])
+				if args.unique=="yes": #select only unique sequences
+					try:
+						seqrec = uniquesequences[str(seqrec.seq)]
+					except KeyError:
+						uniquesequences.setdefault(str(seqrec.seq),seqrec)
+						selectedrecords.append(seqrec)
+						if newclassificationfilename != "":
+							newclassificationfile.write(classification[seqid])
+						pass
+				else:
+					selectedrecords.append(seqrec)
+					if newclassificationfilename != "":
+						newclassificationfile.write(classification[seqid])
 		else:
 			if not classname in selectedclassnames.keys():
 				selectedclassnames.setdefault(classname,0)
 			if 	selectedclassnames[classname] <n:
 				if len(str(seqrec.seq))>l:
-					selectedclassnames[classname]=selectedclassnames[classname]+1
-					selectedrecords.append(seqrec)
-					if newclassificationfilename != "":
-						newclassificationfile.write(classification[seqid])
+					if args.unique=="yes": #select only unique sequences
+						try:
+							seqrec = uniquesequences[str(seqrec.seq)]
+						except KeyError:
+							uniquesequences.setdefault(str(seqrec.seq),seqrec)
+							selectedclassnames[classname]=selectedclassnames[classname]+1
+							selectedrecords.append(seqrec)
+							if newclassificationfilename != "":
+								newclassificationfile.write(classification[seqid])
+					else:
+						selectedclassnames[classname]=selectedclassnames[classname]+1
+						selectedrecords.append(seqrec)
+						if newclassificationfilename != "":
+							newclassificationfile.write(classification[seqid])
+	elif classificationrank=="":
+		if args.unique=="yes": #select only unique sequences
+			try:
+				seqrec = uniquesequences[str(seqrec.seq)]
+			except KeyError:
+				uniquesequences.setdefault(str(seqrec.seq),seqrec)
+				selectedrecords.append(seqrec)
+				if newclassificationfilename != "":
+					newclassificationfile.write(classification[seqid])
+		else:
+			selectedrecords.append(seqrec)
+			if newclassificationfilename != "":
+				newclassificationfile.write(classification[seqid])
+						
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
 if newclassificationfilename != "":
