@@ -69,8 +69,19 @@ MH854570	Fungi	Ascomycota	Sordariomycetes	Hypocreales	Nectriaceae	Fusarium	Fusar
 
 We can use [mkCOInr](https://github.com/meglecz/mkCOInr) to obtain this tab-delimited format for a reference database.
 
-The taxonomic classification of the sequences can be provided in the sequence headers as well where the taxonomic classification should have the following format: k__kingdom;p__phylum;c__class;o__order;f__family;s__species (see [data/CBSITS_classification.fasta](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS_classification.fasta))
+The taxonomic classification of the sequences can also be provided in the sequence headers as well where the taxonomic classification should have the following format: k__kingdom;p__phylum;c__class;o__order;f__family;s__species (see [data/CBSITS_classification.fasta](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/CBSITS_classification.fasta))
 
+## Tips for preparing reference datasets  to speed up the prediction and classification
+
+We reduce the number of the reference sequences for the prediction and classification by selecting only unique and identified reference sequences. 
+
+- We can use an aid script to select only unique sequences for the references:
+
+aidscripts/selectsequences.py -i CBSITS.fasta -c CBSITS.current.classification -unique yes -o CBSITS.unique.fasta
+
+- To predict cut-offs for species (for example) identification, we first select only unique sequences that are identified at the species level:
+
+aidscripts/selectsequences.py -i CBSITS.fasta -c CBSITS.current.classification -rank species -unique yes -o CBSITS.species.fasta
 
 ## Outputs
 
