@@ -131,7 +131,7 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 			bestsimlist[i]=sim
 			bestcoveragelist[i]=coverage
 	os.system("rm " + indexed_query)		
-	#os.system("rm " + blastoutput)
+	os.system("rm " + blastoutput)
 	return bestrefidlist,bestscorelist,bestsimlist,bestcoveragelist
 
 def SavePrediction(testseqIDs,bestscorelist,bestsimlist,bestcoveragelist,bestrefidlist,outputname):

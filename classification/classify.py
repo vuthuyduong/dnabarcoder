@@ -593,7 +593,7 @@ def LoadPrediction(predictionfilename,mincoverage,idcolumnname):
 	headers=next(predictionfile)
 	i=0
 	for header in headers.rstrip().split("\t"):
-		if header.lower()==idcolumnname.lower():
+		if header.lower()==idcolumnname.lower() or header.lower()=="id":
 			p_id=i
 		if "given label" in header.lower():
 			p_l=i
