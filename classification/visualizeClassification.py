@@ -8,11 +8,11 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
-from sklearn.metrics import precision_recall_fscore_support
-from sklearn.metrics import cohen_kappa_score
-from sklearn.metrics import matthews_corrcoef
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import accuracy_score
+#from sklearn.metrics import precision_recall_fscore_support
+#from sklearn.metrics import cohen_kappa_score
+#from sklearn.metrics import matthews_corrcoef
+#from sklearn.metrics import confusion_matrix
+#from sklearn.metrics import accuracy_score
 import json
 from Bio import SeqIO
 import random
@@ -23,26 +23,17 @@ parser=argparse.ArgumentParser(prog='visualizeClassification.py',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
-parser.add_argument('-i','--input', required=True, help='the assignment file')
+parser.add_argument('-i','--input', required=True, help='the assignment/classification file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--classification', default ="", help='the classification file of the reference sequences.')
 
 args=parser.parse_args()
 predictionfilename=args.input
-classificationfilename=args.classification
 outputpath=args.out
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
-	
-def GetWorkingBase(filename):
-	basename=os.path.basename(filename)
-	if "." in basename:
-		basename=basename[:-(len(basename)-basename.rindex("."))] 
-	path=outputpath + "/" + filename
-	return path
 
 def is_fasta(filename):
     with open(filename, "r") as handle:
@@ -102,131 +93,81 @@ def GetTaxonomicClassification(level,header,texts):
 	if level <7 and kingdom!="unidentified":
 		taxonname=kingdom
 		rank="kingdom"
-		classification="k__" + kingdom +";p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
+		classification= kingdom +"\tunidentified\tunidentified\tunidentified\tunidentified\tunidentified\tunidentified"
 	if level <6 and phylum!="unidentified":
 		taxonname=phylum
 		rank="phylum"
-		classification="k__" + kingdom +";p__"+phylum +";c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+		classification= kingdom +"\t"+phylum +"\tunidentified\tunidentified\tunidentified\tunidentified\tunidentified"
 	if level <5 and bioclass!="unidentified":
 		taxonname=bioclass
 		rank="class"
-		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass+";o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+		classification=kingdom +"\t"+phylum +"\t"+bioclass+"\tunidentified\tunidentified\tunidentified\tunidentified"
 	if level <4 and order!="unidentified":
 		taxonname=order
 		rank="order"
-		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order + ";f__unidentified;g__unidentified;s__unidentified"
+		classification=kingdom +"\t"+phylum +"\t"+bioclass +"\t"+ order + "\tunidentified\tunidentified\tunidentified"
 	if level <3 and family!="unidentified":
 		taxonname=family
 		rank="family"
-		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family +";g__unidentified;s__unidentified"
+		classification="\t" + kingdom +"\t"+phylum +"\t"+bioclass +"\t"+ order+"\t"+family +"\tunidentified\tunidentified"
 	if level <2 and genus!="unidentified":
 		taxonname=genus
 		rank="genus"
-		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus + "s__unidentified"
+		classification=kingdom +"\t"+phylum +"\t"+bioclass +"\t"+ order+"\t"+family + "\t"+ genus + "\tunidentified"
 	if level <1 and species!="unidentified":
 		taxonname=species
 		rank="species"
-		classification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
-	return classification,taxonname,rank
+		classification=kingdom +"\t"+phylum +"\t"+bioclass +"\t"+ order+"\t"+family + "\t"+ genus+"\t"+species
+	return classification
 
-def LoadClassification(classificationfilename,idcolumnname):
-	classificationdict={}
-	if not os.path.exists(classificationfilename):
-		return classificationdict
-	classificationfile=open(classificationfilename)
-	header=next(classificationfile)
-	seqidpos=-1
-	isError=False
-	texts=header.rstrip().split("\t")
-	i=0
+def GetTaxonomicClassificationFromDescription(texts):
+	species = "unidentified"
+	genus = "unidentified"
+	family = "unidentified"
+	order = "unidentified"
+	bioclass = "unidentified"
+	phylum = "unidentified"
+	kingdom = "unidentified"
 	for text in texts:
-		if text.lower()==idcolumnname.lower():
-			seqidpos=i
-		i=i+1
-	if 	seqidpos==-1:
-		print("Please specify the sequence id columnname by using -idcolumnname.")
-		isError=True	
-	for line in classificationfile:
-		texts=line.split("\t")
-		seqid = texts[seqidpos].rstrip()
-		classificationdict.setdefault(seqid,"")
-		classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
-		classificationdict[seqid]=classification
-	classificationfile.close()	
-	return classificationdict,isError
+		text=text.rstrip()
+		taxa=[]
+		if ";" in text:
+			taxa = text.split(";")
+		else:
+			taxa.append(text)
+		for taxon in taxa:
+			if taxon.startswith("k__"):
+				kingdom = taxon.replace("k__","")
+			elif taxon.startswith("p__"):
+				phylum = taxon.replace("p__","")
+			elif taxon.startswith("c__"):
+				bioclass = taxon.replace("c__","")
+			elif taxon.startswith("o__"):
+				order = taxon.replace("o__","")
+			elif taxon.startswith("f__"):
+				family = taxon.replace("f__","")
+			elif taxon.startswith("g__"):
+				genus = taxon.replace("g__","")
+			elif taxon.startswith("s__") and (" " in taxon.replace("s__", "") or "_" in taxon.replace("s__", "")):
+				species = taxon.replace("s__","")
+	classification = kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
+	return classification
 
-def LoadClassificationFromDescription(fastafilename):
-	classificationdict={}
-	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-	for seqid in seqrecords.keys():
-		description=seqrecords[seqid].description
-		species="s__unidentified"
-		genus="g__unidentified"
-		family="f__unidentified"
-		order="o__unidentified"
-		bioclass="c__unidentified"
-		phylum="p__unidentified"
-		kingdom="k__unidentified"
-		if " " in description:
-			description=description.split(" ")[1]
-		texts=description.split("|")
-		for text in texts:
-			taxa=text.split(";")	
-			for taxon in taxa:
-				if taxon.startswith("k__"):
-					kingdom=taxon
-				elif taxon.startswith("p__"):
-					phylum=taxon
-				elif taxon.startswith("c__"):
-					bioclass=taxon
-				elif taxon.startswith("o__"):
-					order=taxon
-				elif taxon.startswith("f__"):
-					family=taxon
-				elif taxon.startswith("g__"):
-					genus=taxon
-				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
-					species=taxon	
-		classification=kingdom + ";" + phylum + ";" + bioclass + ";" + order + ";" + family + ";" + genus + ";" + species
-		classificationdict[seqid]=classification
-	return classificationdict
-
-def GetLevel(rank):
-	level=-1
-	if rank=="species":	
-		level=6
-	elif rank=="genus":	
-		level=5
-	elif rank=="family":	
-		level=4
-	elif rank=="order":	
-		level=3
-	elif rank=="class":	
-		level=2
-	elif rank=="phylum":
-		level=1
-	elif rank=="kingdom":
-		level=0	
-	return level
-
-def LoadPrediction(predictionfilename,classificationdict):
+def LoadPrediction(predictionfilename):
 	classificationdict={}
 	predictionfile= open(predictionfilename, "r")
-	next(predictionfile)
+	header=next(predictionfile)
+	header=header.lower()
+	areTaxaSeparatedByTab=False
+	if (" species " in header) or (" genus " in header) or (" family " in header) or (" order " in header) or (" class " in header) or (" phylum " in header):
+		areTaxaSeparatedByTab = True
 	for line in predictionfile:
 		texts=line.split("\t")
-		classification=texts[3]
-		classification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","")
-		if ";" in classification:
-			texts=classification.split(";")
-			classification=texts[0]
-			if classification=="":
-				classification="unidentified"
-			for i in range(1,len(texts)):
-				text=texts[i]
-				if text=="":
-					text="unidentified"
-				classification=classification + "\t" + text	
+		classification=""
+		if areTaxaSeparatedByTab==True:
+			classification = GetTaxonomicClassification(0, header, texts)
+		else:
+			classification = GetTaxonomicClassificationFromDescription(texts)
 		if classification in classificationdict.keys():
 			classificationdict[classification]=classificationdict[classification] + 1
 		else:
@@ -245,16 +186,9 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	os.system("firefox " + kronahtml) 
 	
 if __name__ == "__main__":
-	classificationdict=LoadClassification(classificationfilename)
-	if is_fasta(classificationfilename):
-		classificationdict=LoadClassificationFromDescription(classificationfilename)
-	else:	
-		classificationdict,isError=LoadClassification(classificationfilename,args.idcolumnname)
-		if isError==True:
-			sys.exit()
-	classificationdict= LoadPrediction(predictionfilename,classificationdict)
+	classificationdict = LoadPrediction(predictionfilename)
 	#making krona report
-	kronareport = GetWorkingBase(predictionfilename) + ".krona.report"
-	kronahtml=GetWorkingBase(kronareport) + ".html"
+	kronareport = GetBase(predictionfilename) + ".krona.report"
+	kronahtml=GetBase(kronareport) + ".html"
 	KronaPieCharts(classificationdict,kronareport,kronahtml)
 	print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".") 
