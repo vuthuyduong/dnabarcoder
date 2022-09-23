@@ -429,12 +429,13 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 	optthreshold=0
 	bestFmeasure=0
 	fmeasuredict={}
-	if 'cut-off' in prediction_datasetname.keys():	
-		optthreshold=prediction_datasetname['cut-off']
-	if 'confidence' in prediction_datasetname.keys():		
-		bestFmeasure=prediction_datasetname['confidence']
-	if 'fmeasures' in prediction_datasetname.keys():			
-		fmeasuredict=prediction_datasetname['fmeasures']
+	if args.redo!="yes":
+		if 'cut-off' in prediction_datasetname.keys():
+			optthreshold=prediction_datasetname['cut-off']
+		if 'confidence' in prediction_datasetname.keys():
+			bestFmeasure=prediction_datasetname['confidence']
+		if 'fmeasures' in prediction_datasetname.keys():
+			fmeasuredict=prediction_datasetname['fmeasures']
 	isError=False		
 	subsimmatrix={}	
 	#remove complexes if required	
@@ -445,6 +446,7 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 			print("Cannot compute the similarity matrix for " + datasetname + ".")
 			sys.exit()
 		records,classes=RemoveComplexes(records,classification,subsimmatrix)
+	print(len(records))
 	#compute optimal threshold
 	while t <= endthreshold:
 		print("Computing F-measure for threshold " + str(t))
@@ -452,7 +454,7 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 		#if str(t) in fmeasuredict.keys() and datasetdict['fasta filename']==fastafilename and datasetdict['classification filename']==classificationfilename:
 		if str(t) in fmeasuredict.keys() and args.redo=="":
 			fmeasure=fmeasuredict[str(t)]
-		else:	
+		else:
 			if subsimmatrix=={}:
 				#compute sub simmatrix
 				subsimmatrix=ComputeSubSim(datasetname,records,simmatrix)
@@ -473,6 +475,7 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 		fmeasures.append(fmeasure)
 		t=round(t+step,4)
 		print("F-measure: " + str(fmeasure))
+	print("similarity cutoff:" + str(optthreshold) + " with best F-measure: " + str(bestFmeasure))
 	if isError==False:	
 		prediction_datasetname['cut-off']=optthreshold
 		prediction_datasetname['confidence']=bestFmeasure
@@ -574,21 +577,22 @@ def SelectList(higherclasses,maxseqno):
 				seqids.append(seqid)
 		tmpids = []
 		if maxseqno > 0 and maxseqno < len(seqids):
-			if maxseqno < len(classes.keys()):
-				selectedclassnames = random.sample(list(classes.keys()), k=maxseqno)
-				for classname in selectedclassnames:
-					tmp=random.sample(classes[classname], k=1)
-					tmpids.append(tmp[0])
-			else:
-				m=int(maxseqno/len(classes.keys()))
-				for classname in classes.keys():
-					tmp=classes[classname]
-					if m < len(classes[classname]):
-						tmp = random.sample(classes[classname], k=m)
-					tmpids=tmpids + tmp
-				notyetselected = list(set(seqids) - set(tmpids))
-				furtherselected = random.sample(notyetselected, k=maxseqno - len(tmpids))
-				tmpids = tmpids + furtherselected
+			# if maxseqno < len(classes.keys()):
+			# 	selectedclassnames = random.sample(list(classes.keys()), k=maxseqno)
+			# 	for classname in selectedclassnames:
+			# 		tmp=random.sample(classes[classname], k=1)
+			# 		tmpids.append(tmp[0])
+			# else:
+			# 	m=int(maxseqno/len(classes.keys()))
+			# 	for classname in classes.keys():
+			# 		tmp=classes[classname]
+			# 		if m < len(classes[classname]):
+			# 			tmp = random.sample(classes[classname], k=m)
+			# 		tmpids=tmpids + tmp
+			# 	notyetselected = list(set(seqids) - set(tmpids))
+			# 	furtherselected = random.sample(notyetselected, k=maxseqno - len(tmpids))
+			# 	tmpids = tmpids + furtherselected
+			tmpids = random.sample(seqids, k=maxseqno)
 			selectedids = selectedids + tmpids
 		else:
 			selectedids=selectedids + seqids
