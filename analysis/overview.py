@@ -203,8 +203,12 @@ if classificationfilename!="":
 else:
 	classificationdict=LoadClassificationFromDescription(seqrecords)	
 outputfile=open(outputfilename,"w")
-if len(seqids) >0:
+count=0
+if len(seqids) >0 and fastafilename != "":
 	count=len(seqids)
+else:
+	seqids=list(classificationdict.keys())
+	count=classificationdict.keys()
 outputfile.write("Number of sequences: " + str(count) + "\n")    
 outputfile.write("Taxonomic level\tNumber of taxa\tNumber of sequences\n")
 seqnumber,seqnumber,count,species=ReportAtLevel(seqids,-1,6,classificationdict)
