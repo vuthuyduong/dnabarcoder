@@ -429,13 +429,15 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 	optthreshold=0
 	bestFmeasure=0
 	fmeasuredict={}
-	if args.redo!="yes":
-		if 'cut-off' in prediction_datasetname.keys():
-			optthreshold=prediction_datasetname['cut-off']
-		if 'confidence' in prediction_datasetname.keys():
-			bestFmeasure=prediction_datasetname['confidence']
-		if 'fmeasures' in prediction_datasetname.keys():
-			fmeasuredict=prediction_datasetname['fmeasures']
+	if 'cut-off' in prediction_datasetname.keys():
+		optthreshold=prediction_datasetname['cut-off']
+	if 'confidence' in prediction_datasetname.keys():
+		bestFmeasure=prediction_datasetname['confidence']
+	if 'fmeasures' in prediction_datasetname.keys():
+		fmeasuredict=prediction_datasetname['fmeasures']
+	if args.redo == "yes" and optthreshold>=t and optthreshold<=endthreshold:
+		optthreshold = 0
+		bestFmeasure = 0
 	isError=False		
 	subsimmatrix={}	
 	#remove complexes if required	
