@@ -446,7 +446,7 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 			print("Cannot compute the similarity matrix for " + datasetname + ".")
 			sys.exit()
 		records,classes=RemoveComplexes(records,classification,subsimmatrix)
-	print(len(records))
+	print("Number of sequences for prediction: " + str(len(records)))
 	#compute optimal threshold
 	while t <= endthreshold:
 		print("Computing F-measure for threshold " + str(t))
