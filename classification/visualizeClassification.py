@@ -118,6 +118,7 @@ def GetTaxonomicClassification(level,header,texts):
 		taxonname=species
 		rank="species"
 		classification=kingdom +"\t"+phylum +"\t"+bioclass +"\t"+ order+"\t"+family + "\t"+ genus+"\t"+species
+
 	return classification
 
 def GetTaxonomicClassificationFromDescription(texts):
@@ -159,8 +160,14 @@ def LoadPrediction(predictionfilename):
 	header=next(predictionfile)
 	header=header.lower()
 	areTaxaSeparatedByTab=False
-	if (" species " in header) or (" genus " in header) or (" family " in header) or (" order " in header) or (" class " in header) or (" phylum " in header):
-		areTaxaSeparatedByTab = True
+	if "\t" in header:
+		texts=header.split("\t")
+		for text in texts:
+			text=text.rstrip()
+			if ("species"==text) or ("genus"==text) or ("family"==text) or ("order"==text) or ("class"==text) or ("phylum"==text):
+				areTaxaSeparatedByTab = True
+	print(header)
+	print(areTaxaSeparatedByTab)
 	for line in predictionfile:
 		texts=line.split("\t")
 		classification=""
