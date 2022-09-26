@@ -194,10 +194,15 @@ For this action, a complete similarity matrix will be computed if dnabarcoder/CB
 The similarity matrix can be given in a tab delimited format file of the following form:
 
 seqid1 seqid1 sim11
+
 seqid1 seqid2 sim12
+
 .
+
 .
+
 .
+
 
 - If we wish to recompute the existing prediction, please use the following command:
 
