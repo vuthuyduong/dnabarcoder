@@ -13,8 +13,8 @@ parser=argparse.ArgumentParser(prog='overview.py',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
-parser.add_argument('-i','--input', default="", help='the fasta input file.')
-parser.add_argument('-c','--classification', default="", help='The taxonomic classification file.')
+parser.add_argument('-i','--input', default="", help='the fasta input file. If this file is not given, then the classification overview will be done based on the classification file.')
+parser.add_argument('-c','--classification', default="", help='The taxonomic classification file. If  this file is not given, then the classification overview will be done based on sequence headers.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-rank','--classificationranks', default="species,genus,family,order,class,phylum", help='the classification ranks to compute distribution, separated by ",".')
@@ -158,7 +158,7 @@ def ReportAtLevel(seqids,level,higherlevel,classificationdict):
 				if not (taxon in highertaxa[highertaxon].keys()):
 					highertaxa[highertaxon].setdefault(taxon,0)
 				highertaxa[highertaxon][taxon]=highertaxa[highertaxon][taxon]+1
-		if not (taxon=='' or ("unidentified" in taxon) or ("uncultured" in taxon) or ("_sp_" in taxon)):
+		if not (taxon=='' or ("unidentified" in taxon) or ("uncultured" in taxon) or ("_sp_" in taxon) or (level==6 and (not " " in taxon))):
 			seqNo=seqNo+1
 			taxa.append(taxon)
 	numberoftaxa=len(set(taxa))		
@@ -208,7 +208,7 @@ if len(seqids) >0 and fastafilename != "":
 	count=len(seqids)
 else:
 	seqids=list(classificationdict.keys())
-	count=classificationdict.keys()
+	count=len(list(classificationdict.keys()))
 outputfile.write("Number of sequences: " + str(count) + "\n")    
 outputfile.write("Taxonomic level\tNumber of taxa\tNumber of sequences\n")
 seqnumber,seqnumber,count,species=ReportAtLevel(seqids,-1,6,classificationdict)
