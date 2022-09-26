@@ -183,9 +183,21 @@ Or:
 
 ../../dnabarcoder.py predict -i CBSITS_classification.fasta -st 0.7 -et 1 -s 0.001 -rank genus -ml 400
 
-Note that the minimum BLAST alignment length ml for ITS sequences is set to 400. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. 
+<strong> Note that the minimum BLAST alignment length ml for ITS sequences is set to 400. For short sequences like ITS1 or ITS2, ml should be set to smaller such as 50. </strong>
 
 For this action, a complete similarity matrix will be computed if dnabarcoder/CBSITS.sim does not exist. The prediction is saved in the file dnabarcoder/CBSITS.predicted, and the predicted cutoffs are saved in a json format file dnabarcoder/CBSITS.cutoffs.json and a tab delimited format file dnabarcoder/CBSITS.cutoffs.json.txt. Note that if the file dnabarcoder/CBSITS.predicted exists, the soft will not recompute the existing predictions, and the new prediction will appended to the file. 
+
+- <strong> If a similarity matrix of the sequences is pre-calculated, then we can use it for the prediction:</strong> 
+
+../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank family,order,class,phylum -ml 400 <strong> -sim dnabarcoder/CBSITS.sim </strong>
+
+The similarity matrix can be given in a tab delimited format file of the following form:
+
+seqid1 seqid1 sim11
+seqid1 seqid2 sim12
+.
+.
+.
 
 - If we wish to recompute the existing prediction, please use the following command:
 
@@ -199,10 +211,6 @@ For this action, a complete similarity matrix will be computed if dnabarcoder/CB
 - To predict <strong> local similarity cut-offs </strong> for genus identification of the CBSITS dataset for example, use the followig command:
 
 ../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank family,order,class,phylum -ml 400
-
-- If a similarity matrix is given, then we can use it for the prediction:
-
-../../dnabarcoder.py predict -i CBSITS.fasta -c CBSITS.current.classification -st 0.7 -et 1 -s 0.001 -rank genus -higherrank family,order,class,phylum -ml 400 -sim dnabarcoder/CBSITS.sim
 
 - We can also predict the <strong> local cutoffs </strong> at a given rank individually:
 
