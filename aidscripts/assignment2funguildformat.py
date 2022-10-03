@@ -16,6 +16,7 @@ parser=argparse.ArgumentParser(prog='assignment2funguildformat.py',
 
 parser.add_argument('-i','--assignmentfilename', required=True, help='the classification filename 1')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 assignmentfilename= args.assignmentfilename
@@ -95,6 +96,7 @@ p_k=-1
 p_score=-1
 p_level=-1
 p_fullclassification=-1
+p_seqid=-1
 i=0
 for word in words:
 	word=word.rstrip()
@@ -120,7 +122,12 @@ for word in words:
 		p_level=i	
 	if word.lower()=="full classification":
 		p_fullclassification=i		
+	if word.lower()==args.idcolumnname.lower():
+		p_seqid=i		
 	i=i+1
+if p_seqid==-1:
+	print("Please give ID column name.")	
+	sys.exit()
 outputfile.write("OTU_ID\ttaxonomy\n")
 outputclassificationcleanfile.write("OTU_ID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tscore\n")
 for line in inputfile:
@@ -132,7 +139,8 @@ for line in inputfile:
 	genus=""
 	species=""
 	words=line.split("\t")
-	seqid=words[0].split("|")[0]
+	#seqid=words[0].split("|")[0]
+	seqid=words[p_seqid].rstrip()
 	score=1
 	number=8
 	if p_score>-1:
