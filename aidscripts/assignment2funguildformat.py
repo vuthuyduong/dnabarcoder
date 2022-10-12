@@ -143,14 +143,14 @@ for line in inputfile:
 	seqid=words[p_seqid].rstrip()
 	score=1
 	number=8
-	if p_score>-1:
+	if p_score>-1 and p_score <len(words):
 		score=float(words[p_score])
 		if score >1:
 			score=score/100
-	if p_level >-1:
+	if p_level >-1 and p_level <len(words):
 		number=Level2Number(words[p_level])	
 	fullclassification=""
-	if p_fullclassification > -1:
+	if p_fullclassification > -1 and p_fullclassification <len(words):
 		fullclassification=words[p_fullclassification]
 		kingdom,phylum,bioclass,order,family,genus,species=GetClassification(fullclassification)
 	else:
