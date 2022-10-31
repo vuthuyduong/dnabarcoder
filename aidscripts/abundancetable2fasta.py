@@ -15,11 +15,15 @@ parser=argparse.ArgumentParser(prog='abundancetable2fasta.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the asv output of data.')
-parser.add_argument('-o','--out', help='The folder for the results.') 
+parser.add_argument('-o','--out', help='The output prefix for the results.') 
+parser.add_argument('-minlen','--minsequencelength', type=int, default=0, help='The minimun sequence length for the selection.') 
+parser.add_argument('-minoccurrence','--minoccurrence', type=int, default=0, help='The minimun number of occurrences.') 
 
 args=parser.parse_args()
 inputfilename= args.input
 outputprefix= args.out
+minlen=args.minsequencelength
+minoccurrence=args.minoccurrence
 
 ####################MAIN####################
 fastafilename=outputprefix + ".fasta"
@@ -34,13 +38,12 @@ asvs=firstline.rstrip().split("\t")
 fastafile=open(fastafilename,"w")
 i=0
 table={}
+selectedasvs=[]
 for asv in asvs:
 	i=i+1
 	asvid="asv_" + str(i)
-	fastafile.write(">" + asvid + "\n")
-	fastafile.write(asv + "\n")
 	table.setdefault(asvid,{})
-fastafile.close()
+
 sampleids=[]
 for line in tmpfile:
 	texts=line.rstrip().split("\t")
@@ -65,14 +68,24 @@ i=0
 for asv in asvs:
 	i=i+1
 	asvid="asv_" + str(i)
-	line=asvid
+	if len(asv) < minlen: #only select sequences with sequence length >=minlen
+		continue
+	count=0
+	line=""
 	for sampleid in sampleids:
 		if sampleid in table[asvid].keys():
 			line=line+ "\t" + table[asvid][sampleid]
+			count=count+int(table[asvid][sampleid])	
 		else:
 			line=line+ "\t0"
-	line=line+"\n"
-	tablefile.write(line)
+	if count >= minoccurrence: #only save the sequences with number of occurrences >=minoccurence			
+		#save to fasta table
+		fastafile.write(">" + "asv_" + str(i) + "\n")
+		fastafile.write(asv + "\n")
+		#save to the abundance table
+		line="asv_" + str(i) + line+"\n"
+		tablefile.write(line)
+fastafile.close()		
 tablefile.close()
 print("The asvs are saved in file " + fastafilename + ".")
 print("The abundance table is saved in file " + asvtable + ".")
