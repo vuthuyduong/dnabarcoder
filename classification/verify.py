@@ -42,7 +42,6 @@ parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
-parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
 parser.add_argument('-cutoff','--globalcutoff', type=float, default=0,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 parser.add_argument('-confidence','--globalconfidence', type=float,default=0,help='The global confidence to assign the sequences to predicted taxa')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
@@ -50,7 +49,9 @@ parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the min
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-minproba','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
-parser.add_argument('-saveverifiedonly','--saveverifiedonly',default=False, help='The option to save all (False) or only verified sequences (True) in the classification output.')
+parser.add_argument('-alignmentmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
+parser.add_argument('-saveverifiedonly','--saveverifiedonly',default="yes", help='The option to save only verified sequences (yes) or all (no) in the classification output.')
+parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -66,7 +67,6 @@ method=args.method
 globalcutoff=args.globalcutoff
 globalconfidence=args.globalconfidence
 cutoffsfilename=args.cutoffs
-redo=args.redo
 outputpath=args.out
 
 if not os.path.exists(outputpath):
@@ -495,18 +495,28 @@ def PrintTree(treefilename,redo):
 		plt.tight_layout()
 		plt.savefig(figfilename,dpi=500,bbox_inches='tight')
 		print("A figure of the tree in png format is saved in  file " + figfilename + ".")	
-	
-def CreateTree(fastafilename,redo):
-	alignmentfilename =  GetBase(fastafilename) + ".aligned.fas"
-	if (not os.path.exists(alignmentfilename)) or redo!="":
-		#make the alignment
-		if not os.path.exists(alignmentfilename):
+
+def CreateAlignment(fastafilename,alignmentmethod):
+	alignmentfilename=GetBase(fastafilename) +"." + alignmentmethod + ".aligned.fas"
+	#make the alignment
+	command=""
+	if not os.path.exists(alignmentfilename):
+		if alignmentmethod.lower()=="clustalo":
 			command="clustalo -i " + fastafilename + " -o " + alignmentfilename
-			os.system(command)
-	treefilename=GetBase(fastafilename) + ".aligned.fas.treefile"
+		else:
+			command="mafft " + fastafilename + " > " + alignmentfilename
+		print(command)
+		os.system(command)
+	return alignmentfilename
+
+def CreateTree(fastafilename,alignmentmethod,redo):
+	alignmentfilename = CreateAlignment(fastafilename,alignmentmethod)
+	treefilename= alignmentfilename + ".treefile"
 	if (not os.path.exists(treefilename)) or redo!="":
 		#make tree
 		command="iqtree -pers 0.2 -n 500 -s " + alignmentfilename
+		if redo !="":
+			command = "iqtree -pers 0.2 -n 500 -s " + alignmentfilename + " -redo"
 		#command="iqtree -s " + alignmentfilename
 		os.system(command)
 		print("A iq-tree in newick format is saved in file " + treefilename + ".")	
@@ -850,7 +860,7 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 					predictiondict[seqid]["confidence"]=predicted_confidence
 	return count,total
 	
-def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank):
+def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,alignmentmethod,redo):
 	count=0
 	notree_count=0
 	total=0
@@ -869,22 +879,26 @@ def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingra
 		verifiedlabel=""
 		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba):#verifying only for classification results with probability greater than min proba
 			#only predict when the tree file name does not exist
-			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
+			if (predictedname in refclasses.keys()) and (seqid in seqrecords.keys()):
 				total=total+1
 				seqrecord=seqrecords[seqid]
+				verified = False
 				if treefilename=="" or (redo !=""):
 					sequences=refclasses[predictedname]
-					treefastafilename,numberofrefsequences=CreateFastaFileForTrees(seqrecord,predictedname,sequences,maxseqno,redo)
-					if os.path.exists(treefastafilename):
-						treefilename= CreateTree(treefastafilename,redo)
-				verified=False		
-				if 	os.path.exists(treefilename):	
-					verified,branchlength,maxbranchlength,averagebrachlength=verifyBasedOnBranchLengths(seqid,treefilename)
-				else:
-					notree_count=notree_count+1
+					if not (seqid in sequences.keys()):
+						treefastafilename,numberofrefsequences=CreateFastaFileForTrees(seqrecord,predictedname,sequences,maxseqno,redo)
+						if os.path.exists(treefastafilename):
+							treefilename= CreateTree(treefastafilename,alignmentmethod,redo)
+					else:
+						verified=True
+				if verified==False:
+					if 	os.path.exists(treefilename):
+						verified,branchlength,maxbranchlength,averagebranchlength=verifyBasedOnBranchLengths(seqid,treefilename)
 				if verified==True:
 					verifiedlabel=predictedname
-					count=count+1		
+					count=count+1
+				else:
+					notree_count = notree_count + 1
 		predictiondict[seqid]["verifiedlabel"]=verifiedlabel
 		predictiondict[seqid]["treefilename"]=treefilename		
 		predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
@@ -919,7 +933,7 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		branchlength=prediction["branchlength"]
 		maxbranchlength=prediction["maxbranchlength"]
 		averagebranchlength=prediction["averagebranchlength"]
-		if args.saveverifiedonly==False:
+		if args.saveverifiedonly!="yes":
 			outputfile.write(seqid + "\t" + givenlabel + "\t"  + verifiedlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
 			cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		else:
@@ -1003,14 +1017,14 @@ if __name__ == "__main__":
 		sys.exit()
 	#verifying...	
 	if args.method=="tree":
-		count,notree_count,total=VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank)
+		count,notree_count,total=VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,args.alignmentmethod,args.redo)
 		if total >0:
 			print("Number of classified sequences: " + str(total))
 			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
 			print("Number of sequences without alignment: " + str(notree_count) + "(" + str(round(notree_count*100/total,2)) + " %).")
 			print("Number of sequences with failt verification: " + str(total - count - notree_count) + "(" + str(round((total - count - notree_count)*100/total,2)) + " %).")
 			if notree_count==0:
-				print("Please check if clustalo and/or iqtree have been installed.")
+				print("Please check if the trees have been created, or mafft/clustalo and/or iqtree have been installed.")
 	else:
 		cutoffs={}
 		if cutoffsfilename!="" and cutoffsfilename!=None:
