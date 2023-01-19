@@ -31,6 +31,7 @@ parser=argparse.ArgumentParser(prog='verify.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the classified file')
+parser.add_argument('-seqid','--sequenceid', default="", help='If the sequence id is given, then only classification of this sequence is verified. Otherwise all classifications are verified.')
 parser.add_argument('-f','--fasta', required=True, help='the fasta file')
 parser.add_argument('-r','--reference', required=True, help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
@@ -288,7 +289,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 				classificationdict[seqid]["rank"]=rank	
 	return classificationdict,classes,taxonomy,isError
 
-def LoadPrediction(predictionfilename,idcolumnname):
+def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 	isError=False
 	predictiondict={}
 	p_id=-1
@@ -361,8 +362,12 @@ def LoadPrediction(predictionfilename,idcolumnname):
 		
 	for line in predictionfile:
 		texts=line.rstrip().split("\t")
+		seqid=""
 		if p_id >=0 and p_id < len(texts):
 			seqid=texts[p_id]
+			if givenseqid!="":
+				if givenseqid!=seqid:
+					continue
 			predictiondict.setdefault(seqid,{})
 		else:
 			continue
@@ -434,7 +439,8 @@ def LoadPrediction(predictionfilename,idcolumnname):
 		if p_averagebranchlength>0 and p_averagebranchlength<len(texts):
 			averagebranchlength=texts[p_averagebranchlength]
 		predictiondict[seqid]["averagebranchlength"]=averagebranchlength
-		
+		if givenseqid==seqid:
+			break
 	return predictiondict,isError
 
 def GetLevel(rank):
@@ -486,7 +492,7 @@ def verifyBasedOnBranchLengths(seqid,treefilename):
 	return verified,length,max_length,average
 
 def PrintTree(treefilename,redo):
-	figfilename=GetWorkingBase(fastafilename) + ".tree.png"
+	figfilename=treefilename + ".png"
 	if (not os.path.exists(figfilename)) or redo!="":
 		tree = Phylo.read(treefilename, "newick")
 		Phylo.draw(tree,do_show=False)	
@@ -583,23 +589,23 @@ def CreateFastaFileForBLAST(seqrecord,taxonname,sequences,maxseqno,redo,method):
 		newfastafilename=""			
 	return newfastafilename,numberofrefsequences
 
-def GetLevel(rank):
-	level=-1
-	if rank=="species":	
-		level=6
-	elif rank=="genus":	
-		level=5
-	elif rank=="family":	
-		level=4
-	elif rank=="order":	
-		level=3
-	elif rank=="class":	
-		level=2
-	elif rank=="phylum":
-		level=1
-	elif rank=="kingdom":
-		level=0	
-	return level
+# def GetLevel(rank):
+# 	level=-1
+# 	if rank=="species":	
+# 		level=6
+# 	elif rank=="genus":	
+# 		level=5
+# 	elif rank=="family":	
+# 		level=4
+# 	elif rank=="order":	
+# 		level=3
+# 	elif rank=="class":	
+# 		level=2
+# 	elif rank=="phylum":
+# 		level=1
+# 	elif rank=="kingdom":
+# 		level=0	
+# 	return level
 
 def GetHigherTaxa(rank,classification):
 	highertaxa=[]
@@ -810,7 +816,7 @@ def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
 	os.system("rm " + queryname)
 	return bestrefid,bestlocalscore,bestlocalsim,bestlocalcoverage
 
-def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy):
+def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy,redo):
 	count=0
 	total=0
 	#create Fasta files
@@ -935,11 +941,11 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		averagebranchlength=prediction["averagebranchlength"]
 		if args.saveverifiedonly!="yes":
 			outputfile.write(seqid + "\t" + givenlabel + "\t"  + verifiedlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
-			cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
+			#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		else:
 			if verifiedlabel!="" and verifiedlabel!="unidentified":			
 				outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
-				cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
+				#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		#save un verified sequences
 		if (verifiedlabel=="" or verifiedlabel=="unidentified") and ((verifyingrank!="" and verifyingrank==rank) or verifyingrank==""):
 			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
@@ -1000,7 +1006,7 @@ if __name__ == "__main__":
 #	if outputname==predictionfilename:
 #		outputname=outputname+".verified"
 	#load prediction
-	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname)	
+	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname,args.sequenceid)	
 	if isError==True:
 		sys.exit()
 	#load sequences
@@ -1032,7 +1038,7 @@ if __name__ == "__main__":
 				cutoffs = json.load(cutoffsfile)
 		#add cutoffs to taxa for sequence identification		
 		AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)		
-		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy)
+		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy,args.redo)
 		if total >0:
 			print("Number of classified sequences: " + str(total))
 			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
