@@ -897,6 +897,7 @@ def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingra
 							treefilename= CreateTree(treefastafilename,alignmentmethod,redo)
 					else:
 						verified=True
+						print("The sequence " + seqid + " is in the reference file. No verification needed.")
 				if verified==False:
 					if 	os.path.exists(treefilename):
 						verified,branchlength,maxbranchlength,averagebranchlength=verifyBasedOnBranchLengths(seqid,treefilename)
