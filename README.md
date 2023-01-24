@@ -32,6 +32,7 @@ Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-so
 - [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optional for visualization
 - [DiVE](https://nlesc.github.io/DiVE), optional for visualization
 - [IQtree](http://www.iqtree.org/), optional for verification
+-[MAFFT](https://mafft.cbrc.jp/alignment/software/), optional for verification
 - [Clustalo](http://www.clustal.org/omega/), opional for verification
 - scikit-learn, numpy (version 1.16.2) and scipy (version 1.2.1), optional for evaluating classification results. If for higher versions of numpy and scipy, python 3.8 is required. 
 
