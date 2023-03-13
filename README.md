@@ -30,7 +30,7 @@ Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-so
 - [Matplot](https://matplotlib.org/), used for the visualization of the results
 - [Krona](https://github.com/marbl/Krona/wiki), optional for visualizing classifications
 - [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optional for visualization
-- [DiVE](https://nlesc.github.io/DiVE), optional for visualization
+- [DiVE](https://github.com/NLeSC/DiVE), optional for visualization
 - [IQtree](http://www.iqtree.org/), optional for verification
 - [MAFFT](https://mafft.cbrc.jp/alignment/software/), optional for verification
 - [Clustalo](http://www.clustal.org/omega/), opional for verification
