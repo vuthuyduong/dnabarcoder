@@ -27,6 +27,7 @@ Duong Vu, R. Henrik Nilsson, Gerard J.M. Verkley (2022). dnabarcoder: an open-so
 ## Dependencies:
 
 - [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi), used for DNA sequence comparisons
+- [Biopython](https://biopython.org/), used for DNA sequence analyses
 - [Matplot](https://matplotlib.org/), used for the visualization of the results
 - [Krona](https://github.com/marbl/Krona/wiki), optional for visualizing classifications
 - [LARGEVIS](https://github.com/rugantio/LargeVis-python3), optional for visualization
