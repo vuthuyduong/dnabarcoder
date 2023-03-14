@@ -28,8 +28,8 @@ parser.add_argument('-c','--classification', default="", help='the classificatio
 parser.add_argument('-r','--reference', default="", help='the reference fasta file, in case the classification of the sequences is given in the sequence headers.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
-parser.add_argument('-cutoff','--globalcutoff', type=float, default=0,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
-parser.add_argument('-confidence','--globalconfidence', type=float,default=0,help='The global confidence to assign the sequences to predicted taxa')
+parser.add_argument('-cutoff','--globalcutoff', type=float, default=-1,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
+parser.add_argument('-confidence','--globalconfidence', type=float,default=-1,help='The global confidence to assign the sequences to predicted taxa')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the local cutoffs to assign the sequences to the predicted taxa.')
@@ -456,8 +456,8 @@ def GetCutoffs(classification,taxonomy):
 	return taxacutoffs,kingdom,phylum,bioclass,order,family,genus,species
 
 def GetAssignment(refid,classificationdict,bestscore,taxonomy,classificationrank):
-	confidence=-1
-	localcutoff=-1
+	localcutoff=taxonomy["unidentified"]["cut-off"]
+	confidence=taxonomy["unidentified"]["confidence"]
 	rank=classificationrank
 	taxonname=""
 	level=-1
@@ -542,7 +542,13 @@ def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificatio
 		confidence=0
 		cutoff=0
 		if refid!="":
-			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,taxonomy,classificationrank)			
+			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,taxonomy,classificationrank)		
+		cutoff_str=str(cutoff)	
+		if cutoff==-1:
+			cutoff_str="N/A"	
+		confidence_str=str(confidence)	
+		if confidence==-1:
+			confidence_str="N/A"
 		if sys.version_info[0] < 3:
 			predictedname=unicode(predictedname,'latin1')
 		try:
@@ -567,13 +573,13 @@ def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificatio
 		#save all classification"
 		if args.saveclassifiedonly==False:
 			#save all including unidentified sequences in the classification file
-			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
-			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
+			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + cutoff_str + "\t" + confidence_str + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
+			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + cutoff_str + "\t" + confidence_str + "\n")
 		else:
 			#save only the classified sequences in the classification file
 			if predictedname!="" and predictedname!="unidentified":
-				output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
-				classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + str(cutoff) + "\t" + str(confidence) + "\n")
+				output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + cutoff_str + "\t" + confidence_str + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
+				classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + cutoff_str + "\t" + confidence_str + "\n")
 	output.close()
 	classificationreportfile.close()
 	return count,given_labels,assigned_labels,unclassifiedseqids
@@ -754,7 +760,10 @@ def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs):
 				taxonomy[taxonname]["confidence"]=globalconfidence
 		else:
 			taxonomy[taxonname]["cut-off"]=globalcutoff
-			taxonomy[taxonname]["confidence"]=globalconfidence
+			taxonomy[taxonname]["confidence"]=globalconfidence	
+	taxonomy.setdefault("unidentified",{})
+	taxonomy["unidentified"]["cut-off"]=globalcutoff
+	taxonomy["unidentified"]["confidence"]=globalconfidence		
 
 def KronaPieCharts(classification,kronareport,kronahtml):
 	kronareportfile=open(kronareport,"w")
@@ -806,7 +815,7 @@ if __name__ == "__main__":
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)	
 	#add cutoffs to taxa for sequence identification		
-	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)	
+	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)
 	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename)
 	print("Number of classified sequences: " + str(count))
 	#print("The results are saved in file  " + outputname)
