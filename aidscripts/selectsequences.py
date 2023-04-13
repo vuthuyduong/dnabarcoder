@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # FILE: selectsequences.py
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2020
@@ -84,7 +85,7 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 		taxalist = taxa.split(",")
 	elif taxa != "" and taxa != "unidentified":
 		taxalist.append(taxa)
-	classificationfile = open(classificationfilename)
+	classificationfile = open(classificationfilename,encoding='latin1')
 	header = next(classificationfile)
 	for line in classificationfile:
 		elements = line.rstrip().split("\t")
@@ -93,13 +94,19 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 		if (classificationpos >= 0 and classificationpos < len(elements)):
 			classname = elements[classificationpos]
 		else:
-			classname=line.rstrip()
+			#classname=line.rstrip()
+			classname = seqid
 		if taxa != "":
+			found=False
 			for taxonname in taxalist:
 				if taxonname != "" and taxonname != "unidentified":
-					if taxonname in elements:
-						classnames.setdefault(seqid, classname)
-						classification.setdefault(seqid, line)
+					for element in elements:
+						if taxonname.lower() in element.lower():
+							found=True
+							break
+			if found==True:
+				classnames.setdefault(seqid, classname)
+				classification.setdefault(seqid, line)
 		elif classificationpos >0 and classname !="":
 			classnames.setdefault(seqid, classname)
 			classification.setdefault(seqid, line)
@@ -108,7 +115,7 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 	return classnames, classification, header
 
 
-def GetTaxonName(description, rank):
+def GetTaxonName(description, rank, taxalist):
 	taxonname = ""
 	species = ""
 	genus = ""
@@ -117,7 +124,9 @@ def GetTaxonName(description, rank):
 	bioclass = ""
 	phylum = ""
 	kingdom = ""
+	seqid=description
 	if " " in description:
+		seqid=description.split(" ")[0]
 		description = description.split(" ")[1]
 	texts = description.split("|")
 	for text in texts:
@@ -154,7 +163,11 @@ def GetTaxonName(description, rank):
 	elif rank.lower() == "kingdom":
 		taxonname = kingdom
 	else:
-		taxonname=kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
+		for text in taxalist:
+			for t in texts:
+				if text.lower() in t.lower():
+					taxonname=seqid
+		#taxonname=kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
 	return taxonname
 
 
@@ -166,19 +179,19 @@ def SelectClassName(seqid, description, rank, taxa, classnames):
 	elif taxa != "" and taxa != "unidentified":
 		taxalist.append(taxa)
 	if classnames == {}:
-		classname = GetTaxonName(description, rank)
+		classname = GetTaxonName(description, rank,taxalist)
 	else:
 		try:
 			classname = classnames[seqid]
 		except KeyError:
 			pass
-	if taxa != "" and classname != "":
-		if "\t" in classname:
-			names=list(set(taxalist) & set(classname.split("\t")))
-			if len(names) ==0:
-				classname=""
-		elif not (classname in taxalist):
-			classname = ""
+	# if taxa != "" and classname != "":
+	# 	if "\t" in classname:
+	# 		names=list(set(taxalist) & set(classname.split("\t")))
+	# 		if len(names) ==0:
+	# 			classname=""
+	# 	elif not (classname in taxalist):
+	# 		classname = ""
 	return classname
 
 
@@ -207,7 +220,6 @@ if newclassificationfilename != "":
     newclassificationfile = open(newclassificationfilename, "w")
     newclassificationfile.write(header)
 uniquesequences = {}
-print(classnames)
 for seqid in seqrecords.keys():
     seqrec = seqrecords[seqid]
     description = seqrec.description
