@@ -173,9 +173,16 @@ def LoadClassification(classificationdict,classificationfilename):
 		if p_score > -1 and p_score < len(texts):
 			score = float(texts[p_score].rstrip())
 		if p_cutoff > -1 and p_cutoff < len(texts):
-			cutoff = float(texts[p_cutoff].rstrip())
+			cutoff=-1
+			try:
+				cutoff = float(texts[p_cutoff].rstrip())
+			except:
+				pass
 		if p_confidence > -1 and p_confidence < len(texts):
-			confidence = float(texts[p_confidence].rstrip())
+			try:
+				confidence = float(texts[p_confidence].rstrip())
+			except:
+				pass
 		if p_rank > -1 and p_rank < len(texts):
 			rank = texts[p_rank].rstrip()
 		if p_refid > -1 and p_refid < len(texts):
