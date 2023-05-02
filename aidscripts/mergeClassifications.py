@@ -269,8 +269,14 @@ def SaveClassification(classificationdict,output):
 		outputfile.write(taxonomy["species"] + "\t")
 		outputfile.write(taxonomy["rank"] + "\t")
 		outputfile.write(str(taxonomy["score"]) + "\t")
-		outputfile.write(str(taxonomy["cutoff"]) + "\t")
-		outputfile.write(str(taxonomy["confidence"]) + "\n")
+		cutoff_str=str(taxonomy["cutoff"])
+		if taxonomy["cutoff"]==-1:
+			cutoff_str="N/A"
+		confidence_str=str(taxonomy["confidence"])
+		if taxonomy["confidence"]==-1:
+			confidence_str="N/A"
+		outputfile.write(cutoff_str + "\t")
+		outputfile.write(confidence_str + "\n")
 	print("The merged classification is saved in file " + output + ".")
 ###########MAIN########################
 classificationnames=[]
