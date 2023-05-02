@@ -31,6 +31,12 @@ output=args.out
 def has_numbers(inputString):
     return bool(re.search(r'\d', inputString))
 
+def isUnIdentified(taxon):
+	check=False
+	if has_numbers(taxon) or taxon=="" or taxon.lower()=="n/a" or taxon.lower=="unidentified":
+		check=True
+	return check
+
 def SelectBetterClassification(taxonomy1,taxonomy2):
 	taxonomy={}
 	rank=""
@@ -170,14 +176,13 @@ def LoadClassification(classificationdict,classificationfilename):
 		texts=line.split("\t")
 		seqid=texts[p_id].rstrip()
 		score = 0
-		cutoff=0
-		confidence=0
+		cutoff=-1
+		confidence=-1
 		refid=""
 		rank=""
 		if p_score > -1 and p_score < len(texts):
 			score = float(texts[p_score].rstrip())
 		if p_cutoff > -1 and p_cutoff < len(texts):
-			cutoff=-1
 			try:
 				cutoff = float(texts[p_cutoff].rstrip())
 			except:
@@ -194,7 +199,7 @@ def LoadClassification(classificationdict,classificationfilename):
 		species="unidentified"
 		if p_s >-1 and p_s < len(texts):
 			species = texts[p_s].rstrip()
-			if species=="" or has_numbers(species)==True:
+			if isUnIdentified(species)==True:
 				species="unidentified"
 		genus = "unidentified"
 		if p_g > -1 and p_g < len(texts):
@@ -204,27 +209,27 @@ def LoadClassification(classificationdict,classificationfilename):
 		family = "unidentified"
 		if p_f > -1 and p_f < len(texts):
 			family= texts[p_f].rstrip()
-			if family=="" or has_numbers(family)==True:
+			if isUnIdentified(family)==True:
 				family = "unidentified"
 		order = "unidentified"
 		if p_o > -1 and p_o < len(texts):
 			order = texts[p_o].rstrip()
-			if order=="" or has_numbers(order)==True:
+			if isUnIdentified(order)==True:
 				order = "unidentified"
 		bioclass = "unidentified"
 		if p_c > -1 and p_c < len(texts):
 			bioclass = texts[p_c].rstrip()
-			if bioclass=="" or has_numbers(bioclass)==True:
+			if isUnIdentified(bioclass)==True:
 				bioclass = "unidentified"
 		phylum = "unidentified"
 		if p_p > -1 and p_p < len(texts):
 			phylum = texts[p_p].rstrip()
-			if phylum=="" or has_numbers(phylum)==True:
+			if isUnIdentified(phylum)==True:
 				phylum = "unidentified"
 		kingdom="unidentified"
 		if p_k > -1 and p_k < len(texts):
 			kingdom = texts[p_k].rstrip()
-			if kingdom=="" or has_numbers(kingdom)==True:
+			if isUnIdentified(kingdom)==True:
 				kingdom = "unidentified"
 		taxonomy = {}
 		taxonomy.setdefault("score", score)
