@@ -532,15 +532,17 @@ def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificatio
 		giventaxonname=""
 		if "label" in bestmatchdict[seqid].keys():
 			giventaxonname=bestmatchdict[seqid]["label"]
-		classification=""
+		classification=""	
 		if "predclassification" in bestmatchdict[seqid].keys():
 			classification=bestmatchdict[seqid]["predclassification"]
+		if classification=="":
+			classification="k__unidentified;p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"		
 		refid=bestmatchdict[seqid]["refid"]
 		bestscore=bestmatchdict[seqid]["score"]
 		sim=bestmatchdict[seqid]["sim"]
 		coverage=bestmatchdict[seqid]["alignmentlength"]
-		confidence=0
-		cutoff=0
+		confidence=-1
+		cutoff=-1
 		if refid!="":
 			classification,predictedname,rank,level,cutoff,confidence=GetAssignment(refid,refclassificationdict,bestscore,taxonomy,classificationrank)		
 		cutoff_str=str(cutoff)	
@@ -569,7 +571,7 @@ def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificatio
 		else:
 			unclassifiedseqids.append(seqid)	
 			rank=""
-		cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","")	.replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
+		cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		#save all classification"
 		if args.saveclassifiedonly==False:
 			#save all including unidentified sequences in the classification file
