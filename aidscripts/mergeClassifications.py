@@ -6,6 +6,7 @@ Created on Mon Apr 19 11:56:08 2021
 @author: duong
 """
 import sys
+import re
 if sys.version_info[0] >= 3:
 	unicode = str
 import json
@@ -26,6 +27,9 @@ parser.add_argument('-scorecolumnname','--scorecolumnname',default="score", help
 
 args=parser.parse_args()
 output=args.out
+
+def has_numbers(inputString):
+    return bool(re.search(r'\d', inputString))
 
 def SelectBetterClassification(taxonomy1,taxonomy2):
 	taxonomy={}
@@ -190,24 +194,38 @@ def LoadClassification(classificationdict,classificationfilename):
 		species="unidentified"
 		if p_s >-1 and p_s < len(texts):
 			species = texts[p_s].rstrip()
+			if species=="" or has_numbers(species)==True:
+				species="unidentified"
 		genus = "unidentified"
 		if p_g > -1 and p_g < len(texts):
 			genus = texts[p_g].rstrip()
+			if genus=="" or has_numbers(genus)==True:
+				genus = "unidentified"
 		family = "unidentified"
 		if p_f > -1 and p_f < len(texts):
 			family= texts[p_f].rstrip()
+			if family=="" or has_numbers(family)==True:
+				family = "unidentified"
 		order = "unidentified"
 		if p_o > -1 and p_o < len(texts):
 			order = texts[p_o].rstrip()
+			if order=="" or has_numbers(order)==True:
+				order = "unidentified"
 		bioclass = "unidentified"
 		if p_c > -1 and p_c < len(texts):
 			bioclass = texts[p_c].rstrip()
+			if bioclass=="" or has_numbers(bioclass)==True:
+				bioclass = "unidentified"
 		phylum = "unidentified"
 		if p_p > -1 and p_p < len(texts):
 			phylum = texts[p_p].rstrip()
+			if phylum=="" or has_numbers(phylum)==True:
+				phylum = "unidentified"
 		kingdom="unidentified"
 		if p_k > -1 and p_k < len(texts):
 			kingdom = texts[p_k].rstrip()
+			if kingdom=="" or has_numbers(kingdom)==True:
+				kingdom = "unidentified"
 		taxonomy = {}
 		taxonomy.setdefault("score", score)
 		taxonomy.setdefault("cutoff", cutoff)
