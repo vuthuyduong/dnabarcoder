@@ -208,7 +208,7 @@ def Cluster(points,clusters):
 			cluster.pointids.append(pointid)
 			ExpandCluster(points[pointid], cluster,points)
 			clusters.append(cluster)			
-			
+		
 def ComputeFmeasure(classes,clusters):
 	#compute F-measure
 	f=0
@@ -235,7 +235,7 @@ def GetTaxonName(description,rank):
 	phylum=""
 	kingdom=""
 	if " " in description:
-		description=description.split(" ")[1]
+		description=description[description.index(" ") + 1:]	
 	texts=description.split("|")
 	for text in texts:
 		text=text.rstrip()
@@ -374,7 +374,7 @@ if __name__ == "__main__":
 		if isError==False:
 			classes,classification=LoadClasses(seqrecords.keys(),classificationfilename,classificationpos,seqidpos)
 	else:
-		classes,classification=LoadClassesFromDescription(seqrecords,rank)		
+		classes,classification=LoadClassesFromDescription(seqrecords,rank)	
 	#load similarity matrix
 	#simmatrix = [[0 for x in range(len(seqrecords))] for y in range(len(seqrecords))]
 	simmatrix={} 

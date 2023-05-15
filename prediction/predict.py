@@ -541,7 +541,8 @@ def GetTaxonName(description,rank):
 	phylum=""
 	kingdom=""
 	if " " in description:
-		description=description.split(" ")[1]
+		#description=description.split(" ")[1]
+		description=description[description.index(" ") + 1:]	
 	texts=description.split("|")
 	for text in texts:
 		text=text.rstrip()
