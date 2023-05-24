@@ -53,7 +53,7 @@ def GetBase(filename):
 def GetPosition(classificationfilename, rank):
     pos = -1
     seqidpos = -1
-    classificationfile = open(classificationfilename)
+    classificationfile = open(classificationfilename,errors='ignore')
     header = classificationfile.readline()
     header = header.rstrip()
     classificationfile.close()
@@ -69,7 +69,7 @@ def GetPosition(classificationfilename, rank):
     isError = False
     if rank in texts:
         pos = texts.index(rank)
-    else:
+    elif rank!="":
         print("The rank " + rank + " is not given in the classification.")
         isError = True
     return seqidpos, pos, isError
@@ -107,7 +107,7 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 			if found==True:
 				classnames.setdefault(seqid, classname)
 				classification.setdefault(seqid, line)
-		elif classificationpos >0 and classname !="":
+		elif classname !="":
 			classnames.setdefault(seqid, classname)
 			classification.setdefault(seqid, line)
 		else:
@@ -162,14 +162,15 @@ def GetTaxonName(description, rank, taxalist):
 		taxonname = phylum
 	elif rank.lower() == "kingdom":
 		taxonname = kingdom
-	else:
+	elif len(taxalist) >0:
 		for text in taxalist:
 			for t in texts:
 				if text.lower() in t.lower():
 					taxonname=seqid
+	else:
+		taxonname=seqid
 		#taxonname=kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
 	return taxonname
-
 
 def SelectClassName(seqid, description, rank, taxa, classnames):
 	classname = ""
@@ -221,44 +222,44 @@ if newclassificationfilename != "":
     newclassificationfile.write(header)
 uniquesequences = {}
 for seqid in seqrecords.keys():
-    seqrec = seqrecords[seqid]
-    description = seqrec.description
-    classname = SelectClassName(seqid, description, classificationrank, taxa, classnames)
-    if classname != "":
-        if n == 0:  # no limit for number of sequences for a group
-            if len(str(seqrec.seq)) >= l:  # the length of the sequence must be >=l
-                if args.unique == "yes":  # select only unique sequences
-                    try:
-                        seqrec = uniquesequences[str(seqrec.seq)]
-                    except KeyError:
-                        uniquesequences.setdefault(str(seqrec.seq), seqrec)
-                        selectedrecords.append(seqrec)
-                        if newclassificationfilename != "":
-                            newclassificationfile.write(classification[seqid])
-                        pass
-                else:
-                    selectedrecords.append(seqrec)
-                    if newclassificationfilename != "":
-                        newclassificationfile.write(classification[seqid])
-        else:
-            if not classname in selectedclassnames.keys():
-                selectedclassnames.setdefault(classname, 0)
-            if selectedclassnames[classname] < n:
-                if len(str(seqrec.seq)) > l:
-                    if args.unique == "yes":  # select only unique sequences
-                        try:
-                            seqrec = uniquesequences[str(seqrec.seq)]
-                        except KeyError:
-                            uniquesequences.setdefault(str(seqrec.seq), seqrec)
-                            selectedclassnames[classname] = selectedclassnames[classname] + 1
-                            selectedrecords.append(seqrec)
-                            if newclassificationfilename != "":
-                                newclassificationfile.write(classification[seqid])
-                    else:
-                        selectedclassnames[classname] = selectedclassnames[classname] + 1
-                        selectedrecords.append(seqrec)
-                        if newclassificationfilename != "":
-                            newclassificationfile.write(classification[seqid])
+	seqrec = seqrecords[seqid]
+	description = seqrec.description
+	classname=SelectClassName(seqid,description,classificationrank,taxa,classnames)
+	if classname != "":
+		if n == 0:  # no limit for number of sequences for a group
+			if len(str(seqrec.seq)) >= l:  # the length of the sequence must be >=l
+				if args.unique == "yes":  # select only unique sequences
+					try:
+						seqrec = uniquesequences[str(seqrec.seq)]
+					except KeyError:
+						uniquesequences.setdefault(str(seqrec.seq), seqrec)
+						selectedrecords.append(seqrec)
+						if newclassificationfilename != "":
+							newclassificationfile.write(classification[seqid])
+						pass
+				else:
+					selectedrecords.append(seqrec)
+					if newclassificationfilename != "":
+						newclassificationfile.write(classification[seqid])
+		else:
+			if not classname in selectedclassnames.keys():
+				selectedclassnames.setdefault(classname, 0)
+			if selectedclassnames[classname] < n:
+				if len(str(seqrec.seq)) > l:
+					if args.unique == "yes":  # select only unique sequences
+						try:
+							seqrec = uniquesequences[str(seqrec.seq)]
+						except KeyError:
+							uniquesequences.setdefault(str(seqrec.seq), seqrec)
+							selectedclassnames[classname] = selectedclassnames[classname] + 1
+							selectedrecords.append(seqrec)
+							if newclassificationfilename != "":
+								newclassificationfile.write(classification[seqid])
+					else:
+						selectedclassnames[classname] = selectedclassnames[classname] + 1
+						selectedrecords.append(seqrec)
+						if newclassificationfilename != "":
+							newclassificationfile.write(classification[seqid])
     # else:
     #     if args.unique == "yes":  # select only unique sequences
     #         try:
