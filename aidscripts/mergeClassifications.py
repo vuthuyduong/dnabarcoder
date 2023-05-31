@@ -28,6 +28,9 @@ parser.add_argument('-scorecolumnname','--scorecolumnname',default="score", help
 args=parser.parse_args()
 output=args.out
 
+def GetBase(filename):
+	return filename[:-(len(filename)-filename.rindex("."))]
+
 def has_numbers(inputString):
     return bool(re.search(r'\d', inputString))
 
@@ -278,6 +281,28 @@ def SaveClassification(classificationdict,output):
 		outputfile.write(cutoff_str + "\t")
 		outputfile.write(confidence_str + "\n")
 	print("The merged classification is saved in file " + output + ".")
+
+def LoadClassificationForKronaReport(classificationdict):
+	kronadict={}
+	for seqid in classificationdict.keys():
+		taxonomy=classificationdict[seqid]
+		classification = taxonomy["kingdom"] + "\t" + taxonomy["phylum"] + "\t" + taxonomy["class"] + "\t" + taxonomy["order"] + "\t" + taxonomy["family"] + "\t" + taxonomy["genus"] + "\t" + taxonomy["species"]
+		if classification in kronadict.keys():
+			kronadict[classification]=kronadict[classification] + 1
+		else:
+			kronadict.setdefault(classification, 1)
+	return kronadict
+
+def KronaPieCharts(classification,kronareport,kronahtml):
+	kronareportfile=open(kronareport,"w")
+	for classname in classification.keys():
+		kronareportfile.write(str(classification[classname]) + "\t" + classname + "\n")
+	kronareportfile.close()
+	#create kronahtml
+	command="ImportText.pl " + kronareport + " -o " + kronahtml
+	#print(command)
+	os.system(command)
+
 ###########MAIN########################
 classificationnames=[]
 if "," in args.classificationfilenames:
@@ -290,4 +315,11 @@ for classificationname in classificationnames:
 	error=LoadClassification(classificationdict,classificationname)
 #save merged classification
 SaveClassification(classificationdict,output)
+#making krona report
+kronareport = GetBase(output) + ".krona.report"
+kronahtml=GetBase(kronareport) + ".html"
+kronadict= LoadClassificationForKronaReport(classificationdict)
+KronaPieCharts(kronadict,kronareport,kronahtml)
+print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".")
+
 
