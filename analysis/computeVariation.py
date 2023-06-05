@@ -26,7 +26,7 @@ parser.add_argument('-i','--input', required=True, help='the fasta file to be cl
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks to compute variation, separated by ",".')
+parser.add_argument('-rank','--classificationranks', default="species,genus,family,order,class,phylum", help='the classification ranks to compute variation, separated by ",".')
 parser.add_argument('-m','--maxSeqNo', type=int, default=0, help='The maximum number of randomly selected sequences of each class to be computed in the case the groups are too big.')
 parser.add_argument('-plt','--plottype', default="boxplot", help='The type of plots. There are two options: boxplot and plot.')
 parser.add_argument('-sim','--simfilename', default="", help='The similarity matrix of the sequences if exists.')
@@ -559,12 +559,7 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	if args.display=="yes":
 		plt.show()		
 
-def GetPositionList(classificationfilename,ranks):
-	ranklist=[]	
-	if "," in ranks:
-		ranklist=ranks.split(",")
-	elif ranks !="":
-		ranklist.append(ranks)
+def GetPositionList(classificationfilename,ranklist):
 	positionlist=[]	
 	isError=False	
 	seqidpos=-1	
@@ -588,7 +583,7 @@ def GetPositionList(classificationfilename,ranks):
 		else:
 			print("The rank " + rank + " is not given in the classification." )
 			isError=True
-	return seqidpos,positionlist,ranklist,isError
+	return seqidpos,positionlist,isError
 
 ##############################################################################
 # MAIN
@@ -599,12 +594,6 @@ path=path[:-(len(path)-path.rindex("/")-1)]
 if prefix=="":
 	prefix=GetBase(os.path.basename(referencename))
 
-seqidpos,positionlist,ranklist,isError=GetPositionList(classificationfilename,args.classificationranks)	
-if isError==True :
-	sys.exit()
-displayed=False
-if len(positionlist)==1:
-	displayed=True
 #load similarity matrix
 simmatrix={}	
 if os.path.exists(simfilename):
@@ -617,6 +606,11 @@ labels=[]
 i=0
 jsonvariationfilename=""
 figoutput=""
+ranklist=[]	
+if "," in args.classificationranks:
+	ranklist=args.classificationranks.split(",")
+elif args.classificationranks !="":
+	ranklist.append(args.classificationranks)
 for rank in ranklist:
 	rank=rank.lower()
 	jsonvariationfilename = GetWorkingBase(prefix) + "." + rank + ".variation"
@@ -624,6 +618,9 @@ for rank in ranklist:
 	#Load classes, classification:
 	classes={}
 	if classificationfilename !="":
+		seqidpos,positionlist,isError=GetPositionList(classificationfilename,ranklist)	
+		if isError==True :
+			sys.exit()
 		classificationposition=positionlist[i]
 		classes=LoadClassification(referencerecords,classificationfilename, classificationposition,seqidpos)
 	else:
@@ -642,14 +639,14 @@ for rank in ranklist:
 	i=i+1	
 if label=="":
 	label=prefix	
-if len(positionlist)>1:
+if len(ranklist)>1:
 	jsonvariationfilename = GetWorkingBase(prefix) + ".variation"
 	figoutput=jsonvariationfilename + ".png" 
 if plottype=="plot":
 	PlotAll(label,figoutput,variationlist,labels)
 else:	
 	BoxPlotAll(label,figoutput,variationlist,labels)
-print("All variations and theirs figure are saved in file " + jsonvariationfilename + " and " + figoutput + ".")
+print("All variations and their figures are saved in file " + jsonvariationfilename + " and " + figoutput + ".")
 			
 
 
