@@ -153,12 +153,12 @@ def ComputeSim(fastafilename,seqids,mincoverage,minsim):
 	os.system("rm out.txt")
 	return simmatrix
 
-def ComputeCoordinates(base,simfilename,dim,edgeNo,kneigh):
-	coordfilename==GetBase(fastafilename) + ".coord"
+def ComputeCoordinates(coordfilename,simfilename,dim,edgeNo,kneigh):
+	#coordfilename==GetWorkingBase(simfilename) + "." + str(dim) + ".coord"
 	largeViscommand = "LargeVis -fea 0 -input " + simfilename + " -output " + coordfilename + " -outdim " + str(dim) +  " -threads "  + str(nproc) + " -log 1 -samples " + str(edgeNo) + " -neigh " + str(kneigh);
 	print(largeViscommand)
 	os.system(largeViscommand)
-	return coordfilename
+	#return coordfilename
 
 def LoadFullClassification(seqids,classificationfilename,idcolumnname):
 	isError=False
@@ -451,6 +451,7 @@ if __name__ == "__main__":
 	for rec in seqrecords:
 		seqids.append(rec.id)
 	if coordfilename=="":
+		simfilename_minsim=""
 		if simfilename=="":			
 			simfilename=GetWorkingBase(prefix)  + ".sim"
 			simfilename_minsim=""
@@ -460,7 +461,7 @@ if __name__ == "__main__":
 				simfilename_minsim=simfilename
 		else:
 			simfilename_minsim=simfilename
-		coordfilename=GetBase(simfilename_minsim)  + "." + str(dim) + ".coord"	
+		coordfilename=GetWorkingBase(os.path.basename(simfilename_minsim))  + "." + str(dim) + ".coord"	
 		if not os.path.isfile(coordfilename):
 			if not os.path.isfile(simfilename_minsim):
 				if not os.path.isfile(simfilename):
@@ -485,7 +486,7 @@ if __name__ == "__main__":
 			edgeNo=int(len(seqrecords)/100)
 			if edgeNo <50:
 				edgeNo=50			
-			coordfilename=ComputeCoordinates(base,simfilename_minsim,dim,edgeNo,kneigh)
+			ComputeCoordinates(coordfilename,simfilename_minsim,dim,edgeNo,kneigh)
 			print("The coordinates are saved in file " + coordfilename)
 		else:
 			#use the existing simfilename.
