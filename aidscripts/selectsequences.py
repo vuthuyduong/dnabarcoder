@@ -101,7 +101,7 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 			for taxonname in taxalist:
 				if taxonname != "" and taxonname != "unidentified":
 					for element in elements:
-						if taxonname.lower() in element.lower():
+						if taxonname.lower() == element.lower():
 							found=True
 							break
 			if found==True:
@@ -165,7 +165,7 @@ def GetTaxonName(description, rank, taxalist):
 	elif len(taxalist) >0:
 		for text in taxalist:
 			for t in texts:
-				if text.lower() in t.lower():
+				if text.lower() == t.lower():
 					taxonname=seqid
 	else:
 		taxonname=seqid
