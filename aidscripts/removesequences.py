@@ -21,7 +21,7 @@ parser.add_argument('-o','--out', help='The fasta output file containing the seq
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
 parser.add_argument('-t','--taxa', default="", help='the taxa for the selection, separated by ",". If taxa="", all the sequences with the ids given in the classification file will be removed from the input file.')
 parser.add_argument('-rank','--classificationrank', default="", help='If the value of the classification rank is not empty, the sequences will be removed.')
-parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -29,7 +29,6 @@ classificationfilename=args.classification
 taxa=args.taxa
 output=args.out
 classificationrank=args.classificationrank
-seqidpos=args.sequenceidposition
 
 #fastafilename=sys.argv[1]
 #taxa=sys.argv[2]
@@ -53,12 +52,12 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos):
 	for line in classificationfile:
 		elements=line.rstrip().split("\t")
 		seqid = elements[seqidpos].replace(">","").rstrip()
-		classname=""
-		if classificationpos >=0 and classificationpos < len(elements):
-			classname=elements[classificationpos]
-		if classname=="" or classname=="unidentified":
-			continue
+		classname = ""
+		if classificationpos >= 0 and classificationpos < len(elements):
+			classname = elements[classificationpos]
 		if taxa!="":
+			if classname == "" or classname == "unidentified":
+				continue
 			for taxonname in taxalist:
 				if taxonname!="" and taxonname!="unidentified":
 					if taxonname in elements:
@@ -82,12 +81,21 @@ def GetPosition(classificationfilename,rank):
 	else:
 		print("The rank " + rank + " is not given in the classification." )
 		isError=True
-	return pos,isError
+	seqidpos = -1
+	i = 0
+	for text in texts:
+		if text.lower() == args.idcolumnname.lower():
+			seqidpos = i
+		i = i + 1
+	if seqidpos == -1:
+		print("Please specify the sequence id columnname by using -idcolumnname.")
+		isError = True
+	return seqidpos,pos,isError
 
 #####main###
 classificationpos=-1
 if classificationfilename!="":
-	classificationpos,isError=GetPosition(classificationfilename,classificationrank)	
+	seqidpos,classificationpos,isError=GetPosition(classificationfilename,classificationrank)
 seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos)
 seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
