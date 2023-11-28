@@ -15,30 +15,30 @@ from sklearn.metrics import accuracy_score
 from Bio import SeqIO
 
 parser=argparse.ArgumentParser(prog='evaluate.py',  
-							   usage="%(prog)s [options] -i predictionfile -c queryclassification -r referenceclassification",
+							   usage="%(prog)s [options] -i predictionfile -qc queryclassification -rc referenceclassification",
 							   description='''Script that visualizes using Krona and computes metrices for the classification results.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the assigment/classified file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-c','--queryclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
-parser.add_argument('-r','--refclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
+parser.add_argument('-qc','--queryclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
+parser.add_argument('-rc','--refclassification', required=True, help='the given classification file of the query if exists, in tab. format to compute classification metrices.')
+parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+
 # parser.add_argument('-seqidpos','--sequenceidposition', type=int,default=0, help='the position of sequence id in the classification file.')
 # parser.add_argument('-givenlabelpos','--givenlabelposition', type=int,default=-1, help='the position of given labels in the prediction file.')
 # parser.add_argument('-predpos','--predictionposition', type=int,default=-1, help='the position of predicted labels in the prediction file.')
 # parser.add_argument('-rankpos','--rankposition', type=int,default=-1, help='the position of ranks in the prediction file.')
-parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-givenlabelcolumnname','--givenlabelcolumnname',default="given label", help='the column name of the given labels in the classification file.')
 parser.add_argument('-predictedlabelcolumnname','--predictedlabelcolumnname',default="prediction", help='the column name of the predicted labels in the classification file.')
-parser.add_argument('-rankcolumnname','--rankcolumnname',default="rank", help='the column name of the ranks in the classification file.')
+parser.add_argument('-fullclassificationcolumnname','--fullclassificationcolumnname',default="full classification", help='the column name of the predicted full classifications in the classification file.')
+parser.add_argument('-rank','--rankcolumnname',default="rank", help='the column name of the ranks in the classification file.')
 
 args=parser.parse_args()
 predictionfilename=args.input
 queryclassificationfilename=args.queryclassification
 refclassificationfilename=args.refclassification
-
-
 outputpath=args.out
 
 if not os.path.exists(outputpath):
@@ -253,36 +253,49 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa
 		outputfile=open(outputname,"w")
 	given_labels=[]
 	pred_labels=[]
-	p_seqid=args.sequenceidposition
-	p_rank=args.rankposition
-	p_givenlabel=args.givenlabelposition
-	p_predlabel=args.predictionposition
+	p_seqid=-1	
+	p_rank=-1
+	p_givenlabel=-1
+	p_predlabel=-1
+	p_fullclassification=-1
 	predictionfile= open(predictionfilename, "r")
 	header=next(predictionfile)
-	if p_givenlabel==-1 or p_predlabel==-1 or p_rank==-1:
-		texts=header.split("\t")
-		i=0
-		for text in texts:
-			text=text.rstrip()
-			if args.givenlabelcolumnname.lower() in text.lower():
-				p_givenlabel=i
-			if args.predictedlabelcolumnname.lower() in text.lower():
-				p_predlabel=i	
-			if args.rankcolumnname.lower() in text.lower():
-				p_rank=i		
-			i=i+1	
+	texts=header.split("\t")
+	i=0
+	for text in texts:
+		text=text.rstrip()
+		if args.givenlabelcolumnname.lower() == text.lower():
+			p_givenlabel=i
+		if args.predictedlabelcolumnname.lower() == text.lower():
+			p_predlabel=i	
+		if args.rankcolumnname.lower() == text.lower():
+			p_rank=i
+		if args.fullclassificationcolumnname.lower() == text.lower():
+			p_fullclassification=i	
+		if text.rstrip().lower()==args.idcolumnname.lower():
+			p_seqid=i	
+		i=i+1	
+	if p_seqid==-1 or p_givenlabel==-1 or p_predlabel==-1:
+		print("Please enter columnnames given in the input file for sequence id using -idcolumnname, or given labels using -givenlabelcolumnname, and/or predicted labels using -predlabelcolumnname.")
+		return [],[]
 	if outputname!="":
 		outputfile.write(header)
 	for line in predictionfile:
 		texts=line.split("\t")
 		seqid=texts[p_seqid]
-		classname=texts[p_predlabel]
+		classname="unidentified"
+		if p_predlabel >-1:
+			classname=texts[p_predlabel].rstrip()
 		if classname=="":
 			classname="unidentified"
-		if classname=="unidentified":
-			continue
-		givenlabel=texts[p_givenlabel]
-		rank=texts[p_rank]
+		givenlabel="unidentified"
+		if p_givenlabel >-1:
+			givenlabel=texts[p_givenlabel].rstrip()
+		if givenlabel=="":
+			givenlabel="unidentified"
+		rank=""
+		if p_rank >-1:
+			rank=texts[p_rank]
 		level=GetLevel(rank)
 		if seqid in queryclassificationdict.keys():
 			queryclassification=queryclassificationdict[seqid]
@@ -301,9 +314,11 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa
 				newline=newline[:-1]
 				outputfile.write(newline)
 			given_labels.append(givenlabel)
-			pred_labels.append(classname)	
-		classification=texts[3]
-		classification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","")
+			pred_labels.append(classname)
+		classification=""
+		if p_fullclassification > -1:
+			classification=texts[p_fullclassification]
+			classification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","")
 
 	if outputname!="":
 		outputfile.close()
@@ -367,11 +382,11 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname):
 		print("Number of species complexes: " + str(numberofspeciescomplexes) + "(" +  str(round(numberofspeciescomplexes*100/len(given_labels),2)) + "%).")
 	if filterednumberofspeciescomplexes>0:
 		print("Number of species complexes that are present in the reference dataset: " + str(filterednumberofspeciescomplexes) + "(" +  str(round(filterednumberofspeciescomplexes*100/len(filteredgivenlabels),2)) + "%).")	
-	print("Number of sequences with a given label: " + str(len(given_labels)) + "\t" + str(len(filteredgivenlabels)))
-	print("The mcc of assigning the sequences with a given label: " + str(mcc) + "\t" + str(filteredmcc))
-	print("The accuracy of assigning the sequence with a given label: " + str(accuracy) + "\t" + str(filteredaccuracy))
-	print("The precision of assigning the sequence with a given label: " + str(precision) + "\t" + str(filteredprecision))
-	print("The fscore of assigning the sequence with a given label: " + str(fscore) + "\t" + str(filteredfscore))
+	print("Number of sequences with a given label with all vs. removing species complexes: " + str(len(given_labels)) + "\t" + str(len(filteredgivenlabels)))
+	print("The mcc of assigning the sequences with a given label with all vs. removing species complexes: " + str(mcc) + "\t" + str(filteredmcc))
+	print("The accuracy of assigning the sequence with a given label with all vs. removing species complexes: " + str(accuracy) + "\t" + str(filteredaccuracy))
+	print("The precision of assigning the sequence with a given label with all vs. removing species complexes: " + str(precision) + "\t" + str(filteredprecision))
+	print("The fscore of assigning the sequence with a given label with all vs. removing species complexes: " + str(fscore) + "\t" + str(filteredfscore))
 		
 	report=open(reportname,"w")
 	report.write("Number of sequences with a given label\tMcc\tAccuracy\tPrecision\tFscore\tNumber of sequences with a given label present in the references\tMcc\tAccuracy\tPrecision\tFscore\n")
@@ -399,17 +414,17 @@ if __name__ == "__main__":
 		queryclassificationdict,isError=LoadClassification(queryclassificationfilename,args.idcolumnname)
 		if isError==True:
 			sys.exit()
+	
 	outputname=GetBase(predictionfilename) + ".labeled"
 	reftaxa=[]
 	if is_fasta(refclassificationfilename):
 		reftaxa=LoadTaxaFromDescription(refclassificationfilename)	
 	else:	
-		reftaxa=LoadTaxa(refclassificationfilename)		
-
-	given_labels,pred_labels= LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa)
-	if outputname!="":
-		print("The assigned sequences with given labels are saved in file " + outputname + ".") 
+		reftaxa=LoadTaxa(refclassificationfilename)
+	
+	given_labels,pred_labels= LoadPrediction(predictionfilename,queryclassificationdict,outputname,reftaxa)	
 	if len(given_labels) >0:
+		print("The assigned sequences with given labels are saved in file " + outputname + ".") 
 		reportname=GetBase(outputname) + ".report"
 		CalculateClassificationMetrics(given_labels,pred_labels,reftaxa,reportname)
 	
