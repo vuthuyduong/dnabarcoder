@@ -20,7 +20,7 @@ parser=argparse.ArgumentParser(prog='addclassificationtosequenceheaders.py',
 parser.add_argument('-i','--input', required=True, help='the fasta file to be clustered.')
 parser.add_argument('-o','--out', help='The fasta filename with sequence descriptions containing classification.') 
 parser.add_argument('-c','--classification', required=True, help='the classification file in tab. format.')
-parser.add_argument('-ranks','--classificationranks', default="phylum,class,order,family,genus,species", help='the classification ranks for the prediction, separated by ",".')
+parser.add_argument('-ranks','--classificationranks', default="kingdom,phylum,class,order,family,genus,species", help='the classification ranks for the prediction, separated by ",".')
 parser.add_argument('-sep','--separator', default="", help='the separator between the ranks in the header. If sep is not given, the sequence description will have the format: k__kingdom;p__phylum;c__class;o__order;f__family;g__genus;s__species.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
