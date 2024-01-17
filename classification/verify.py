@@ -31,17 +31,19 @@ parser=argparse.ArgumentParser(prog='verify.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the classified file')
-parser.add_argument('-seqid','--sequenceid', default="", help='If the sequence id is given, then only classification of this sequence is verified. Otherwise all classifications are verified.')
-parser.add_argument('-f','--fasta', required=True, help='the fasta file')
-parser.add_argument('-r','--reference', required=True, help='the reference fasta file')
+parser.add_argument('-idcolumnname','--idcolumnname', default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-f','--fasta', help='the fasta file')
+parser.add_argument('-r','--reference', help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-m','--maxseqno', type=int, default=50, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
+parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
+#parser.add_argument('-fullclassification_columnname','--fullclassification_columnname', default="full classification", help='the colunm name of the predicted full classification.')
+#parser.add_argument('-givenlabel_columnname','--givenlabel_columnname', default="given label", help='the colunm name of the given labels, for comparison purpose.')
 parser.add_argument('-redo','--redo', default="", help='the classification rank')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
-parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 parser.add_argument('-cutoff','--globalcutoff', type=float, default=0,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 parser.add_argument('-confidence','--globalconfidence', type=float,default=0,help='The global confidence to assign the sequences to predicted taxa')
@@ -53,6 +55,8 @@ parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='M
 parser.add_argument('-alignmentmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
 parser.add_argument('-saveverifiedonly','--saveverifiedonly',default="yes", help='The option to save only verified sequences (yes) or all (no) in the classification output.')
 parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
+parser.add_argument('-seqid','--sequenceid', default="", help='If the sequence id is given, then only classification of this sequence is verified. Otherwise all classifications are verified.')
+
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -187,7 +191,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 	taxonomy={}
 	isError=False
 	if classificationfilename != "":
-		classificationfile= open(classificationfilename)
+		classificationfile= open(classificationfilename, errors='ignore')
 		header=next(classificationfile)
 		texts=header.rstrip().split("\t")
 		i=0
@@ -314,16 +318,14 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 	headers=next(predictionfile)
 	i=0
 	for header in headers.rstrip().split("\t"):
-# 		if ("sequenceid" in header.lower()) or ("sequence_id" in header.lower()) or ("sequence id" in header.lower()) :
-# 			p_id=i
 		if header.lower()==idcolumnname.lower():
 			p_id=i
-		if "given label" in header.lower():
-			p_l=i
-		if "prediction" in header.lower():
+		#if "given label" in header.lower():
+		#	p_l=i
+		if header.lower()==args.prediction_columnname:
 			p_pl=i
-		if "full classification" in header.lower():
-			p_c=i
+		#if "full classification" in header.lower():
+		#	p_c=i
 		if "probability" in header.lower():
 			p_p=i
 		if ("referenceid" in header.lower()) or ("reference_id" in header.lower()) or ("reference id" in header.lower()) :
@@ -356,8 +358,8 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 	if p_id==-1:
 		print("Please specify the sequence id columnname by using -idcolumnname.")
 		isError=True
-	if 	p_r==-1:
-		print("Please use columnname referenceid for reference sequence ids.")
+	if 	p_pl==-1:
+		print("Please use columnname -prediction_columnname for loading prediction.")
 		isError=True
 		
 	for line in predictionfile:
@@ -562,7 +564,7 @@ def CreateFastaFileForTrees(seqrecord,taxonname,sequences,maxseqno,redo):
 			newfastafilename=""
 	return newfastafilename,numberofrefsequences
 
-def CreateFastaFileForBLAST(seqrecord,taxonname,sequences,maxseqno,redo,method):
+def CreateFastaFileForBLAST(seqrecord,taxonname,sequences,maxseqno):
 	if not os.path.exists(outputpath + "/verification"):
 		os.system("mkdir " + outputpath + "/verification")
 	if sys.version_info[0] < 3:
@@ -839,7 +841,7 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 				seqrecord=seqrecords[seqid]
 				if score==0 or (redo !=""):
 					sequences=refclasses[predictedname]
-					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno,redo)
+					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno)
 					if os.path.exists(reffilename):
 						#compute BLAST score
 						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrecord,reffilename,mincoverage)
