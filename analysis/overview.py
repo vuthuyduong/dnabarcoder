@@ -3,7 +3,9 @@
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2020
 
-#import sys
+import sys
+if sys.version_info[0] >= 3:
+	unicode = str
 import os, argparse
 from Bio import SeqIO
 
@@ -72,7 +74,7 @@ def LoadClassificationFromDescription(seqrecords):
 
 def LoadClassification(classificationfilename):
 	classificationdict={}
-	classificationfile = open(classificationfilename)
+	classificationfile = open(classificationfilename,errors='ignore')
 	header=next(classificationfile)
 	words=header.split("\t")
 	p_id=0
@@ -111,18 +113,32 @@ def LoadClassification(classificationfilename):
 		kingdom=""
 		words=line.split("\t")
 		if p_id >-1:
+			if p_id >= len(words):
+				print("Please check classification of the sequence " + seqid)
 			seqid=words[p_id].rstrip()
 		if p_s >-1:
+			if (p_s >= len(words)):
+				print("Please check classification of the sequence " + seqid)
 			species=words[p_s].rstrip()	
 		if p_g >-1:
+			if p_g >= len(words):
+				print("Please check classification of the sequence " + seqid)
 			genus=words[p_g].rstrip()	
 		if p_f >-1:
+			if p_f >= len(words):
+				print("Please check classification of the sequence " + seqid)
 			family=words[p_f].rstrip()	
 		if p_o >-1:
+			if p_o >= len(words):
+				print("Please check classification of the sequence " + seqid)
 			order=words[p_o].rstrip()
 		if p_c >-1:
+			if p_c >= len(words):
+				print("Please check classification of the sequence " + seqid)
 			bioclass=words[p_c].rstrip()	
 		if p_p >-1:
+			if p_p >= len(words):
+				print("Please check classification of the sequence " + seqid)
 			phylum=words[p_p].rstrip()	
 		if p_k >-1:
 			kingdom=words[p_k].rstrip()	
