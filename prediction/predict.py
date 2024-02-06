@@ -278,7 +278,7 @@ def LoadClassification(classificationfilename,rank,higherranklist):
 	pos=positionlist[0]
 	if isError == True:
 		sys.exit()
-	classificationfile = open(classificationfilename)
+	classificationfile = open(classificationfilename,errors='ignore')
 	for line in classificationfile:
 		texts = line.rstrip().split("\t")
 		seqid = texts[seqidpos].rstrip()
