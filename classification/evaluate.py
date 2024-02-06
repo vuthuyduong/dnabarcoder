@@ -256,6 +256,7 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 	p_givenlabel=-1
 	p_predlabel=-1
 	p_fullclassification=-1
+	rank=args.rank
 	predictionfile= open(predictionfilename)
 	header=next(predictionfile)
 	texts=header.split("\t")
@@ -293,8 +294,7 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 			givenlabel=texts[p_givenlabel].rstrip()
 		if givenlabel=="":
 			givenlabel="unidentified"
-		rank=args.rank
-		if p_rank >-1:
+		if rank=="" and p_rank >-1:
 			rank=texts[p_rank]
 		level=GetLevel(rank)
 		if seqid in queryclassificationdict.keys():
@@ -432,8 +432,7 @@ if __name__ == "__main__":
 		if is_fasta(refclassificationfilename):
 			reftaxa=LoadTaxaFromDescription(refclassificationfilename)	
 		else:	
-			reftaxa=LoadTaxa(refclassificationfilename)
-			
+			reftaxa=LoadTaxa(refclassificationfilename)	
 	given_labels,pred_labels= LoadPrediction(predictionfilename,queryclassificationdict,outputname)	
 	if len(given_labels) >0:
 		reportname=GetBase(outputname) + ".report"
