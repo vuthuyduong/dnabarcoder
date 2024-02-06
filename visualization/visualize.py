@@ -223,7 +223,7 @@ def LoadFullClassificationFromDescription(seqrecords):
 def LoadClassification(seqids,classificationfilename,rank,idcolumnname):
 	isError=False
 	labels=[""]*len(seqids)
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename,errors='ignore')
 	header=next(classificationfile)
 	features=header.replace("\n","").split("\t")
 	seqidpos=-1
