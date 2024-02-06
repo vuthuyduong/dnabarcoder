@@ -172,7 +172,7 @@ def LoadClassification(classificationfilename):
 	classificationdict={}
 	if classificationfilename == "":
 		return {}
-	classificationfile= open(classificationfilename)
+	classificationfile= open(classificationfilename,errors='ignore')
 	header=next(classificationfile)
 	for line in classificationfile:
 		texts=line.split("\t")
