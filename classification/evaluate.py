@@ -314,7 +314,7 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 				if p_givenlabel==-1:
 					newline=newline + givenlabel +"\t"	
 				newline=newline[:-1]
-				outputfile.write(newline + "\n")
+				outputfile.write(newline)
 			given_labels.append(givenlabel)
 			pred_labels.append(classname)
 		classification=""
