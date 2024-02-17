@@ -314,6 +314,8 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 				if p_givenlabel==-1:
 					newline=newline + givenlabel +"\t"	
 				newline=newline[:-1]
+				if "\n" not in newline:
+					newline=newline + "\n"
 				outputfile.write(newline)
 			given_labels.append(givenlabel)
 			pred_labels.append(classname)
@@ -341,64 +343,36 @@ def CalculateMetrics(test_labels,pred_labels,labels):
 def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,outputfilename):
 	tmp_givenlabels=[]
 	tmp_predlabels=[]
-	numberofspeciescomplexes=0
 	i=0
 	for label in givenlabels:
-		genus=""
-		predgenus=""
 		predlabel=predlabels[i]
-		if " " in label:
-			genus=label.split(" ")[0]
-			label=label.split(" ")[1]
-		if " " in predlabels[i]:
-			predgenus=predlabel.split(" ")[0]	
-			predlabel=predlabel.split(" ")[1]
-		if predgenus==genus and genus!="" and label!=predlabel:
-			numberofspeciescomplexes=numberofspeciescomplexes+1
-		tmp_givenlabels.append(label)		
-		tmp_predlabels.append(predlabel)
+		if predlabel!="" and predlabel !="unidentified":
+			tmp_givenlabels.append(label)		
+			tmp_predlabels.append(predlabel)
 		i=i+1		
-	accuracy,precision,recall,fscore,precisionvector,recallvector,fscorevector,mcc,confusionmatrix=CalculateMetrics(tmp_givenlabels,tmp_predlabels,tmp_predlabels)
+	accuracy,precision,recall,fscore,precisionvector,recallvector,fscorevector,mcc,confusionmatrix=CalculateMetrics(givenlabels,predlabels,predlabels)
+	tmpaccuracy,tmpprecision,tmprecall,tmpfscore,tmpprecisionvector,tmprecallvector,tmpfscorevector,tmpmcc,tmpconfusionmatrix=CalculateMetrics(tmp_givenlabels,tmp_predlabels,tmp_predlabels)
 	filteredgivenlabels=[]
 	filteredpredlabels=[]
-	filterednumberofspeciescomplexes=0
 	i=0
 	for label in givenlabels:
 		if label in reftaxa:
-			genus=""
-			predgenus=""
 			predlabel=predlabels[i]
-			if " " in label:
-				genus=label.split(" ")[0]
-				label=label.split(" ")[1]
-			if " " in predlabels[i]:
-				predgenus=predlabel.split(" ")[0]	
-				predlabel=predlabel.split(" ")[1]
-			if predgenus==genus and genus!="" and label!=predlabel:
-				filterednumberofspeciescomplexes=filterednumberofspeciescomplexes+1	
 			filteredgivenlabels.append(label)
 			filteredpredlabels.append(predlabel)
 		i=i+1			
 	filteredaccuracy,filteredprecision,filteredrecall,filteredfscore,filteredprecisionvector,filteredrecallvector,filterdfscorevector,filteredmcc,filteredconfusionmatrix=CalculateMetrics(filteredgivenlabels,filteredpredlabels,filteredpredlabels)
-#	if numberofspeciescomplexes>0:
-#		print("Number of species complexes: " + str(numberofspeciescomplexes) + "(" +  str(round(numberofspeciescomplexes*100/len(given_labels),2)) + "%).")
-# 	if filterednumberofspeciescomplexes>0:
-# 		print("Number of species complexes that are present in the reference dataset: " + str(filterednumberofspeciescomplexes) + "(" +  str(round(filterednumberofspeciescomplexes*100/len(filteredgivenlabels),2)) + "%).")	
-# 		print("Number of sequences with a given label with all vs. removing species complexes: " + str(len(given_labels)) + "\t" + str(len(filteredgivenlabels)))
-# 		print("The mcc of assigning the sequences with a given label with all vs. removing species complexes: " + str(mcc) + "\t" + str(filteredmcc))
-# 		print("The accuracy of assigning the sequence with a given label with all vs. removing species complexes: " + str(accuracy) + "\t" + str(filteredaccuracy))
-# 		print("The precision of assigning the sequence with a given label with all vs. removing species complexes: " + str(precision) + "\t" + str(filteredprecision))
-# 		print("The fscore of assigning the sequence with a given label with all vs. removing species complexes: " + str(fscore) + "\t" + str(filteredfscore))
-# 	
 	if os.path.exists(outputfilename):	
 		outputfile=open(outputfilename,"a")
 		outputfile.write(args.input + "\t" + str(len(givenlabels))+ "\t" + str(mcc) + "\t" + str(accuracy) + "\t" + str(recall) + "\t" + str(precision) + "\t" + str(fscore) + "\t")
+		outputfile.write(str(len(tmp_givenlabels))+ "\t" + str(tmpmcc) + "\t" + str(tmpaccuracy) + "\t" + str(tmprecall) + "\t" + str(tmpprecision) + "\t" + str(tmpfscore) + "\t")
 		outputfile.write(str(len(filteredgivenlabels))+ "\t" + str(filteredmcc) + "\t" + str(filteredaccuracy) + "\t" + str(filteredrecall) + "\t" + str(filteredprecision) + "\t" + str(filteredfscore) + "\n")
 		outputfile.close()
 	else:
 		outputfile=open(outputfilename,"w")
-		outputfile.write("Dataset\tNumber of sequences with a given label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with a given label present in the references\tMcc\tAccuracy\tPrecision\tFscore\n")
+		outputfile.write("Dataset\tNumber of sequences with a given label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with a predicted label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with a given label present in the references\tMcc\tAccuracy\tRecall\tPrecision\tFscore\n")
 		outputfile.write(args.input + "\t" + str(len(givenlabels))+ "\t" + str(mcc) + "\t" + str(accuracy) + "\t" + str(recall) + "\t" + str(precision) + "\t" + str(fscore) + "\t")
+		outputfile.write(str(len(tmp_givenlabels))+ "\t" + str(tmpmcc) + "\t" + str(tmpaccuracy) + "\t" + str(tmprecall) + "\t" + str(tmpprecision) + "\t" + str(tmpfscore) + "\t")
 		outputfile.write(str(len(filteredgivenlabels))+ "\t" + str(filteredmcc) + "\t" + str(filteredaccuracy) + "\t" + str(filteredrecall) + "\t" + str(filteredprecision) + "\t" + str(filteredfscore) + "\n")
 		outputfile.close()
 		
