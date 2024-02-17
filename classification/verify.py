@@ -25,7 +25,7 @@ import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='verify.py',  
-							   usage="%(prog)s [options] -i classified file -f the fasta file -r referencefastafilename -c classificationfile -o output",
+							   usage="%(prog)s [options] -i classified file -pred_columnname Prediction -f the fasta file -r referencefastafilename -c classificationfile -o output",
 							   description='''Script that verifies the classified sequences of the prediction file to their BLAST best match based on the given cutoffs or phylogenetic trees.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -38,7 +38,7 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-m','--maxseqno', type=int, default=50, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
-parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
+#parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 #parser.add_argument('-fullclassification_columnname','--fullclassification_columnname', default="full classification", help='the colunm name of the predicted full classification.')
 #parser.add_argument('-givenlabel_columnname','--givenlabel_columnname', default="given label", help='the colunm name of the given labels, for comparison purpose.')
 parser.add_argument('-redo','--redo', default="", help='the classification rank')
@@ -66,7 +66,7 @@ classificationfilename=args.classification
 maxseqno=args.maxseqno
 mincoverage = args.minalignmentlength
 prefix=args.prefix
-verifyingrank=args.classificationrank
+#verifyingrank=args.classificationrank
 minproba=args.minproba
 method=args.method
 globalcutoff=args.globalcutoff
@@ -305,7 +305,7 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 	p_bs=-1
 	p_s=-1
 	p_co=-1
-	p_rank=-1
+	#p_rank=-1
 	p_v=-1
 	p_t=-1
 	p_cutoff=-1
@@ -336,8 +336,8 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 			p_s=i
 		if "coverage" in header.lower():
 			p_co=i	
-		if "rank" in header.lower():
-			p_rank=i
+		#if "rank" in header.lower():
+		#	p_rank=i
 		if "cut-off" in header.lower():
 			p_cutoff=i	
 		if "confidence" in header.lower():
@@ -353,13 +353,15 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if "max branch length" in header.lower():
 			p_maxbranchlength=i	
 		if "average branch length" in header.lower():
-			p_averagebranchlength=i	
+			p_averagebranchlength=i
+		if args.prediction_columnname.lower() == header.lower():
+			p_pl=i			   
 		i=i+1	
 	if p_id==-1:
 		print("Please specify the sequence id columnname by using -idcolumnname.")
 		isError=True
 	if 	p_pl==-1:
-		print("Please use columnname -prediction_columnname for loading prediction.")
+		print("Please use columnname -pred_columnname for loading prediction.")
 		isError=True
 		
 	for line in predictionfile:
@@ -405,10 +407,10 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if p_co>0 and p_co<len(texts):
 			cov=float(texts[p_co])
 		predictiondict[seqid]["coverage"]=cov
-		rank=""
-		if p_rank>0 and p_rank<len(texts):
-			rank=texts[p_rank]
-		predictiondict[seqid]["rank"]=rank
+		#rank=""
+		#if p_rank>0 and p_rank<len(texts):
+		#	rank=texts[p_rank]
+		#predictiondict[seqid]["rank"]=rank
 		cutoff=0
 		if p_cutoff>0 and p_cutoff<len(texts):
 			cutoff=texts[p_cutoff]
@@ -818,13 +820,13 @@ def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
 	os.system("rm " + queryname)
 	return bestrefid,bestlocalscore,bestlocalsim,bestlocalcoverage
 
-def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy,redo):
+def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,redo):
 	count=0
 	total=0
 	#create Fasta files
 	for seqid in predictiondict.keys():
 		predictedname=predictiondict[seqid]["predlabel"]
-		rank=predictiondict[seqid]["rank"]
+		#rank=predictiondict[seqid]["rank"]
 		refid=predictiondict[seqid]["refid"]
 		coverage=predictiondict[seqid]["coverage"]
 		sim=predictiondict[seqid]["sim"]
@@ -834,8 +836,9 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 		if score==0:
 			score=sim
 		verifiedlabel=""
-		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba): #verifying only for classification results with probability greater than min proba
-			#only predict when the tree file name does not exist
+		#if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba): #verifying only for classification results with probability greater than min proba
+		if proba >=minproba:			
+		#only predict when the tree file name does not exist
 			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
 				total=total+1
 				seqrecord=seqrecords[seqid]
@@ -854,28 +857,31 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifying
 				predicted_cutoff=taxonomy[predictedname]["cut-off"]
 				predicted_confidence=taxonomy[predictedname]["confidence"]
 				predicted_classification=taxonomy[predictedname]["classification"]
+				print(seqid)
+				print(score)
+				print(predicted_cutoff)
 				if 	score >= predicted_cutoff:
 					verifiedlabel=predictedname
 					count=count+1
 					predictiondict[seqid]["verifiedlabel"]=verifiedlabel
-					predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
-					predictiondict[seqid]["classification"]=predicted_classification
-					predictiondict[seqid]["refid"]=refid
-					predictiondict[seqid]["sim"]=sim
-					predictiondict[seqid]["score"]=score
-					predictiondict[seqid]["coverage"]=coverage
-					predictiondict[seqid]["cut-off"]=predicted_cutoff
-					predictiondict[seqid]["confidence"]=predicted_confidence
+				predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+				predictiondict[seqid]["classification"]=predicted_classification
+				predictiondict[seqid]["refid"]=refid
+				predictiondict[seqid]["sim"]=sim
+				predictiondict[seqid]["score"]=score
+				predictiondict[seqid]["coverage"]=coverage
+				predictiondict[seqid]["cut-off"]=predicted_cutoff
+				predictiondict[seqid]["confidence"]=predicted_confidence
 	return count,total
 	
-def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,alignmentmethod,redo):
+def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,alignmentmethod,redo):
 	count=0
 	notree_count=0
 	total=0
 	#create Fasta files
 	for seqid in predictiondict.keys():
 		predictedname=predictiondict[seqid]["predlabel"]
-		rank=predictiondict[seqid]["rank"]
+		#rank=predictiondict[seqid]["rank"]
 		treefilename=predictiondict[seqid]["treefilename"]
 		numberofrefsequences=predictiondict[seqid]["numberofrefsequences"]
 		branchlength=predictiondict[seqid]["branchlength"]
@@ -885,7 +891,8 @@ def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingra
 		#if sys.version_info[0] < 3:
 			#predictedname=unicode(predictedname,'latin1')
 		verifiedlabel=""
-		if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba):#verifying only for classification results with probability greater than min proba
+		#if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba):#verifying only for classification results with probability greater than min proba
+		if proba >=minproba:#verifying only for classification results with probability greater than min proba
 			#only predict when the tree file name does not exist
 			if (predictedname in refclasses.keys()) and (seqid in seqrecords.keys()):
 				total=total+1
@@ -920,16 +927,16 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 	classificationreportfile=open(classificationreportfilename,"w")
 	outputfile=open(output,"w")
 	notverifiedoutputfile=open(notverifiedoutput,"w")
-	notverifiedoutputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
-	outputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tRank\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
-	classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\trank\tscore\tcutoff\tconfidence\n")
+	notverifiedoutputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	outputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tscore\tcutoff\tconfidence\n")
 	for seqid in predictiondict.keys():
 		prediction=predictiondict[seqid]
 		treefilename=prediction["treefilename"]
 		predlabel=prediction["predlabel"]
 		givenlabel=prediction["givenlabel"]
 		classification=prediction["classification"]
-		rank=prediction["rank"]
+		#rank=prediction["rank"]
 		bestscore=prediction["score"]
 		cutoff=prediction["cut-off"]
 		confidence=prediction["confidence"]
@@ -943,15 +950,16 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		maxbranchlength=prediction["maxbranchlength"]
 		averagebranchlength=prediction["averagebranchlength"]
 		if args.saveverifiedonly!="yes":
-			outputfile.write(seqid + "\t" + givenlabel + "\t"  + verifiedlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
+			outputfile.write(seqid + "\t" + givenlabel + "\t"  + verifiedlabel + "\t"+ classification + "\t" + str(proba) + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
 			#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		else:
 			if verifiedlabel!="" and verifiedlabel!="unidentified":			
-				outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
+				outputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
 				#cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		#save un verified sequences
-		if (verifiedlabel=="" or verifiedlabel=="unidentified") and ((verifyingrank!="" and verifyingrank==rank) or verifyingrank==""):
-			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba) + "\t" + rank + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
+		#if (verifiedlabel=="" or verifiedlabel=="unidentified") and ((verifyingrank!="" and verifyingrank==rank) or verifyingrank==""):
+		if (verifiedlabel=="" or verifiedlabel=="unidentified"):
+			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba)  + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
 		classificationreportfile.close()
 	outputfile.close()	
 	notverifiedoutputfile.close()	
@@ -1002,12 +1010,10 @@ if __name__ == "__main__":
 	classificationreportfilename=GetWorkingBase(prefix) + ".verified.classification"
 	if outputname==predictionfilename:
 		outputname=outputname+".verified"
-	if verifyingrank!="":
-		outputname=GetWorkingBase(prefix) + "." + verifyingrank + ".verified"
-		notverifiedoutputname=GetWorkingBase(prefix) + "." + verifyingrank + ".unverified"
-		classificationreportfilename=GetWorkingBase(prefix) + "." + verifyingrank + ".verified.classification"
-#	if outputname==predictionfilename:
-#		outputname=outputname+".verified"
+# 	if verifyingrank!="":
+# 		outputname=GetWorkingBase(prefix) + "." + verifyingrank + ".verified"
+# 		notverifiedoutputname=GetWorkingBase(prefix) + "." + verifyingrank + ".unverified"
+# 		classificationreportfilename=GetWorkingBase(prefix) + "." + verifyingrank + ".verified.classification"
 	#load prediction
 	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname,args.sequenceid)	
 	if isError==True:
@@ -1026,7 +1032,7 @@ if __name__ == "__main__":
 		sys.exit()
 	#verifying...	
 	if args.method=="tree":
-		count,notree_count,total=VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,args.alignmentmethod,args.redo)
+		count,notree_count,total=VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,args.alignmentmethod,args.redo)
 		if total >0:
 			print("Number of classified sequences: " + str(total))
 			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
@@ -1041,10 +1047,10 @@ if __name__ == "__main__":
 				cutoffs = json.load(cutoffsfile)
 		#add cutoffs to taxa for sequence identification		
 		AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)		
-		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,verifyingrank,taxonomy,args.redo)
+		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,args.redo)
 		if total >0:
 			print("Number of classified sequences: " + str(total))
-			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")
+			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")	
 	#print("The results are saved in file  " + outputname)
 	SaveVerification(predictiondict,outputname,notverifiedoutputname,classificationfilename)
 	print("The results are saved in file  " + outputname + ", " + notverifiedoutputname + " and " + classificationreportfilename + ".")
