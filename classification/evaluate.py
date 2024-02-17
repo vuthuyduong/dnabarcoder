@@ -349,6 +349,8 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,out
 		if predlabel!="" and predlabel !="unidentified":
 			tmp_givenlabels.append(label)		
 			tmp_predlabels.append(predlabel)
+		else:
+			print(label + "\t" + predlabel)
 		i=i+1		
 	accuracy,precision,recall,fscore,precisionvector,recallvector,fscorevector,mcc,confusionmatrix=CalculateMetrics(givenlabels,predlabels,predlabels)
 	tmpaccuracy,tmpprecision,tmprecall,tmpfscore,tmpprecisionvector,tmprecallvector,tmpfscorevector,tmpmcc,tmpconfusionmatrix=CalculateMetrics(tmp_givenlabels,tmp_predlabels,tmp_predlabels)
@@ -370,7 +372,7 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,out
 		outputfile.close()
 	else:
 		outputfile=open(outputfilename,"w")
-		outputfile.write("Dataset\tNumber of sequences with a given label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with a predicted label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with a given label present in the references\tMcc\tAccuracy\tRecall\tPrecision\tFscore\n")
+		outputfile.write("Dataset\tNumber of sequences with a given label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with an identified predicted label\tMcc\tAccuracy\tRecall\tPrecision\tFscore\tNumber of sequences with a given label present in the training dataset\tMcc\tAccuracy\tRecall\tPrecision\tFscore\n")
 		outputfile.write(args.input + "\t" + str(len(givenlabels))+ "\t" + str(mcc) + "\t" + str(accuracy) + "\t" + str(recall) + "\t" + str(precision) + "\t" + str(fscore) + "\t")
 		outputfile.write(str(len(tmp_givenlabels))+ "\t" + str(tmpmcc) + "\t" + str(tmpaccuracy) + "\t" + str(tmprecall) + "\t" + str(tmpprecision) + "\t" + str(tmpfscore) + "\t")
 		outputfile.write(str(len(filteredgivenlabels))+ "\t" + str(filteredmcc) + "\t" + str(filteredaccuracy) + "\t" + str(filteredrecall) + "\t" + str(filteredprecision) + "\t" + str(filteredfscore) + "\n")
