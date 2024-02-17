@@ -857,9 +857,6 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 				predicted_cutoff=taxonomy[predictedname]["cut-off"]
 				predicted_confidence=taxonomy[predictedname]["confidence"]
 				predicted_classification=taxonomy[predictedname]["classification"]
-				print(seqid)
-				print(score)
-				print(predicted_cutoff)
 				if 	score >= predicted_cutoff:
 					verifiedlabel=predictedname
 					count=count+1
