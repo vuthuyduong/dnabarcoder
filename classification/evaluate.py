@@ -190,20 +190,26 @@ def LoadClassificationFromDescription(fastafilename):
 		classificationdict[seqid]=classification
 	return classificationdict
 
-def LoadTaxa(classificationfilename):
-	taxa=[]
+def LoadTaxa(fastafilename,classificationfilename):
+	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+	taxa={}
 	classificationfile=open(classificationfilename)
 	for line in classificationfile:
 		line=line.rstrip()
 		texts=line.split("\t")
-		for text in texts:
-			if text!="" and not (text in taxa):
-				taxa.append(text)
-	classificationfile.close()			
+		seqid=texts[0]
+		if seqid in seqrecords.keys():
+			for text in texts:
+				if text!="":
+					if not (text in taxa.keys()):
+						taxa.setdefault(text,1)
+					else:
+						taxa[text]=taxa[text] + 1
+	classificationfile.close()	
 	return taxa
 
 def LoadTaxaFromDescription(fastafilename):
-	alltaxa=[]
+	alltaxa={}
 	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 	for seqid in seqrecords.keys():
 		description=seqrecords[seqid].description
@@ -215,9 +221,12 @@ def LoadTaxaFromDescription(fastafilename):
 			for taxon in taxa:
 				if "__" in taxon:
 					taxon=taxon.split("__")[1]
-				if taxon!="" and taxon!="unidentified" and not (taxon in alltaxa):
 					taxon=taxon.replace("_"," ")
-					alltaxa.append(taxon)			
+				if taxon!="" and taxon!="unidentified":
+					if  not (taxon in alltaxa.keys()):
+						alltaxa.setdefault(taxon,1)
+					else:	
+						alltaxa[taxon]=alltaxa[taxon] + 1
 	return alltaxa
 
 def is_fasta(filename):
@@ -359,7 +368,7 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,out
 	filteredpredlabels=[]
 	i=0
 	for label in givenlabels:
-		if label in reftaxa:
+		if label in reftaxa.keys():
 			predlabel=predlabels[i]
 			filteredgivenlabels.append(label)
 			filteredpredlabels.append(predlabel)
@@ -380,7 +389,7 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,out
 		outputfile.close()
 		
 	report=open(reportname,"w")
-	report.write("Taxonname\tAccuracy\tPrecision\tFscore\n")
+	report.write("Taxonname\tAccuracy\tPrecision\tFscore\tNumber of reference sequences in the training dataset\n")
 	i=0
 	existinglabels=[]
 	for label in pred_labels:
@@ -388,7 +397,10 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,out
 			i=i+1
 			continue
 		existinglabels.append(label)
-		report.write(label + "\t" + str(recallvector[i]) + "\t" + str(precisionvector[i]) + "\t" + str(fscorevector[i]) + "\n")
+		count=0
+		if label in reftaxa.keys():
+			count=reftaxa[label]
+		report.write(label + "\t" + str(recallvector[i]) + "\t" + str(precisionvector[i]) + "\t" + str(fscorevector[i]) + "\t" + str(count) + "\n")
 		i=i+1
 	report.close()
 	
@@ -404,7 +416,7 @@ if __name__ == "__main__":
 				sys.exit()
 	
 	outputname=GetBase(predictionfilename) + ".labeled"
-	reftaxa=[]
+	reftaxa={}
 	if refclassificationfilename!="":
 		if is_fasta(refclassificationfilename):
 			reftaxa=LoadTaxaFromDescription(refclassificationfilename)	
