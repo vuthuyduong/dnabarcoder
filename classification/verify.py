@@ -36,7 +36,7 @@ parser.add_argument('-f','--fasta', help='the fasta file')
 parser.add_argument('-r','--reference', help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-maxseqno','--maxseqno', type=int, default=500, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
+parser.add_argument('-maxseqno','--maxseqno', type=int, default=1000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
 #parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 #parser.add_argument('-fullclassification_columnname','--fullclassification_columnname', default="full classification", help='the colunm name of the predicted full classification.')
@@ -841,9 +841,10 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 		#only predict when the tree file name does not exist
 			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
 				total=total+1
+				sequences=refclasses[predictedname]
+				numberofrefsequences=len(sequences.keys())
 				seqrecord=seqrecords[seqid]
-				if score==0 or (redo !=""):
-					sequences=refclasses[predictedname]
+				if score==0 or (redo !=""):			
 					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno)
 					if os.path.exists(reffilename):
 						#compute BLAST score
@@ -1002,9 +1003,9 @@ if __name__ == "__main__":
 		prefix=GetBase(predictionfilename)
 		if "/" in prefix:
 			prefix=prefix[prefix.rindex("/")+1:]	
-	outputname=GetWorkingBase(prefix) + ".verified"
-	notverifiedoutputname=GetWorkingBase(prefix) + ".unverified"
-	classificationreportfilename=GetWorkingBase(prefix) + ".verified.classification"
+	outputname=GetWorkingBase(prefix) + "." + args.prediction_columnname.lower() +".verified"
+	notverifiedoutputname=GetWorkingBase(prefix)+ "." + args.prediction_columnname.lower() + ".unverified"
+	classificationreportfilename=GetWorkingBase(prefix) + "." + args.prediction_columnname.lower()+ ".verified.classification"
 	if outputname==predictionfilename:
 		outputname=outputname+".verified"
 # 	if verifyingrank!="":
