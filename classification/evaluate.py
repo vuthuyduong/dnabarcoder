@@ -307,12 +307,13 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 			classname=classname.replace("_"," ")
 			if outputname!="":
 				texts[p_predlabel]=classname
-				texts[p_givenlabel]=givenlabel
+				if p_givenlabel >=0:
+					texts[p_givenlabel]=givenlabel
 				newline=""
 				for text in texts:
 					newline=newline + text + "\t"
 				if p_givenlabel==-1:
-					newline=newline + givenlabel +"\t"	
+					newline=newline + givenlabel +"\t"
 				newline=newline[:-1]
 				if "\n" not in newline:
 					newline=newline + "\n"
@@ -349,8 +350,8 @@ def CalculateClassificationMetrics(givenlabels,predlabels,reftaxa,reportname,out
 		if predlabel!="" and predlabel !="unidentified":
 			tmp_givenlabels.append(label)		
 			tmp_predlabels.append(predlabel)
-		else:
-			print(label + "\t" + predlabel)
+# 		else:
+# 			print(label + "\t" + predlabel)
 		i=i+1		
 	accuracy,precision,recall,fscore,precisionvector,recallvector,fscorevector,mcc,confusionmatrix=CalculateMetrics(givenlabels,predlabels,predlabels)
 	tmpaccuracy,tmpprecision,tmprecall,tmpfscore,tmpprecisionvector,tmprecallvector,tmpfscorevector,tmpmcc,tmpconfusionmatrix=CalculateMetrics(tmp_givenlabels,tmp_predlabels,tmp_predlabels)
