@@ -38,6 +38,7 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-maxseqno','--maxseqno', type=int, default=1000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
+parser.add_argument('-lower_taxonomic_pred_columnnames','--lower_taxonomic_prediction_columnnames', default="", help='the colunm names, separated by ",", of the predictions at lower taxonomic levels if exists.')
 #parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 #parser.add_argument('-fullclassification_columnname','--fullclassification_columnname', default="full classification", help='the colunm name of the predicted full classification.')
 #parser.add_argument('-givenlabel_columnname','--givenlabel_columnname', default="given label", help='the colunm name of the given labels, for comparison purpose.')
@@ -87,6 +88,135 @@ def GetWorkingBase(filename):
 		basename=basename[:-(len(basename)-basename.rindex("."))] 
 	path=outputpath + "/" + filename
 	return path
+
+def GetLevel(rank):
+	level=-1
+	if rank=="species":	
+		level=6
+	elif rank=="genus":	
+		level=5
+	elif rank=="family":	
+		level=4
+	elif rank=="order":	
+		level=3
+	elif rank=="class":	
+		level=2
+	elif rank=="phylum":
+		level=1
+	elif rank=="kingdom":
+		level=0	
+	return level
+
+def GetHigherTaxa(rank,classification):
+	highertaxa=[]
+	taxa=classification.split(";")
+	species=""
+	genus=""
+	family=""
+	order=""
+	bioclass=""
+	phylum=""
+	kingdom=""
+	for taxon in taxa:
+		if taxon.startswith("k__"):
+			kingdom=taxon.replace("k__","")
+		if taxon.startswith("p__"):
+			phylum=taxon.replace("p__","")	
+		if taxon.startswith("c__"):
+			bioclass=taxon.replace("c__","")	
+		if taxon.startswith("o__"):
+			order=taxon.replace("o__","")	
+		if taxon.startswith("f__"):
+			family=taxon.replace("f__","")	
+		if taxon.startswith("g__"):
+			genus=taxon.replace("g__","")	
+		if taxon.startswith("s__"):
+			species=taxon.replace("s__","")	
+	level=GetLevel(rank)	
+	if level >=6 and species!="" and species!="unidentified":
+		highertaxa.append(species)
+	if level >=5 and genus!="" and genus!="unidentified":
+		highertaxa.append(genus)
+	if level >=4 and family!="" and family!="unidentified":
+		highertaxa.append(family)	
+	if level >=3 and order!="" and order!="unidentified":
+		highertaxa.append(order)	
+	if level >=2 and bioclass!="" and bioclass!="unidentified":
+		highertaxa.append(bioclass)	
+	if level >=1 and phylum!="" and phylum!="unidentified":
+		highertaxa.append(phylum)
+	if level >=0 and kingdom!="" and kingdom!="unidentified":
+		highertaxa.append(kingdom)
+	return highertaxa
+
+def GetTaxonomicName(rank,nameatlowertaxonomiclevel,taxonomy):
+	currentname=""
+	try:
+		classification=taxonomy[nameatlowertaxonomiclevel]['classification']
+		level=GetLevel(rank)
+		currentname=classification.split(";")[level]
+		currentname=currentname.split("__")[1].replace("_"," ")
+	except KeyError:
+		pass
+	return currentname
+
+def GetRank(taxonname,classification):
+	rank=""
+	level=-1
+	texts=classification.split(";")
+	for text in texts:
+		if not taxonname in text:
+			continue
+		if text.startswith("k__"):
+			rank="kingdom"
+			level=0
+		if text.startswith("p__"):
+			rank="phylum"
+			level=1
+		if text.startswith("c__"):
+			rank="class"	
+			level=2
+		if text.startswith("o__"):
+			rank="order"	
+			level=3
+		if text.startswith("f__"):
+			rank="family"
+			level=4
+		if text.startswith("g__"):
+			rank="genus"
+			level=5
+		if text.startswith("s__"):
+			rank="species"	
+			level=6
+	return rank,level
+
+def GetRankClassification(level,classification):
+	if classification=="" or level ==-1:
+		return "k__unidentified;p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
+	species=classification.split(";")[6].replace("s__","")
+	genus=classification.split(";")[5].replace("g__","")
+	family=classification.split(";")[4].replace("f__","")
+	order=classification.split(";")[3].replace("o__","")
+	bioclass=classification.split(";")[2].replace("c__","")
+	phylum=classification.split(";")[1].replace("p__","")
+	kingdom=classification.split(";")[0].replace("k__","")
+	newclassification=""
+	if level >=0 and kingdom!="unidentified":
+		newclassification="k__" + kingdom +";p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
+	if level >=1 and phylum!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+	if level >=2 and bioclass!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass+";o__unidentified;f__unidentified;g__unidentified;s__unidentified"
+	if level >=3 and order!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order + ";f__unidentified;g__unidentified;s__unidentified"
+	if level >=4 and family!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family +";g__unidentified;s__unidentified"
+	if level >=5 and genus!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus + ";s__unidentified"
+	if level >=6 and species!="unidentified":
+		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
+	return newclassification
+
 
 def GetTaxonomicClassification(level,header,texts):
 	classification=""
@@ -314,9 +444,16 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 	p_branchlength=-1
 	p_maxbranchlength=-1
 	p_averagebranchlength=-1
+	p_lower_taxonomic_predictions=-1
 	predictionfile=open(predictionfilename)
 	headers=next(predictionfile)
 	i=0
+	p_lower_taxonomic_predictions=[]
+	lowerlevelcolumnnames=[]
+	if "," in args.lower_taxonomic_prediction_columnnames:
+		lowerlevelcolumnnames=args.lower_taxonomic_prediction_columnnames.lower().split(",")
+	else:
+		lowerlevelcolumnnames.append(args.lower_taxonomic_prediction_columnnames.lower())
 	for header in headers.rstrip().split("\t"):
 		if header.lower()==idcolumnname.lower():
 			p_id=i
@@ -355,7 +492,11 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if "average branch length" in header.lower():
 			p_averagebranchlength=i
 		if args.prediction_columnname.lower() == header.lower():
-			p_pl=i			   
+			p_pl=i
+		if header.lower() in lowerlevelcolumnnames:
+			if not (i in p_lower_taxonomic_predictions):
+				p_lower_taxonomic_predictions.append(i)
+				   
 		i=i+1	
 	if p_id==-1:
 		print("Please specify the sequence id columnname by using -idcolumnname.")
@@ -383,6 +524,9 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if p_pl >=0 and p_pl < len(texts):
 			predlabel=texts[p_pl]
 		predictiondict[seqid]["predlabel"]=predlabel
+		predictiondict[seqid]["predlabelsatlowertaxonomiclevels"]=[]
+		for p in p_lower_taxonomic_predictions:
+			predictiondict[seqid]["predlabelsatlowertaxonomiclevels"].append(texts[p])
 		pred_classification=""
 		if p_c >=0 and p_c < len(texts):
 			pred_classification=texts[p_c]
@@ -446,24 +590,6 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if givenseqid==seqid:
 			break
 	return predictiondict,isError
-
-def GetLevel(rank):
-	level=-1
-	if rank=="species":	
-		level=6
-	elif rank=="genus":	
-		level=5
-	elif rank=="family":	
-		level=4
-	elif rank=="order":	
-		level=3
-	elif rank=="class":	
-		level=2
-	elif rank=="phylum":
-		level=1
-	elif rank=="kingdom":
-		level=0	
-	return level
 
 def lookup_by_names(tree):
 	names = {}
@@ -593,66 +719,27 @@ def CreateFastaFileForBLAST(seqrecord,taxonname,sequences,maxseqno):
 		newfastafilename=""			
 	return newfastafilename,numberofrefsequences
 
-# def GetLevel(rank):
-# 	level=-1
-# 	if rank=="species":	
-# 		level=6
-# 	elif rank=="genus":	
-# 		level=5
-# 	elif rank=="family":	
-# 		level=4
-# 	elif rank=="order":	
-# 		level=3
-# 	elif rank=="class":	
-# 		level=2
-# 	elif rank=="phylum":
-# 		level=1
-# 	elif rank=="kingdom":
-# 		level=0	
-# 	return level
 
-def GetHigherTaxa(rank,classification):
-	highertaxa=[]
-	taxa=classification.split(";")
-	species=""
-	genus=""
-	family=""
-	order=""
-	bioclass=""
-	phylum=""
-	kingdom=""
-	for taxon in taxa:
-		if taxon.startswith("k__"):
-			kingdom=taxon.replace("k__","")
-		if taxon.startswith("p__"):
-			phylum=taxon.replace("p__","")	
-		if taxon.startswith("c__"):
-			bioclass=taxon.replace("c__","")	
-		if taxon.startswith("o__"):
-			order=taxon.replace("o__","")	
-		if taxon.startswith("f__"):
-			family=taxon.replace("f__","")	
-		if taxon.startswith("g__"):
-			genus=taxon.replace("g__","")	
-		if taxon.startswith("s__"):
-			species=taxon.replace("s__","")	
-	level=GetLevel(rank)	
-	if level >=6 and species!="" and species!="unidentified":
-		highertaxa.append(species)
-	if level >=5 and genus!="" and genus!="unidentified":
-		highertaxa.append(genus)
-	if level >=4 and family!="" and family!="unidentified":
-		highertaxa.append(family)	
-	if level >=3 and order!="" and order!="unidentified":
-		highertaxa.append(order)	
-	if level >=2 and bioclass!="" and bioclass!="unidentified":
-		highertaxa.append(bioclass)	
-	if level >=1 and phylum!="" and phylum!="unidentified":
-		highertaxa.append(phylum)
-	if level >=0 and kingdom!="" and kingdom!="unidentified":
-		highertaxa.append(kingdom)
-	return highertaxa
-
+def AddCutoffsToTaxonomy(taxonomy,cutoff,confidence,cutoffs):
+	for taxonname in taxonomy.keys():
+		if cutoffs!={}:
+			classification=taxonomy[taxonname]["classification"]
+			rank=taxonomy[taxonname]["rank"]
+			if taxonname in cutoffs.keys():
+				taxonomy[taxonname]["cut-off"]=cutoffs[taxonname]["cut-off"]
+				taxonomy[taxonname]["confidence"]=cutoffs[taxonname]["confidence"]
+			else:	
+				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
+				if cutoff_confidence[2]==True:
+					taxonomy[taxonname]["cut-off"]=cutoff_confidence[0]
+					taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
+			if not ("cut-off" in taxonomy[taxonname].keys()) and globalcutoff >=0: #use the globalcutoff
+				taxonomy[taxonname]["cut-off"]=globalcutoff
+				taxonomy[taxonname]["confidence"]=globalconfidence
+		else:
+			taxonomy[taxonname]["cut-off"]=cutoff
+			taxonomy[taxonname]["confidence"]=confidence
+			
 def GetCutoffAndConfidence(rank,classification,cutoffs):
 	if not rank in cutoffs.keys():
 		return [0,0,False]
@@ -689,84 +776,7 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 				bestcutoff=localcutoff
 			if isComputed==True:	
 				break
-	return [bestcutoff,maxconfidence,isComputed]
-
-def GetRank(taxonname,classification):
-	rank=""
-	level=-1
-	texts=classification.split(";")
-	for text in texts:
-		if not taxonname in text:
-			continue
-		if text.startswith("k__"):
-			rank="kingdom"
-			level=0
-		if text.startswith("p__"):
-			rank="phylum"
-			level=1
-		if text.startswith("c__"):
-			rank="class"	
-			level=2
-		if text.startswith("o__"):
-			rank="order"	
-			level=3
-		if text.startswith("f__"):
-			rank="family"
-			level=4
-		if text.startswith("g__"):
-			rank="genus"
-			level=5
-		if text.startswith("s__"):
-			rank="species"	
-			level=6
-	return rank,level
-
-def GetRankClassification(level,classification):
-	if classification=="" or level ==-1:
-		return "k__unidentified;p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
-	species=classification.split(";")[6].replace("s__","")
-	genus=classification.split(";")[5].replace("g__","")
-	family=classification.split(";")[4].replace("f__","")
-	order=classification.split(";")[3].replace("o__","")
-	bioclass=classification.split(";")[2].replace("c__","")
-	phylum=classification.split(";")[1].replace("p__","")
-	kingdom=classification.split(";")[0].replace("k__","")
-	newclassification=""
-	if level >=0 and kingdom!="unidentified":
-		newclassification="k__" + kingdom +";p__unidentified;c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"	
-	if level >=1 and phylum!="unidentified":
-		newclassification="k__" + kingdom +";p__"+phylum +";c__unidentified;o__unidentified;f__unidentified;g__unidentified;s__unidentified"
-	if level >=2 and bioclass!="unidentified":
-		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass+";o__unidentified;f__unidentified;g__unidentified;s__unidentified"
-	if level >=3 and order!="unidentified":
-		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order + ";f__unidentified;g__unidentified;s__unidentified"
-	if level >=4 and family!="unidentified":
-		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family +";g__unidentified;s__unidentified"
-	if level >=5 and genus!="unidentified":
-		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus + ";s__unidentified"
-	if level >=6 and species!="unidentified":
-		newclassification="k__" + kingdom +";p__"+phylum +";c__"+bioclass +";o__"+ order+";f__"+family + ";g__"+ genus+";s__"+species 	
-	return newclassification
-
-def AddCutoffsToTaxonomy(taxonomy,cutoff,confidence,cutoffs):
-	for taxonname in taxonomy.keys():
-		if cutoffs!={}:
-			classification=taxonomy[taxonname]["classification"]
-			rank=taxonomy[taxonname]["rank"]
-			if taxonname in cutoffs.keys():
-				taxonomy[taxonname]["cut-off"]=cutoffs[taxonname]["cut-off"]
-				taxonomy[taxonname]["confidence"]=cutoffs[taxonname]["confidence"]
-			else:	
-				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
-				if cutoff_confidence[2]==True:
-					taxonomy[taxonname]["cut-off"]=cutoff_confidence[0]
-					taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
-			if not ("cut-off" in taxonomy[taxonname].keys()) and globalcutoff >=0: #use the globalcutoff
-				taxonomy[taxonname]["cut-off"]=globalcutoff
-				taxonomy[taxonname]["confidence"]=globalconfidence
-		else:
-			taxonomy[taxonname]["cut-off"]=cutoff
-			taxonomy[taxonname]["confidence"]=confidence
+	return [bestcutoff,maxconfidence,isComputed]			
 
 def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
 	#Create fasta file of the test record 
@@ -825,7 +835,15 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 	total=0
 	#create Fasta files
 	for seqid in predictiondict.keys():
-		predictedname=predictiondict[seqid]["predlabel"]
+		predname=predictiondict[seqid]["predlabel"]
+		predictednames=[predname]
+		predictednamesatlowerlevels=predictiondict[seqid]["predlabelsatlowertaxonomiclevels"]
+		if predname in taxonomy.keys():
+			rank=taxonomy[predname]["rank"]
+			for lowername in predictednamesatlowerlevels:
+				othername=GetTaxonomicName(rank,lowername,taxonomy)
+				if othername!="" and othername!="unidentified" and not (othername in predictednames):
+					predictednames.append(othername)
 		#rank=predictiondict[seqid]["rank"]
 		refid=predictiondict[seqid]["refid"]
 		coverage=predictiondict[seqid]["coverage"]
@@ -837,14 +855,15 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 			score=sim
 		verifiedlabel=""
 		#if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba): #verifying only for classification results with probability greater than min proba
-		if proba >=minproba:			
-		#only predict when the tree file name does not exist
+		if proba < minproba:	
+			continue
+		for predictedname in predictednames:
 			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
 				total=total+1
 				sequences=refclasses[predictedname]
 				numberofrefsequences=len(sequences.keys())
 				seqrecord=seqrecords[seqid]
-				if score==0 or (redo !=""):			
+				if predictiondict[seqid]["verifiedlabel"]=="" or (redo !=""):			
 					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno)
 					if os.path.exists(reffilename):
 						#compute BLAST score
@@ -1008,14 +1027,7 @@ if __name__ == "__main__":
 	classificationreportfilename=GetWorkingBase(prefix) + "." + args.prediction_columnname.lower()+ ".verified.classification"
 	if outputname==predictionfilename:
 		outputname=outputname+".verified"
-# 	if verifyingrank!="":
-# 		outputname=GetWorkingBase(prefix) + "." + verifyingrank + ".verified"
-# 		notverifiedoutputname=GetWorkingBase(prefix) + "." + verifyingrank + ".unverified"
-# 		classificationreportfilename=GetWorkingBase(prefix) + "." + verifyingrank + ".verified.classification"
-	#load prediction
-	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname,args.sequenceid)	
-	if isError==True:
-		sys.exit()
+	
 	#load sequences
 	seqrecords={}
 	if os.path.exists(fastafilename):
@@ -1028,6 +1040,10 @@ if __name__ == "__main__":
 	if isError==True or refclasses=={} or refclassificationdict=={}:
 		print("Please check the classification of reference sequences.")
 		sys.exit()
+	#load prediction
+	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname,args.sequenceid)	
+	if isError==True:
+		sys.exit()	
 	#verifying...	
 	if args.method=="tree":
 		count,notree_count,total=VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,args.alignmentmethod,args.redo)
