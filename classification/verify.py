@@ -36,7 +36,7 @@ parser.add_argument('-f','--fasta', help='the fasta file')
 parser.add_argument('-r','--reference', help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-maxseqno','--maxseqno', type=int, default=1000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
+parser.add_argument('-maxseqno','--maxseqno', type=int, default=2000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
 parser.add_argument('-lower_taxonomic_pred_columnnames','--lower_taxonomic_prediction_columnnames', default="", help='the colunm names, separated by ",", of the predictions at lower taxonomic levels if exists.')
 #parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
@@ -713,10 +713,10 @@ def CreateFastaFileForBLAST(seqrecord,taxonname,sequences,maxseqno):
 		else:	
 			for sequenceid in sequences.keys():
 				seqrecords.append(sequences[sequenceid])
-	if len(seqrecords) >=1:			
-		SeqIO.write(seqrecords,newfastafilename,"fasta")
-	else:
-		newfastafilename=""			
+		if len(seqrecords) >=1:			
+			SeqIO.write(seqrecords,newfastafilename,"fasta")
+		else:
+			newfastafilename=""			
 	return newfastafilename,numberofrefsequences
 
 
@@ -858,37 +858,50 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 		if proba < minproba:	
 			continue
 		for predictedname in predictednames:
+			#get similarity cut-offs for the current predicted name
+			try:
+				predicted_cutoff=taxonomy[predictedname]["cut-off"]
+				predicted_confidence=taxonomy[predictedname]["confidence"]
+				predicted_classification=taxonomy[predictedname]["classification"]
+			except KeyError:
+				continue
 			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
 				total=total+1
 				sequences=refclasses[predictedname]
 				numberofrefsequences=len(sequences.keys())
 				seqrecord=seqrecords[seqid]
-				if predictiondict[seqid]["verifiedlabel"]=="" or (redo !=""):			
+				if predictiondict[seqid]["verifiedlabel"]=="" or (redo !=""):
 					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno)
 					if os.path.exists(reffilename):
 						#compute BLAST score
 						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrecord,reffilename,mincoverage)
 						os.system("rm " + reffilename)	
-						if newbestscore > score:
-							refid=newrefid
-							score=newbestscore
-							sim=newsim
-							coverage=newcoverage
-				predicted_cutoff=taxonomy[predictedname]["cut-off"]
-				predicted_confidence=taxonomy[predictedname]["confidence"]
-				predicted_classification=taxonomy[predictedname]["classification"]
-				if 	score >= predicted_cutoff:
-					verifiedlabel=predictedname
-					count=count+1
-					predictiondict[seqid]["verifiedlabel"]=verifiedlabel
-				predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
-				predictiondict[seqid]["classification"]=predicted_classification
-				predictiondict[seqid]["refid"]=refid
-				predictiondict[seqid]["sim"]=sim
-				predictiondict[seqid]["score"]=score
-				predictiondict[seqid]["coverage"]=coverage
-				predictiondict[seqid]["cut-off"]=predicted_cutoff
-				predictiondict[seqid]["confidence"]=predicted_confidence
+						#if newbestscore > score:
+						refid=newrefid
+						score=newbestscore
+						sim=newsim
+						coverage=newcoverage
+						if 	score >= predicted_cutoff:
+							verifiedlabel=predictedname
+							count=count+1
+							predictiondict[seqid]["verifiedlabel"]=verifiedlabel
+							predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+							predictiondict[seqid]["classification"]=predicted_classification
+							predictiondict[seqid]["refid"]=refid
+							predictiondict[seqid]["sim"]=sim
+							predictiondict[seqid]["score"]=score
+							predictiondict[seqid]["coverage"]=coverage
+							predictiondict[seqid]["cut-off"]=predicted_cutoff
+							predictiondict[seqid]["confidence"]=predicted_confidence
+				if predictedname==predname and predictiondict[seqid]["numberofrefsequences"]==0:	
+					predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+					predictiondict[seqid]["classification"]=predicted_classification
+					predictiondict[seqid]["refid"]=refid
+					predictiondict[seqid]["sim"]=sim
+					predictiondict[seqid]["score"]=score
+					predictiondict[seqid]["coverage"]=coverage
+					predictiondict[seqid]["cut-off"]=predicted_cutoff
+					predictiondict[seqid]["confidence"]=predicted_confidence
 	return count,total
 	
 def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,alignmentmethod,redo):
