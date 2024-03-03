@@ -47,14 +47,14 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos):
 		taxalist=taxa.split(",")
 	elif taxa!="" and taxa!="unidentified":
 		taxalist.append(taxa)
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename,errors='ignore')
 	seqids=[]
 	for line in classificationfile:
 		elements=line.rstrip().split("\t")
 		seqid = elements[seqidpos].replace(">","").rstrip()
 		classname = ""
 		if classificationpos >= 0 and classificationpos < len(elements):
-			classname = elements[classificationpos]
+			classname = elements[classificationpos]	
 		if taxa!="":
 			if classname == "" or classname == "unidentified":
 				continue
@@ -68,9 +68,21 @@ def SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos):
 			classnames.append(classname)
 	return seqids,classnames
 
+def SaveNewClassification(seqids,classificationfilename,newclassificationfilename):
+	newclassificationfile=open(newclassificationfilename,"w")
+	classificationfile=open(classificationfilename,errors='ignore')
+	header=next(classificationfile)
+	newclassificationfile.write(header)
+	for line in classificationfile:
+		seqid=line.split("\t")[0].rstrip()
+		if seqid in seqids:
+			newclassificationfile.write(line)
+	newclassificationfile.close()
+	classificationfile.close()		
+
 def GetPosition(classificationfilename,rank):
 	pos=-1
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename,errors='ignore')
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
@@ -94,18 +106,22 @@ def GetPosition(classificationfilename,rank):
 
 #####main###
 classificationpos=-1
+newclassificationfilename=GetBase(output) + ".classification"
 if classificationfilename!="":
 	seqidpos,classificationpos,isError=GetPosition(classificationfilename,classificationrank)
 seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos)
 seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
+newseqids=[]
 for seqrec in seqrecords:
 	seqid=seqrec.id
 	if not (seqid in seqids):
 		selectedrecords.append(seqrec)
+		newseqids.append(seqid)
 	else:
 		print(seqid)
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
 print("The selected sequences are saved in " + output + ".")
-
+SaveNewClassification(newseqids, classificationfilename, newclassificationfilename)
+print("The classification of remained sequences are saved in " + newclassificationfilename + ".")
