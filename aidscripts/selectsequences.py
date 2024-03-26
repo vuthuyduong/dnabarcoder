@@ -107,7 +107,7 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 			if found==True:
 				classnames.setdefault(seqid, classname)
 				classification.setdefault(seqid, line)
-		elif classname !="":
+		elif classname !="" and classname !="unidentified":
 			classnames.setdefault(seqid, classname)
 			classification.setdefault(seqid, line)
 		else:
