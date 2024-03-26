@@ -225,7 +225,7 @@ for seqid in seqrecords.keys():
 	seqrec = seqrecords[seqid]
 	description = seqrec.description
 	classname=SelectClassName(seqid,description,classificationrank,taxa,classnames)
-	if classname != "":
+	if classname != "" and classname !="unidentified":
 		if n == 0:  # no limit for number of sequences for a group
 			if len(str(seqrec.seq)) >= l:  # the length of the sequence must be >=l
 				if args.unique == "yes":  # select only unique sequences
