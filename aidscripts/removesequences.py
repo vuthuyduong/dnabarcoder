@@ -118,10 +118,10 @@ for seqrec in seqrecords:
 	if not (seqid in seqids):
 		selectedrecords.append(seqrec)
 		newseqids.append(seqid)
-	else:
-		print(seqid)
+	#else:
+		#print(seqid)
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
 print("The selected sequences are saved in " + output + ".")
-SaveNewClassification(newseqids, classificationfilename, newclassificationfilename)
-print("The classification of remained sequences are saved in " + newclassificationfilename + ".")
+#SaveNewClassification(newseqids, classificationfilename, newclassificationfilename)
+#print("The classification of remained sequences are saved in " + newclassificationfilename + ".")
