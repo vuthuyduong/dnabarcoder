@@ -110,16 +110,15 @@ newclassificationfilename=GetBase(output) + ".classification"
 if classificationfilename!="":
 	seqidpos,classificationpos,isError=GetPosition(classificationfilename,classificationrank)
 seqids,classnames=SelectSeqIds(classificationfilename,taxa,classificationpos,seqidpos)
-seqrecords=list(SeqIO.parse(fastafilename, "fasta"))
+seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
 selectedrecords=[]
-newseqids=[]
-for seqrec in seqrecords:
-	seqid=seqrec.id
-	if not (seqid in seqids):
-		selectedrecords.append(seqrec)
-		newseqids.append(seqid)
-	#else:
-		#print(seqid)
+newseqids=list(set(seqrecords.keys())-set(seqids))
+for seqid in newseqids:
+	try:
+		seqrecord=seqrecords[seqid]
+		selectedrecords.append(seqrecord)
+	except KeyError:
+		continue
 #save to file:
 SeqIO.write(selectedrecords,output,"fasta")
 print("The selected sequences are saved in " + output + ".")
