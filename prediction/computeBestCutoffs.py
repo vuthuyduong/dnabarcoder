@@ -26,8 +26,9 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-f','--fasta', default="", help='the fasta file with sequence descriptions containing taxonomic classification.')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
-#parser.add_argument('-minSeqNo','--minseqno', type=int, default=50, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-#arser.add_argument('-minGroupNo','--mingroupno', type=int, default=10, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
+parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
+parser.add_argument('-maxproportion','--maxproportion', type=float, default=1, help='Only predict when the proportion of the sequences the largest group of the dataset is less than maxproportion. This is to avoid the problem of inaccurate prediction due to imbalanced data.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savebestcutoffsascutoffs','--savebestcutoffsascutoffs', default="yes", help='the prefix of output filenames')
 
@@ -358,12 +359,17 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 		minalignmentlength=0	
 		if "min alignment length" in datasets[highertaxonname].keys():
 			minalignmentlength=datasets[highertaxonname]["min alignment length"]		
-#		if "sequence number" in datasets[highertaxonname].keys():
-#			seqno=datasets[highertaxonname]["sequence number"]	
-#		if "group number" in datasets[highertaxonname].keys():
-#			groupno=datasets[highertaxonname]["group number"]	
-		#if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
-		#if not (groupno < minGroupNo or seqno < minSeqNo):	
+		seqno=0 
+		if "sequence number" in datasets[highertaxonname].keys():
+			seqno=datasets[highertaxonname]["sequence number"]
+		groupno=0
+		if "group number" in datasets[highertaxonname].keys():
+			groupno=datasets[highertaxonname]["group number"]
+		maxproportion =0
+		if "max proportion" in datasets[highertaxonname].keys():
+			maxproportion=datasets[highertaxonname]["max proportion"]	
+		if groupno < args.mingroupno or seqno < args.minseqno or maxproportion > args.maxproportion:	#delete the cutoffs that are too imbalanced or dont have enough sequences and groups for prediction	
+			continue
 		if maxconfidence < confidence:
 			maxconfidence =confidence
 			bestcutoff=cutoff
