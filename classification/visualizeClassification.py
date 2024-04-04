@@ -18,19 +18,19 @@ from Bio import SeqIO
 import random
 
 parser=argparse.ArgumentParser(prog='visualizeClassification.py',  
-							   usage="%(prog)s [options] -i assignmentfile -c classification -o kronareport",
+							   usage="%(prog)s [options] -i assignmentfile -o kronareport",
 							   description='''Script that visualizes using Krona for the classification results.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the assignment/classification file')
-parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+parser.add_argument('-o','--out', default="", help='The output krona report.')
 
 args=parser.parse_args()
 predictionfilename=args.input
-outputpath=args.out
-if not os.path.exists(outputpath):
-	os.system("mkdir " + outputpath)
+kronareport=args.out
+#if not os.path.exists(outputpath):
+#	os.system("mkdir " + outputpath)
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
@@ -195,7 +195,8 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 if __name__ == "__main__":
 	classificationdict = LoadPrediction(predictionfilename)
 	#making krona report
-	kronareport = GetBase(predictionfilename) + ".krona.report"
+	if kronareport=="":
+		kronareport = GetBase(predictionfilename) + ".krona.report"
 	kronahtml=GetBase(kronareport) + ".html"
 	KronaPieCharts(classificationdict,kronareport,kronahtml)
 	print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".") 
