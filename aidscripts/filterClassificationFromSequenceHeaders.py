@@ -47,6 +47,7 @@ def LoadClassificationFromDescription(seqrecords):
 		bioclass = "unidentified"
 		phylum = "unidentified"
 		kingdom = "unidentified"
+		sh=""
 		if " " in description:
 			description = description.split(" ")[1]
 		texts=[]
@@ -56,6 +57,8 @@ def LoadClassificationFromDescription(seqrecords):
 			texts=[description]
 		for text in texts:
 			text = text.rstrip()
+			if text.startswith("SH"):
+				sh=text
 			taxa = text.split(";")
 			for taxon in taxa:
 				if taxon.startswith("k__"):
@@ -75,7 +78,7 @@ def LoadClassificationFromDescription(seqrecords):
 					species = species.replace("_", " ")
 					if species[-3:]==" sp" or ("unculture" in species):
 						species="unidentified"
-		classification =kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
+		classification =kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species + "\t" + sh
 		taxonomy = "k__" + kingdom + ";p__" + phylum + ";c__" + bioclass + ";o__" + order + ";f__" + family + "g__" + genus +  ";s__" + species.replace(" ","_")
 		newseqid=seqid
 		if args.separator in seqid:
@@ -90,7 +93,7 @@ classificationdict=LoadClassificationFromDescription(seqrecords)
 classificationfile=open(classificationfilename,"w")
 outputfile=open(output,"w")
 outputfile_withclassification=open(output_withclassification,"w")
-classificationfile.write("id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\n")
+classificationfile.write("id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\SH\n")
 for seqid in classificationdict.keys():
 	classificationfile.write(seqid + "\t" + classificationdict[seqid][0] + "\n")
 	outputfile.write(">" + seqid + "\n")
