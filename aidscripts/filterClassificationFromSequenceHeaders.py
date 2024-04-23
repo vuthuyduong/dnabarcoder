@@ -79,7 +79,7 @@ def LoadClassificationFromDescription(seqrecords):
 					if species[-3:]==" sp" or ("unculture" in species):
 						species="unidentified"
 		classification =kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species + "\t" + sh
-		taxonomy = "k__" + kingdom + ";p__" + phylum + ";c__" + bioclass + ";o__" + order + ";f__" + family + "g__" + genus +  ";s__" + species.replace(" ","_")
+		taxonomy = "k__" + kingdom + ";p__" + phylum + ";c__" + bioclass + ";o__" + order + ";f__" + family + ";g__" + genus +  ";s__" + species.replace(" ","_")
 		newseqid=seqid
 		if args.separator in seqid:
 			newseqid=seqid.split(args.separator)[0]
