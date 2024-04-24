@@ -93,7 +93,7 @@ classificationdict=LoadClassificationFromDescription(seqrecords)
 classificationfile=open(classificationfilename,"w")
 outputfile=open(output,"w")
 outputfile_withclassification=open(output_withclassification,"w")
-classificationfile.write("id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\SH\n")
+classificationfile.write("id\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tSH\n")
 for seqid in classificationdict.keys():
 	classificationfile.write(seqid + "\t" + classificationdict[seqid][0] + "\n")
 	outputfile.write(">" + seqid + "\n")
