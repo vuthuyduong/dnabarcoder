@@ -61,8 +61,7 @@ def LoadClassificationFromDescription(seqrecords):
 				sh=text
 			taxa = text.split(";")
 			for taxon in taxa:
-				taxon=taxon.lower()
-				if taxon[-2:]=="__" or taxon[-15:]==" incertae sedis" or taxon[-15:].lower()=="_incertae_sedis" or taxon[-3]==" sp" or taxon[-3:]=="_sp" or ("unculture" in taxon):
+				if taxon[-2:]=="__" or taxon[-15:].lower()==" incertae sedis" or taxon[-15:].lower()=="_incertae_sedis" or taxon[-3]==" sp" or taxon[-3:]=="_sp" or ("unculture" in taxon):
 					continue
 				if taxon.startswith("k__"):
 					kingdom = taxon.replace("k__", "")
