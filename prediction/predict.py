@@ -285,8 +285,8 @@ def LoadClassification(classificationfilename,rank,higherranklist):
 		classname = ""
 		higherclassname = ""
 		if pos >-1 and pos < len(texts):
-			classname = texts[pos].rstrip()
-		if classname=="" or classname=="unidentified":
+			classname = texts[pos].rstrip().lower()
+		if classname=="" or classname=="unidentified" or classname[-15:]==" incertae sedis" or classname[-15:]=="_incertae_sedis" or classname[-3]==" sp" or classname[-3:]=="_sp" or ("unculture" in classname):
 			continue
 		allclassification.setdefault(seqid,{})
 		allclassification[seqid][rank]=classname
@@ -548,6 +548,9 @@ def GetTaxonName(description,rank):
 		text=text.rstrip()
 		taxa=text.split(";")	
 		for taxon in taxa:
+			taxon=taxon.lower()
+			if taxon[-2:]=="__" or taxon[-15:]==" incertae sedis" or taxon[-15:].lower()=="_incertae_sedis" or taxon[-3]==" sp" or taxon[-3:]=="_sp" or ("unculture" in taxon):
+				continue
 			if taxon.startswith("k__"):
 				kingdom=taxon.replace("k__","")
 			elif taxon.startswith("p__"):
