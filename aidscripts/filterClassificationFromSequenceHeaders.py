@@ -61,6 +61,9 @@ def LoadClassificationFromDescription(seqrecords):
 				sh=text
 			taxa = text.split(";")
 			for taxon in taxa:
+				taxon=taxon.lower()
+				if taxon[-2:]=="__" or taxon[-15:]==" incertae sedis" or taxon[-15:].lower()=="_incertae_sedis" or taxon[-3]==" sp" or taxon[-3:]=="_sp" or ("unculture" in taxon):
+					continue
 				if taxon.startswith("k__"):
 					kingdom = taxon.replace("k__", "")
 				elif taxon.startswith("p__"):
@@ -76,8 +79,6 @@ def LoadClassificationFromDescription(seqrecords):
 				elif taxon.startswith("s__") and (" " in taxon.replace("s__", "") or "_" in taxon.replace("s__", "")):
 					species = taxon.replace("s__", "")
 					species = species.replace("_", " ")
-					if species[-3:]==" sp" or ("unculture" in species):
-						species="unidentified"
 		classification =kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species + "\t" + sh
 		taxonomy = "k__" + kingdom + ";p__" + phylum + ";c__" + bioclass + ";o__" + order + ";f__" + family + ";g__" + genus +  ";s__" + species.replace(" ","_")
 		newseqid=seqid
