@@ -26,6 +26,7 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-f','--fasta', default="", help='the fasta file with sequence descriptions containing taxonomic classification.')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
+parser.add_argument('-mincutoff','--mincutoff', type=float, default=0, help='The minimum cutoff for selection.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxproportion','--maxproportion', type=float, default=1, help='Only predict when the proportion of the sequences the largest group of the dataset is less than maxproportion. This is to avoid the problem of inaccurate prediction due to imbalanced data.')
@@ -617,6 +618,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 			continue
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
+		if cutoff < args.mincutoff:
+			continue
 		confidence=classificationdict[taxon]["confidence"]
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
@@ -627,6 +630,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 			continue
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
+		if cutoff < args.mincutoff:
+			continue
 		confidence=classificationdict[taxon]["confidence"]
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
@@ -638,6 +643,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
 		confidence=classificationdict[taxon]["confidence"]
+		if cutoff < args.mincutoff:
+			continue
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
 		textfile.write(rank + "\t" + taxon + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + str(minalignmentlength) + "\t" + classification + "\n")
@@ -647,6 +654,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 			continue
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
+		if cutoff < args.mincutoff:
+			continue
 		confidence=classificationdict[taxon]["confidence"]
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
@@ -657,6 +666,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 			continue
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
+		if cutoff < args.mincutoff:
+			continue
 		confidence=classificationdict[taxon]["confidence"]
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
@@ -667,6 +678,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 			continue
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
+		if cutoff < args.mincutoff:
+			continue
 		confidence=classificationdict[taxon]["confidence"]
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
@@ -677,6 +690,8 @@ def SaveCutoffsForTaxa(classificationdict,jsonoutputname_taxa,txtoutputname_taxa
 			continue
 		rank=classificationdict[taxon]["rank"]
 		cutoff=classificationdict[taxon]["cut-off"]
+		if cutoff < args.mincutoff:
+			continue
 		confidence=classificationdict[taxon]["confidence"]
 		minalignmentlength=classificationdict[taxon]["minalignmentlength"]
 		classification=classificationdict[taxon]["classification"]
