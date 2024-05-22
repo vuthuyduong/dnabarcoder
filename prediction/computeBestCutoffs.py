@@ -371,7 +371,7 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 			maxproportion=datasets[highertaxonname]["max proportion"]	
 		if groupno < args.mingroupno or seqno < args.minseqno or maxproportion > args.maxproportion:	#delete the cutoffs that are too imbalanced or dont have enough sequences and groups for prediction	
 			continue
-		if maxconfidence < confidence:
+		if (maxconfidence < confidence) and (cutoff >= args.mincutoff):
 			maxconfidence =confidence
 			bestcutoff=cutoff
 			bestminalignmentlength=minalignmentlength
