@@ -32,35 +32,37 @@ parser=argparse.ArgumentParser(prog='verify.py',
 
 parser.add_argument('-i','--input', required=True, help='the classified file')
 parser.add_argument('-idcolumnname','--idcolumnname', default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-column_separator','--column_separator', default="\t", help='the separator between column names of the classification file.')
 parser.add_argument('-f','--fasta', help='the fasta file')
 parser.add_argument('-r','--reference', help='the reference fasta file')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-maxseqno','--maxseqno', type=int, default=2000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
-parser.add_argument('-lower_taxonomic_pred_columnnames','--lower_taxonomic_prediction_columnnames', default="", help='the colunm names, separated by ",", of the predictions at lower taxonomic levels if exists.')
+#parser.add_argument('-lower_taxonomic_pred_columnnames','--lower_taxonomic_prediction_columnnames', default="", help='the colunm names, separated by ",", of the predictions at lower taxonomic levels if exists.')
 #parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
 #parser.add_argument('-fullclassification_columnname','--fullclassification_columnname', default="full classification", help='the colunm name of the predicted full classification.')
 #parser.add_argument('-givenlabel_columnname','--givenlabel_columnname', default="given label", help='the colunm name of the given labels, for comparison purpose.')
-parser.add_argument('-redo','--redo', default="", help='the classification rank')
+parser.add_argument('-redo','--redo', default="", help='reverifying if -redo yes.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 parser.add_argument('-cutoff','--globalcutoff', type=float, default=0,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
 parser.add_argument('-confidence','--globalconfidence', type=float,default=0,help='The global confidence to assign the sequences to predicted taxa')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
-parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+#parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+#parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
 parser.add_argument('-minproba','--minproba', type=float, default=0, help='The minimum probability for verifying the classification results.')
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-alignmentmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
 parser.add_argument('-saveverifiedonly','--saveverifiedonly',default="yes", help='The option to save only verified sequences (yes) or all (no) in the classification output.')
 parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
-parser.add_argument('-seqid','--sequenceid', default="", help='If the sequence id is given, then only classification of this sequence is verified. Otherwise all classifications are verified.')
+#parser.add_argument('-seqid','--sequenceid', default="", help='If the sequence id is given, then only classification of this sequence is verified. Otherwise all classifications are verified.')
 
 
 args=parser.parse_args()
 predictionfilename=args.input
+column_separator=args.column_separator
 fastafilename= args.fasta
 referencefastafilename= args.reference
 classificationfilename=args.classification
@@ -228,7 +230,7 @@ def GetTaxonomicClassification(level,header,texts):
 	p_p=len(texts)
 	p_k=len(texts)
 	i=0
-	for text in header.split("\t"):
+	for text in header.split(column_separator):
 		text=text.rstrip()
 		if text.lower()=="species":
 			p_s=i
@@ -323,7 +325,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 	if classificationfilename != "":
 		classificationfile= open(classificationfilename, errors='ignore')
 		header=next(classificationfile)
-		texts=header.rstrip().split("\t")
+		texts=header.rstrip().split(column_separator)
 		i=0
 		for text in texts:
 			if text.lower()==idcolumnname.lower():
@@ -333,7 +335,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 			print("Please specify the sequence id columnname by using -idcolumnname.")
 			isError=True
 		for line in classificationfile:
-			texts=line.split("\t")
+			texts=line.split(column_separator)
 			seqid = texts[seqidpos].rstrip()
 			classification,taxonname,rank=GetTaxonomicClassification(0,header,texts)
 			if classification!="":
@@ -423,7 +425,7 @@ def LoadClassification(seqrecords,classificationfilename,idcolumnname):
 				classificationdict[seqid]["rank"]=rank	
 	return classificationdict,classes,taxonomy,isError
 
-def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
+def LoadPrediction(predictionfilename,idcolumnname):
 	isError=False
 	predictiondict={}
 	p_id=-1
@@ -444,17 +446,10 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 	p_branchlength=-1
 	p_maxbranchlength=-1
 	p_averagebranchlength=-1
-	p_lower_taxonomic_predictions=-1
 	predictionfile=open(predictionfilename)
 	headers=next(predictionfile)
 	i=0
-	p_lower_taxonomic_predictions=[]
-	lowerlevelcolumnnames=[]
-	if "," in args.lower_taxonomic_prediction_columnnames:
-		lowerlevelcolumnnames=args.lower_taxonomic_prediction_columnnames.lower().split(",")
-	else:
-		lowerlevelcolumnnames.append(args.lower_taxonomic_prediction_columnnames.lower())
-	for header in headers.rstrip().split("\t"):
+	for header in headers.rstrip().split(column_separator):
 		if header.lower()==idcolumnname.lower():
 			p_id=i
 		#if "given label" in header.lower():
@@ -492,11 +487,7 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if "average branch length" in header.lower():
 			p_averagebranchlength=i
 		if args.prediction_columnname.lower() == header.lower():
-			p_pl=i
-		if header.lower() in lowerlevelcolumnnames:
-			if not (i in p_lower_taxonomic_predictions):
-				p_lower_taxonomic_predictions.append(i)
-				   
+			p_pl=i				   
 		i=i+1	
 	if p_id==-1:
 		print("Please specify the sequence id columnname by using -idcolumnname.")
@@ -506,27 +497,25 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		isError=True
 		
 	for line in predictionfile:
-		texts=line.rstrip().split("\t")
+		texts=line.rstrip().split(column_separator)
 		seqid=""
 		if p_id >=0 and p_id < len(texts):
 			seqid=texts[p_id]
-			if givenseqid!="":
-				if givenseqid!=seqid:
-					continue
+			if " " in seqid:
+				seqid=seqid.split(" ")[0]
 			predictiondict.setdefault(seqid,{})
 		else:
 			continue
 		label=""
 		if p_l >=0 and p_l < len(texts):
 			label=texts[p_l]
+			label=label.replace("_"," ")
 		predictiondict[seqid]["givenlabel"]=label
 		predlabel=""
 		if p_pl >=0 and p_pl < len(texts):
 			predlabel=texts[p_pl]
+			predlabel=predlabel.replace("_"," ")
 		predictiondict[seqid]["predlabel"]=predlabel
-		predictiondict[seqid]["predlabelsatlowertaxonomiclevels"]=[]
-		for p in p_lower_taxonomic_predictions:
-			predictiondict[seqid]["predlabelsatlowertaxonomiclevels"].append(texts[p])
 		pred_classification=""
 		if p_c >=0 and p_c < len(texts):
 			pred_classification=texts[p_c]
@@ -587,8 +576,6 @@ def LoadPrediction(predictionfilename,idcolumnname,givenseqid):
 		if p_averagebranchlength>0 and p_averagebranchlength<len(texts):
 			averagebranchlength=texts[p_averagebranchlength]
 		predictiondict[seqid]["averagebranchlength"]=averagebranchlength
-		if givenseqid==seqid:
-			break
 	return predictiondict,isError
 
 def lookup_by_names(tree):
@@ -749,8 +736,8 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 	highertaxa=GetHigherTaxa(rank,classification)
 	highertaxa.append("All") 
 	localcutoff=0
-	seqno=0
-	groupno=0
+# 	seqno=0
+# 	groupno=0
 	datasets=cutoffs[rank]
 	maxconfidence=-1
 	bestcutoff=0
@@ -764,18 +751,23 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 		confidence=0	
 		if "confidence" in datasets[highertaxonname].keys():
 			confidence=datasets[highertaxonname]["confidence"]
-		seqno=0
-		if "sequence number" in datasets[highertaxonname].keys():
-			seqno=datasets[highertaxonname]["sequence number"]	
-		groupno=0
-		if "group number" in datasets[highertaxonname].keys():
-			groupno=datasets[highertaxonname]["group number"]	
-		if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
-			if maxconfidence < confidence:
-				maxconfidence =confidence
-				bestcutoff=localcutoff
-			if isComputed==True:	
-				break
+		if maxconfidence < confidence:
+			maxconfidence =confidence
+			bestcutoff=localcutoff
+		if isComputed==True:	
+			break	
+# 		seqno=0
+# 		if "sequence number" in datasets[highertaxonname].keys():
+# 			seqno=datasets[highertaxonname]["sequence number"]	
+# 		groupno=0
+# 		if "group number" in datasets[highertaxonname].keys():
+# 			groupno=datasets[highertaxonname]["group number"]	
+# 		if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
+# 			if maxconfidence < confidence:
+# 				maxconfidence =confidence
+# 				bestcutoff=localcutoff
+# 			if isComputed==True:	
+# 				break
 	return [bestcutoff,maxconfidence,isComputed]			
 
 def ComputeBestLocalBLASTScore(testrecord,reffilename,mincoverage):
@@ -835,15 +827,7 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 	total=0
 	#create Fasta files
 	for seqid in predictiondict.keys():
-		predname=predictiondict[seqid]["predlabel"]
-		predictednames=[predname]
-		predictednamesatlowerlevels=predictiondict[seqid]["predlabelsatlowertaxonomiclevels"]
-		if predname in taxonomy.keys():
-			rank=taxonomy[predname]["rank"]
-			for lowername in predictednamesatlowerlevels:
-				othername=GetTaxonomicName(rank,lowername,taxonomy)
-				if othername!="" and othername!="unidentified" and not (othername in predictednames):
-					predictednames.append(othername)
+		predictedname=predictiondict[seqid]["predlabel"]
 		#rank=predictiondict[seqid]["rank"]
 		refid=predictiondict[seqid]["refid"]
 		coverage=predictiondict[seqid]["coverage"]
@@ -857,51 +841,41 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 		#if (verifyingrank=="" or (verifyingrank!="" and rank==verifyingrank)) and (proba >=minproba): #verifying only for classification results with probability greater than min proba
 		if proba < minproba:	
 			continue
-		for predictedname in predictednames:
-			#get similarity cut-offs for the current predicted name
-			try:
-				predicted_cutoff=taxonomy[predictedname]["cut-off"]
-				predicted_confidence=taxonomy[predictedname]["confidence"]
-				predicted_classification=taxonomy[predictedname]["classification"]
-			except KeyError:
-				continue
-			if predictedname in refclasses.keys() and seqid in seqrecords.keys():
-				total=total+1
-				sequences=refclasses[predictedname]
-				numberofrefsequences=len(sequences.keys())
-				seqrecord=seqrecords[seqid]
-				if predictiondict[seqid]["verifiedlabel"]=="" or (redo !=""):
-					reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno)
-					if os.path.exists(reffilename):
-						#compute BLAST score
-						newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrecord,reffilename,mincoverage)
-						os.system("rm " + reffilename)	
-						#if newbestscore > score:
-						refid=newrefid
-						score=newbestscore
-						sim=newsim
-						coverage=newcoverage
-						if 	score >= predicted_cutoff:
-							verifiedlabel=predictedname
-							count=count+1
-							predictiondict[seqid]["verifiedlabel"]=verifiedlabel
-							predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
-							predictiondict[seqid]["classification"]=predicted_classification
-							predictiondict[seqid]["refid"]=refid
-							predictiondict[seqid]["sim"]=sim
-							predictiondict[seqid]["score"]=score
-							predictiondict[seqid]["coverage"]=coverage
-							predictiondict[seqid]["cut-off"]=predicted_cutoff
-							predictiondict[seqid]["confidence"]=predicted_confidence
-				if predictedname==predname and predictiondict[seqid]["numberofrefsequences"]==0:	
-					predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
-					predictiondict[seqid]["classification"]=predicted_classification
-					predictiondict[seqid]["refid"]=refid
-					predictiondict[seqid]["sim"]=sim
-					predictiondict[seqid]["score"]=score
-					predictiondict[seqid]["coverage"]=coverage
-					predictiondict[seqid]["cut-off"]=predicted_cutoff
-					predictiondict[seqid]["confidence"]=predicted_confidence
+		try:
+			predicted_cutoff=taxonomy[predictedname]["cut-off"]
+			predicted_confidence=taxonomy[predictedname]["confidence"]
+			predicted_classification=taxonomy[predictedname]["classification"]
+		except KeyError:
+			pass
+		if predictedname in refclasses.keys() and seqid in seqrecords.keys():
+			total=total+1
+			sequences=refclasses[predictedname]
+			numberofrefsequences=len(sequences.keys())
+			seqrecord=seqrecords[seqid]
+			if predictiondict[seqid]["verifiedlabel"]=="" or (redo !=""):
+				reffilename,numberofrefsequences=CreateFastaFileForBLAST(seqrecord,predictedname,sequences,maxseqno)
+				if os.path.exists(reffilename):
+					#compute BLAST score
+					newrefid,newbestscore,newsim,newcoverage=ComputeBestLocalBLASTScore(seqrecord,reffilename,mincoverage)
+					os.system("rm " + reffilename)	
+					#if newbestscore > score:
+					refid=newrefid
+					score=newbestscore
+					sim=newsim
+					coverage=newcoverage
+					if 	score >= predicted_cutoff:
+						verifiedlabel=predictedname
+						count=count+1
+						predictiondict[seqid]["verifiedlabel"]=verifiedlabel
+						predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
+						predictiondict[seqid]["classification"]=predicted_classification
+						predictiondict[seqid]["refid"]=refid
+						predictiondict[seqid]["sim"]=sim
+						predictiondict[seqid]["score"]=score
+						predictiondict[seqid]["coverage"]=coverage
+						predictiondict[seqid]["cut-off"]=predicted_cutoff
+						predictiondict[seqid]["confidence"]=predicted_confidence
+	
 	return count,total
 	
 def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,alignmentmethod,redo):
@@ -1054,7 +1028,7 @@ if __name__ == "__main__":
 		print("Please check the classification of reference sequences.")
 		sys.exit()
 	#load prediction
-	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname,args.sequenceid)	
+	predictiondict,isError=LoadPrediction(predictionfilename,args.idcolumnname)	
 	if isError==True:
 		sys.exit()	
 	#verifying...	
@@ -1073,7 +1047,7 @@ if __name__ == "__main__":
 			with open(cutoffsfilename) as cutoffsfile:
 				cutoffs = json.load(cutoffsfile)
 		#add cutoffs to taxa for sequence identification		
-		AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)		
+		AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)
 		count,total=VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,args.redo)
 		if total >0:
 			print("Number of classified sequences: " + str(total))
