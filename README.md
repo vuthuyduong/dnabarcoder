@@ -1,5 +1,13 @@
 # Dnabarcoder
 
+## <i>News</i> 
+
+We have computed the ITS1, ITS2, and ITS similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330) of UNITE in 2024. 
+
+
+
+## Introduction
+
 We demonstrate in [Vu et al. (2022)](https://doi.org/10.1111/1755-0998.13651) that metabarcoding loses significant resolution and scientific explanatory power by relying on a single sequence similarity value for taxonomic assignment by presenting the dnabarcoder software. Dnabarcoder is a tool to <strong> PREDICT </strong> global and local similarity cut-offs for fungal sequence identification for a reference dataset, and <strong> CLASSIFY </strong> unidentified sequences based on the predicted similarity cutoffs. This reference dataset should come in the form of a FASTA file and should contain barcode sequences from as many species as possible. The classification or taxonomy of reference sequences can be given in the sequence headers of the fasta file (see [data/CBSITS_classification.fasta](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS_classification.fasta) as an example), or an auxiliary file must contain their full taxonomic classification in a tab-delimited way (kingdom, phylum, class, and so on, see the [data/CBSITS.fasta](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS.fasta) and [data/CBSITS.current.classification](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS.current.classification) as examples). 
 
 Dnabarcoder consists of five components namely analysis, visualization, prediction, classification, and verification (see the figure below). 
