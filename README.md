@@ -10,31 +10,36 @@ We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/mast
 
 2, Change the UNITE format to dnabarcoder's format by executing the following commands:
 
-<b>/path_to_dnabarcoder/aidscripts/filterClassificationFromSequenceHeaders.py -i UNITE_public_04.04.2024.fasta -prefix unite2024ITS </b>
+<b>dnabarcoder/aidscripts/filterClassificationFromSequenceHeaders.py -i UNITE_public_04.04.2024.fasta -prefix unite2024ITS </b>
 
 3, If you wish to work with only ITS1 and/or ITS2 regions, then extract them. I used [ITSx](https://microbiology.se/software/itsx/) to extract ITS1 and ITS2:
 
-/path_to_ITSx/ITSx -i unite2024ITS.fasta --saveregions{ITS,ITS1,ITS2}
+ITSx -i unite2024ITS.fasta --saveregions{ITS,ITS1,ITS2}
 
 4, Download the ready to use ITS ([unite2024ITS1.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json)), ITS2 ([unite2024ITS2.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json)), and ITS ([unite2024ITS.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json)) similarity cutoffs from the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
 
-5, Search for the best matches of the sequences from UNITE database:
+5, Search for the best matches of the sequences:
 
 For ITS:
-<b>/path_to_dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS.fasta</b>
+
+<b>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS.fasta</b>
 
 The results are given in the file dnabarcoder/query.unite2024ITS_BLAST.bestmatch
 
-For ITS1 (ITS2):
-/path_to_dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.unique.fasta <b>-ml 50</b>
+For ITS1 (ITS2) sequences, we set the alignmennt minimium length as 50 by adding <b>-ml 50</b> as follows:
+
+<b>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.unique.fasta <b>-ml 50</b>
+
 
 3, Assigning the sequences:
 
-For ITS sequences:
-<b>/path_to_dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS_BLAST.bestmatch -c unite2024ITS.unique.classification -cutoffs unite2024ITS.unique.cutoffs.best.json</b>
+For ITS:
 
-For ITS1 (ITS2) sequences:
-/path_to_dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS1_BLAST.bestmatch -c unite2024ITS1.unique.classification -cutoffs unite2024ITS1.unique.cutoffs.best.json
+<b>dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS_BLAST.bestmatch -c unite2024ITS.unique.classification -cutoffs unite2024ITS.unique.cutoffs.best.json</b>
+
+For ITS1 (ITS2):
+
+<b>dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS1_BLAST.bestmatch -c unite2024ITS1.unique.classification -cutoffs unite2024ITS1.unique.cutoffs.best.json</b>
 
 <b>How do we compute these cutoffs? </b>
 
