@@ -7,10 +7,13 @@ cd /home/dvu/data/volume_2/cephstorage/ProgLang/Python/dnabarcoder/alldata/UNITE
 ../../dnabarcoder.py length -i unite2024ITS.unique.fasta -l 100
 ../../dnabarcoder.py overview -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification
 
-#species 
+#select sequences having taxonomic information at the species level 
 ../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification -rank species -o unite2024ITS.unique.species.fasta 
+#predict similarity cutoffs for all the genera. For this big dataset, we do not compute the species similarity cutoffs for higher taxonomic levels
 ../../dnabarcoder.py predict -i unite2024ITS.unique.species.fasta -c unite2024ITS.unique.species.classification -st 0.7 -et 1 -s 0.001 -rank species -prefix unite2024ITS.unique -higherrank genus -maxproportion 0.9 -removecomplexes yes
+#predict a global similarity cutoff
 ../../dnabarcoder.py predict -i unite2024ITS.unique.species.fasta -c unite2024ITS.unique.species.classification -st 0.9 -et 1 -s 0.001 -rank species -prefix unite2024ITS.unique -removecomplexes yes
+#remove all the created files
 rm unite2024ITS.unique.species.*
 
 #genus
