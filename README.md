@@ -2,7 +2,18 @@
 
 ## <i>News</i> 
 
-We have computed the ITS1, ITS2, and ITS similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330) of UNITE in 2024. 
+We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json), [ITS2](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json), and [ITS](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json) similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330) of UNITE in 2024. The bash files (.sh files) for computing these cutoffs are given in the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder. These cutoffs are also provided in .txt format for reading purposes. 
+
+How do we compute these cutoffs? First, we need to convert the UNITE format to dnabarcoder's format by executing the following command:
+
+../../aidscripts/filterClassificationFromSequenceHeaders.py -i UNITE_public_04.04.2024.fasta -prefix unite2024ITS
+
+I used [ITSx](https://microbiology.se/software/itsx/) to extract ITS1 and ITS2:
+
+/home/dvu/data/volume_2/cephstorage/tools/ITSx_1.1.3/ITSx -i unite2024ITS.fasta --saveregions{ITS,ITS1,ITS2}
+
+and then I run the commands given in the bash files for [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.sh), [ITS2](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.sh), and [ITS](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.sh) in the the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
+
 
 
 
