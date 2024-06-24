@@ -1,4 +1,5 @@
 #!/bin/bash
+#change the path to dnabarcoder if needed
 cd /home/dvu/data/volume_2/cephstorage/ProgLang/Python/dnabarcoder/alldata/UNITE_ITS_2024
 
 #select unique sequences
