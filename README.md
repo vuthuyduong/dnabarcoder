@@ -28,10 +28,10 @@ The results are given in the file dnabarcoder/query.unite2024ITS_BLAST.bestmatch
 
 For ITS1 (ITS2) sequences, we set the alignmennt minimium length as 50 by adding <b>-ml 50</b> as follows:
 
-<b>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.unique.fasta <b>-ml 50</b>
+<b>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.unique.fasta -ml 50</b>
 
 
-3, Assigning the sequences:
+6, Assign the sequences to different taxonomic groups:
 
 For ITS:
 
