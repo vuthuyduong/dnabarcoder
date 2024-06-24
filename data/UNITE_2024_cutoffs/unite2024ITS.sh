@@ -1,9 +1,6 @@
 #!/bin/bash
 cd /home/dvu/data/volume_2/cephstorage/ProgLang/Python/dnabarcoder/alldata/UNITE_ITS_2024
 
-#change UNITE format to dnabarcoder's format
-
-
 #select unique sequences
 ../../aidscripts/selectsequences.py -i unite2024ITS.fasta -unique yes -c unite2024ITS.classification -o unite2024ITS.unique.fasta
 ../../dnabarcoder.py length -i unite2024ITS.unique.fasta -l 100
