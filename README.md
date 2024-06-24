@@ -4,7 +4,7 @@
 
 We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json), [ITS2](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json), and [ITS](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json) similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330) of UNITE in 2024. The bash files (.sh files) for computing these cutoffs are given in the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder. These cutoffs are also provided in .txt format for reading purposes. 
 
-<b> Classifying the sequences using UNITE cutoffs </b>
+<b> Classify the sequences using UNITE cutoffs </b>
 
 1, Download UNITE sequences from [the UNITE database](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330)
 
