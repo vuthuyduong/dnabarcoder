@@ -1,4 +1,5 @@
 #!/bin/bash
+#change the path to dnabarcoder and the UNITE data if needed
 cd /home/dvu/data/volume_2/cephstorage/ProgLang/Python/dnabarcoder/alldata/UNITE_ITS2_2024
 ../../aidscripts/selectsequences.py -i unite2024ITS2.fasta -unique yes -c unite2024ITS2.classification -o unite2024ITS2.unique.fasta
 ../../dnabarcoder.py length -i unite2024ITS2.unique.fasta -l 50
