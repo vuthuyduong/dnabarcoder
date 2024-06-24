@@ -43,7 +43,7 @@ For ITS1 (ITS2):
 
 <b>How do we compute these cutoffs? </b>
 
-1, For ITS, please execute the commands given the bash file [unite2024ITS.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.sh) in the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) 
+1, For ITS, please execute the commands given the bash file [unite2024ITS.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.sh) in the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
 
 2, For ITS1, please execute the commands given the bash file [unite2024ITS1.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.sh), 
 
