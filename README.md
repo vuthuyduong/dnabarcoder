@@ -16,6 +16,8 @@ We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/mast
 
 <i> ITSx -i unite2024ITS.fasta --saveregions{ITS,ITS1,ITS2} </i>
 
+(For this large dataset, it can take quite some time. If you cannot make this step, then use the original dataset).
+
 4, Download the ready to use ITS ([unite2024ITS1.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json)), ITS2 ([unite2024ITS2.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json)), and ITS ([unite2024ITS.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json)) similarity cutoffs from the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
 
 5, Search for the best matches of the sequences:
