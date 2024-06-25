@@ -49,6 +49,12 @@ For ITS1 (ITS2):
 
 3, Finally for ITS2, please execute the commands given the bash file [unite2024ITS2.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.sh).
 
+Note that, to increase the number of sequences being classified at the species level for example, we can also filter out the sequences having no species name by executing the following command:
+
+../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification -rank species -o unite2024ITS.unique.species.fasta
+
+Then use the obtained fasta file to look for best matches of the sequences.
+
 ## Introduction
 
 We demonstrate in [Vu et al. (2022)](https://doi.org/10.1111/1755-0998.13651) that metabarcoding loses significant resolution and scientific explanatory power by relying on a single sequence similarity value for taxonomic assignment by presenting the dnabarcoder software. Dnabarcoder is a tool to <strong> PREDICT </strong> global and local similarity cut-offs for fungal sequence identification for a reference dataset, and <strong> CLASSIFY </strong> unidentified sequences based on the predicted similarity cutoffs. This reference dataset should come in the form of a FASTA file and should contain barcode sequences from as many species as possible. The classification or taxonomy of reference sequences can be given in the sequence headers of the fasta file (see [data/CBSITS_classification.fasta](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS_classification.fasta) as an example), or an auxiliary file must contain their full taxonomic classification in a tab-delimited way (kingdom, phylum, class, and so on, see the [data/CBSITS.fasta](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS.fasta) and [data/CBSITS.current.classification](https://raw.githubusercontent.com/vuthuyduong/dnabarcoder/master/data/CBSITS.current.classification) as examples). 
