@@ -41,6 +41,12 @@ For ITS1 (ITS2):
 
 <i>dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS1_BLAST.bestmatch -c unite2024ITS1.unique.classification -cutoffs unite2024ITS1.unique.cutoffs.best.json</i>
 
+Note that, to increase the number of sequences being classified at the species level for example, we can also filter out the sequences having no species name by executing the following command:
+
+../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification -rank species -o unite2024ITS.unique.species.fasta
+
+Then use the obtained fasta file as the reference fasta file for looking for best matches of the sequences.
+
 <b>How do we compute these cutoffs? </b>
 
 1, For ITS, please execute the commands given the bash file [unite2024ITS.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.sh) in the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
@@ -48,12 +54,6 @@ For ITS1 (ITS2):
 2, For ITS1, please execute the commands given the bash file [unite2024ITS1.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.sh), 
 
 3, Finally for ITS2, please execute the commands given the bash file [unite2024ITS2.sh](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.sh).
-
-Note that, to increase the number of sequences being classified at the species level for example, we can also filter out the sequences having no species name by executing the following command:
-
-../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification -rank species -o unite2024ITS.unique.species.fasta
-
-Then use the obtained fasta file as the reference fasta file for looking for best matches of the sequences.
 
 ## Introduction
 
