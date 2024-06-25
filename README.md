@@ -28,24 +28,28 @@ The results are given in the file dnabarcoder/query.unite2024ITS_BLAST.bestmatch
 
 For ITS1 (ITS2) sequences, we need to set the alignmennt minimium length as 50 by adding <b>-ml 50</b> as follows:
 
-<i>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.unique.fasta -ml 50</i>
+<i>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.fasta -ml 50</i>
 
 
 6, Assign the sequences to different taxonomic groups:
 
 For ITS:
 
-<i>dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS_BLAST.bestmatch -c unite2024ITS.unique.classification -cutoffs unite2024ITS.unique.cutoffs.best.json</i>
+<i>dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS_BLAST.bestmatch -c unite2024ITS.classification -cutoffs unite2024ITS.unique.cutoffs.best.json</i>
 
 For ITS1 (ITS2):
 
 <i>dnabarcoder/dnabarcoder.py classify -i dnabarcoder/query.unite2024ITS1_BLAST.bestmatch -c unite2024ITS1.unique.classification -cutoffs unite2024ITS1.unique.cutoffs.best.json</i>
 
-Note that, to increase the number of sequences being classified at the species level for example, we can also filter out the sequences having no species name by executing the following command:
+Note that, to reduce the size of the reference dataset, we can select only one representative for each sequence by executing the following command:
 
-../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification -rank species -o unite2024ITS.unique.species.fasta
+../../aidscripts/selectsequences.py -i unite2024ITS.fasta -unique yes -o unite2024ITS1.unique.fasta
 
-Then use the obtained fasta file as the reference fasta file for looking for best matches of the sequences.
+To increase the number of sequences being classified at the species level for example, we can select only sequences with species name available by executing the following command:
+
+../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.classification -rank species -o unite2024ITS.unique.species.fasta
+
+Then use the obtained fasta file unite2024ITS.unique.species.fasta as the reference fasta file for looking for best matches of the sequences at the species level.
 
 <b>How do we compute these cutoffs? </b>
 
