@@ -53,7 +53,7 @@ Note that, to increase the number of sequences being classified at the species l
 
 ../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.unique.classification -rank species -o unite2024ITS.unique.species.fasta
 
-Then use the obtained fasta file to look for best matches of the sequences.
+Then use the obtained fasta file as the reference fasta file for looking for best matches of the sequences.
 
 ## Introduction
 
