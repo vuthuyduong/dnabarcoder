@@ -43,5 +43,9 @@ rm unite2024ITS.unique.class.*
 #visualization
 ../../dnabarcoder.py predict -i unite2024ITS1.unique.fasta -c unite2024ITS1.unique.classification -rank species,genus,family,order,class 
 
-#compute best cutoffs
+#compute best cutoffs. 
+#If at a taxonomic level, the confidence measure obtained for of a clade is lower 
+#than the confidence measure obtained for all sequences then the similarity cutoff predicted for all will be taken.
+#This is to avoid to the problem that sequences being classified wrongly due to the fact that some groups are in need for reclassification.
+
 ../../dnabarcoder.py best -i dnabarcoder/unite2024ITS.unique.cutoffs.json -c unite2024ITS.unique.classification -mincutoff 0.71
