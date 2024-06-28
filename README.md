@@ -43,7 +43,7 @@ To increase the number of sequences being classified at the species level for ex
 
 Then use the obtained fasta file unite2024ITS.unique.species.fasta as the reference fasta file for looking for best matches of the sequences at the species level.
 
-<b> How to obtained UNITE ITS, ITS1, and ITS2 reference sequences? </b>
+<b> How to obtain these UNITE ITS, ITS1, and ITS2 reference sequences? </b>
 
 1, Download UNITE sequences from [the UNITE database](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330)
 
