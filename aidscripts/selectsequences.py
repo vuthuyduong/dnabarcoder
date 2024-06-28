@@ -113,7 +113,15 @@ def LoadClassification(classificationfilename, taxa, classificationpos, seqidpos
 	return classnames, classification, header
 
 
-def GetTaxonName(description, rank, taxalist):
+def GetTaxonName(description, rank, taxa):
+	found=False
+	taxalist=[]
+	if "," in taxa:
+		taxalist = taxa.split(",")
+	elif taxa != "" and taxa != "unidentified":
+		taxalist.append(taxa)
+	else:
+		found=True
 	taxonname = ""
 	species = ""
 	genus = ""
@@ -131,6 +139,9 @@ def GetTaxonName(description, rank, taxalist):
 		text = text.rstrip()
 		taxa = text.split(";")
 		for taxon in taxa:
+			if "__" in taxon:
+				if taxon.split("__")[1] in taxalist:
+					found=True
 			if taxon.startswith("k__"):
 				kingdom = taxon.replace("k__", "")
 			elif taxon.startswith("p__"):
@@ -160,25 +171,17 @@ def GetTaxonName(description, rank, taxalist):
 		taxonname = phylum
 	elif rank.lower() == "kingdom":
 		taxonname = kingdom
-	elif len(taxalist) >0:
-		for text in taxalist:
-			for t in texts:
-				if text.lower() == t.lower():
-					taxonname=seqid
 	else:
 		taxonname=seqid
 		#taxonname=kingdom + "\t" + phylum + "\t" + bioclass + "\t" + order + "\t" + family + "\t" + genus + "\t" + species
+	if found==False:
+		taxonname=""
 	return taxonname
 
 def SelectClassName(seqid, description, rank, taxa, classnames):
 	classname = ""
-	taxalist = []
-	if "," in taxa:
-		taxalist = taxa.split(",")
-	elif taxa != "" and taxa != "unidentified":
-		taxalist.append(taxa)
 	if classnames == {}:
-		classname = GetTaxonName(description, rank,taxalist)
+		classname = GetTaxonName(description, rank,taxa)
 	else:
 		try:
 			classname = classnames[seqid]
