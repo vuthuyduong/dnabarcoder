@@ -2,7 +2,7 @@
 
 ## <i>News</i> 
 
-We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json), [ITS2](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json), and [ITS](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json) similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released 2024 UNITE dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330), making them ready for use. These cutoffs are also provided in .txt format for reading purposes. 
+We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json), [ITS2](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json), and [ITS](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json) similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released 2024 UNITE dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330), making them ready for use. These cutoffs are also provided in .txt format for reading purposes. Note that these cutoffs are computed based on BLAST alignments. Different search/alignment algorithms may require different similarity cutoffs.
 
 <b> Classify the sequences using UNITE cutoffs </b>
 
