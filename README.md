@@ -6,21 +6,12 @@ We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/mast
 
 <b> Classify the sequences using UNITE cutoffs </b>
 
-1, Download UNITE sequences from [the UNITE database](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330)
+1, Download the ready to use [UNITE+INSD 2024 Fungal ITS, ITS1, and ITS2 Reference Sequences](https://zenodo.org/records/12580255)
 
-2, Change the UNITE format to dnabarcoder's format by executing the following commands:
 
-<i>dnabarcoder/aidscripts/filterClassificationFromSequenceHeaders.py -i UNITE_public_04.04.2024.fasta -prefix unite2024ITS </i>
+2, Download the ready to use ITS ([unite2024ITS1.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json)), ITS2 ([unite2024ITS2.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json)), and ITS ([unite2024ITS.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json)) similarity cutoffs from the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
 
-3, If you wish to work with only ITS1 and/or ITS2 regions, then extract them. I used [ITSx](https://microbiology.se/software/itsx/) to extract ITS1 and ITS2:
-
-<i> ITSx -i unite2024ITS.fasta --saveregions{ITS,ITS1,ITS2} </i>
-
-(For this large dataset, it can take quite some time. If you cannot make this step, then use the original dataset).
-
-4, Download the ready to use ITS ([unite2024ITS1.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json)), ITS2 ([unite2024ITS2.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json)), and ITS ([unite2024ITS.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json)) similarity cutoffs from the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
-
-5, Search for the best matches of the sequences:
+3, Search for the best matches of the sequences:
 
 For ITS:
 
@@ -32,8 +23,7 @@ For ITS1 (ITS2) sequences, we need to set the alignmennt minimium length as 50 b
 
 <i>dnabarcoder/dnabarcoder.py search -i query.fasta -r unite2024ITS1.fasta -ml 50</i>
 
-
-6, Assign the sequences to different taxonomic groups:
+4, Assign the sequences to different taxonomic groups:
 
 For ITS:
 
@@ -52,6 +42,21 @@ To increase the number of sequences being classified at the species level for ex
 ../../aidscripts/selectsequences.py -i unite2024ITS.unique.fasta -c unite2024ITS.classification -rank species -o unite2024ITS.unique.species.fasta
 
 Then use the obtained fasta file unite2024ITS.unique.species.fasta as the reference fasta file for looking for best matches of the sequences at the species level.
+
+<b> How to obtained UNITE ITS, ITS1, and ITS2 reference sequences? </b>
+
+1, Download UNITE sequences from [the UNITE database](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330)
+
+2, Change the UNITE format to dnabarcoder's format by executing the following commands:
+
+<i>dnabarcoder/aidscripts/filterClassificationFromSequenceHeaders.py -i UNITE_public_04.04.2024.fasta -prefix unite2024ITS </i>
+
+3, If you wish to work with only ITS1 and/or ITS2 regions, then extract them. I used [ITSx](https://microbiology.se/software/itsx/) to extract ITS1 and ITS2:
+
+<i> ITSx -i unite2024ITS.fasta --saveregions{ITS,ITS1,ITS2} </i>
+
+(For this large dataset, it can take quite some time. If you cannot make this step, then use the original dataset).
+
 
 <b>How do we compute these cutoffs? </b>
 
