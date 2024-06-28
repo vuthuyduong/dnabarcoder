@@ -6,7 +6,7 @@ We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/mast
 
 <b> Classify the sequences using UNITE cutoffs </b>
 
-1, Download the ready to use [UNITE+INSD 2024 Fungal ITS, ITS1, and ITS2 Reference Sequences](https://zenodo.org/records/12580255)
+1, Download the ready to use UNITE+INSD 2024 Fungal ITS, ITS1, and ITS2 Reference Sequences] from [https://zenodo.org/records/12580255](https://zenodo.org/records/12580255). 
 
 
 2, Download the ready to use ITS ([unite2024ITS1.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json)), ITS2 ([unite2024ITS2.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json)), and ITS ([unite2024ITS.unique.cutoffs.best.json](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json)) similarity cutoffs from the [UNITE_2024_cutoffs](https://github.com/vuthuyduong/dnabarcoder/tree/master/data/UNITE_2024_cutoffs) folder.
