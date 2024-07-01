@@ -11,6 +11,10 @@ if sys.version_info[0] >= 3:
 import os, argparse
 import multiprocessing
 from Bio import SeqIO
+import numpy as np
+import matplotlib.pyplot as plt
+plt.rc('font',size=6)
+from matplotlib.patches import Polygon
 
 nproc=multiprocessing.cpu_count()
 
@@ -43,6 +47,90 @@ def GetWorkingBase(filename):
 	path=outputpath + "/" + basename
 	return path
 
+
+def BoxPlotAll(scorelist,filename):
+	figoutput=GetWorkingBase(filename)+".boxplot.png"
+	title=GetBase(os.path.basename(filename))
+	data=[np.sort(np.array(scorelist))]
+	minthreshold=round(float(np.min(np.array(scorelist))),4)
+	threshold=round(float(np.median(np.array(scorelist))),4)
+	maxthreshold=round(float(np.max(np.array(scorelist))),4)
+	averthreshold=round(float(np.average(np.array(scorelist))),4)
+#	fig, ax = plt.subplots(figsize=(10, 6))
+#	#fig.canvas.set_window_title('Variation')
+#	fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
+	fig, ax = plt.subplots(figsize=(3,3))
+	box_colors = ['b']#['darkkhaki', 'royalblue']
+	bp = ax.boxplot(data, notch=0, sym='+', vert=1, whis=1.5)
+	plt.setp(bp['boxes'], color='black')
+	plt.setp(bp['whiskers'], color='black')
+	plt.setp(bp['fliers'], color='red', marker='+')
+	
+	ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',
+               alpha=0.5)
+
+	# Hide these grid behind plot objects
+	ax.set_axisbelow(True)
+	ax.set_title('Median similarity score of ' + title)
+	#ax.set_xlabel('')
+	ax.set_ylabel('Similarity score')
+	num_boxes=len(data)
+	medians=np.empty(num_boxes)
+	for i in range(num_boxes):
+		box=bp['boxes'][i]
+		boxX=[]
+		boxY=[]
+		for j in range(5):
+			boxX.append(box.get_xdata()[j])
+			boxY.append(box.get_ydata()[j])
+		box_coords = np.column_stack([boxX, boxY])	
+		# Fill in the color
+		ax.add_patch(Polygon(box_coords, facecolor=box_colors[i % 2]))
+		med = bp['medians'][i]
+		medianX=[]
+		medianY=[]
+		for j in range(2):
+			medianX.append(med.get_xdata()[j])
+			medianY.append(med.get_ydata()[j])
+		medians[i] = medianY[0]
+		#plot the average value
+		ax.plot(np.average(med.get_xdata()), np.average(data[i]),color='w', marker='*', markeredgecolor='k')
+	#add labels	
+	ax.set_xticklabels(np.array(['']))	
+	#add median values 
+	upper_labels = [str(np.round(s, 4)) for s in medians]
+	pos = np.arange(num_boxes) + 1
+	k=0
+	for tick, label in zip(range(num_boxes), ax.get_xticklabels()):
+		ax.text(pos[tick], 0.97, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=box_colors[k])
+		k=k+1
+	#plt.legend()
+	plt.tight_layout()
+	plt.rcParams['font.size'] = 6.0
+	plt.savefig(figoutput, dpi = 500)
+# 	if displayed==True:
+# 		if args.display=="yes":
+#	plt.show()
+	return figoutput,minthreshold,threshold,maxthreshold,averthreshold
+			
+def ComputeScoreList(simmatrix,output):
+	scorelist=[]
+	keys=list(simmatrix.keys())
+	for i in range(0,len(keys)-2):
+		try:
+			list_i=simmatrix[keys[i]]
+		except KeyError:
+			continue
+		for j in range(i+1,len(keys)-1):
+			try:
+				score=list_i[keys[j]]
+				scorelist.append(score)
+			except KeyError:
+				continue
+	figoutput,minthreshold,threshold,maxthreshold,averthreshold=BoxPlotAll(scorelist,output)
+	print(len(scorelist))	
+	return figoutput,minthreshold,threshold,maxthreshold,averthreshold	
+				
 def SaveSim(simmatrix,simfilename,ms):
 	simfile=open(simfilename,"w")
 	for i in simmatrix.keys():
@@ -111,6 +199,13 @@ if __name__ == "__main__":
 	output=GetWorkingBase(fastafilename) + ".sim"
 	#save the simmatrix
 	SaveSim(simmatrix,output,minsim)
-	print("The similarity file is saved in " + output + ".")		
+	print("The similarity file is saved in " + output + ".")	
+	figoutput,minthreshold,threshold,maxthreshold,averthreshold=ComputeScoreList(simmatrix,output)
+	print("The boxplot of similarity scores is saved in " + figoutput + ".")
+	print("Min. similarity score: " + str(minthreshold) + ".")	
+	print("Median similarity score: " + str(threshold) + ".")	
+	print("Max. similarity score: " + str(maxthreshold) + ".")	
+	print("Average similarity score: " + str(averthreshold) + ".")	
+	
 			
 		

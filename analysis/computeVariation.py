@@ -26,7 +26,8 @@ parser.add_argument('-i','--input', required=True, help='the fasta file to be cl
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-rank','--classificationranks', default="species,genus,family,order,class,phylum", help='the classification ranks to compute variation, separated by ",".')
+parser.add_argument('-rank','--classificationranks', default="species", help='the classification ranks to compute variation, separated by ",".')
+parser.add_argument('-t', '--taxa', default="", help='only compute variation for the given taxa, separated by ",".')
 parser.add_argument('-m','--maxSeqNo', type=int, default=0, help='The maximum number of randomly selected sequences of each class to be computed in the case the groups are too big.')
 parser.add_argument('-plt','--plottype', default="boxplot", help='The type of plots. There are two options: boxplot and plot.')
 parser.add_argument('-sim','--simfilename', default="", help='The similarity matrix of the sequences if exists.')
@@ -118,6 +119,9 @@ def LoadClassificationFromDescription(seqrecords,rank):
 			classname=kingdom
 		if classname=="" or ("unidentified" in classname):
 			continue 
+		if args.taxa!="":
+			if not (classname in args.taxa):
+				continue
 		if seqid in seqrecords.keys():
 			if not (classname in classes.keys()):
 				classes.setdefault(classname,[])	
@@ -138,6 +142,9 @@ def LoadClassification(seqrecords,classificationfilename,pos,seqidpos):
 			 classname=elements[pos].rstrip()
 		if classname=="" or classname=="unidentified":
 			continue 
+		if args.taxa!="":
+			if not (classname in args.taxa):
+				continue
 		if seqid in seqrecords.keys():
 			if not (classname in classes.keys()):
 				classes.setdefault(classname,[])	
@@ -203,13 +210,9 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		return {}
 	print("Reading Blast results of " + fastafilename + "...")
 	simmatrix={}
-	for seqid1 in seqrecords.keys():
-		simmatrix.setdefault(seqid1,{})
-		for seqid2 in seqrecords.keys():
-			if seqid1==seqid2:
-				simmatrix[seqid1][seqid2]=1
-			elif len(seqrecords.keys()) < args.maxSimMatrixSize: #load full matrix	
-				simmatrix[seqid1][seqid2]=0
+	for seqid in seqrecords.keys():
+		simmatrix.setdefault(seqid,{})
+		simmatrix[seqid][seqid]=1	
 	#read blast output
 	blastoutputfile = open(blastoutput)
 	score=0
@@ -227,22 +230,16 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 		score=sim
 		if coverage < mincoverage:
 			score=float(score * coverage)/mincoverage
-		if len(seqrecords.keys()) < args.maxSimMatrixSize: #the full sim matrix has been loaded 
+		if j in simmatrix[i].keys():
 			if simmatrix[i][j] < score:
 				simmatrix[i][j]=round(score,4)
 				simmatrix[j][i]=round(score,4)
-		else:		
-			if j in simmatrix[i].keys():
-				if simmatrix[i][j] < score:
-					simmatrix[i][j]=round(score,4)
-					simmatrix[j][i]=round(score,4)
-			else:
-				simmatrix[i][j]=round(score,4)
-				simmatrix[j][i]=round(score,4)	
-		#simmatrix[j][i]=score
+		else:
+			simmatrix[i][j]=round(score,4)
+			simmatrix[j][i]=round(score,4)				
+
 	os.system("rm " + blastoutput)
 	os.system("rm " + blastdb + "*")
-	#os.system("rm " + blastdb + ".*")
 	return simmatrix
 
 def ComputeVariation(reffilename,mincoverage,simmatrix):
@@ -250,31 +247,52 @@ def ComputeVariation(reffilename,mincoverage,simmatrix):
 	records = SeqIO.to_dict(SeqIO.parse(reffilename, "fasta"))
 	keys=list(records.keys())
 	scorelist=[]
-	check=False
+	check=True
 	if simmatrix!={}:
-		check=True
 		for i in range(0,len(keys)-2):
-			if not keys[i] in simmatrix.keys():
-				check==False
+			try:
+				list_i=simmatrix[keys[i]]
+			except KeyError:
+				check=False
 				break
 			for j in range(i+1,len(keys)-1):
-				if i!=j:
-					if not keys[j] in simmatrix[keys[i]].keys():
-						check==False
-						break
-					scorelist.append(simmatrix[keys[i]][keys[j]])	
+				try:
+					score=list_i[keys[j]]
+					scorelist.append(score)
+				except KeyError:
+					check=False
+					break
+	else:
+		check=False			
+		
 	if check==False:
 		scorematrix=ComputeSim(reffilename,records,mincoverage)
 		for i in range(0,len(keys)-2):
+			try:
+				list_i=scorematrix[keys[i]]
+			except KeyError:
+				continue
 			for j in range(i+1,len(keys)-1):
-				if i!=j:
-					scorelist.append(scorematrix[keys[i]][keys[j]])	
+				try:
+					score=list_i[keys[j]]
+					scorelist.append(score)
+				except KeyError:
+					continue		 
 	threshold=1
-	minthreshold=1		
+	minthreshold=0
 	if len(scorelist) >0:
-		x=np.array(scorelist)
+		x=[np.array(scorelist)]
+		#x = np.sort(x)
+		#x = x[::-1] #sort reversed
 		minthreshold=round(float(np.min(x)),4)
 		threshold=round(float(np.median(x)),4)
+# 		maxthreshold=round(float(np.max(x)),4)
+# 		averthreshold=round(float(np.average(x)),4)
+# 		print(len(scorelist))			
+# 		print(minthreshold)	
+# 		print(threshold)	
+# 		print(maxthreshold)
+# 		print(averthreshold)
 	return threshold,minthreshold
 
 def ComputeVariations(variationfilename,classes,mincoverage,simmatrix):
@@ -287,13 +305,14 @@ def ComputeVariations(variationfilename,classes,mincoverage,simmatrix):
 		sequences=classes[taxonname]
 		if len(sequences) >0:
 			if maxSeqNo==0 or (len(sequences) < maxSeqNo):
-				fastafilename=taxonname.replace(" ","_") + ".fasta"
+				fastafilename=GetWorkingBase(taxonname.replace(" ","_")) + ".fasta"
 				SeqIO.write(sequences,fastafilename,"fasta")
 				threshold,minthreshold=ComputeVariation(fastafilename,mincoverage,simmatrix)
 				os.system("rm " + fastafilename)
 			else:
 				threshold,minthreshold=EvaluateVariation(taxonname,sequences,mincoverage)
-			currentvariation=[threshold,minthreshold,len(sequences)]
+			currentvariation={"median": threshold,"min": minthreshold, "sequence number": len(sequences)}	
+			#currentvariation=[threshold,minthreshold,len(sequences)]
 			variations[taxonname]=currentvariation
 		i=i+1	
 	#write to file
@@ -309,7 +328,7 @@ def EvaluateVariation(taxonname,sequences,mincoverage,simmatrix):
 	selectedsequences=[]
 	for index in selectedindexes:
 		selectedsequences.append(sequences[index])
-	fastafilename=taxonname.replace(" ","_") + ".fasta"
+	fastafilename=GetWorkingBase(taxonname.replace(" ","_")) + ".fasta"
 	SeqIO.write(selectedsequences,fastafilename,"fasta")
 	threshold,minthreshold=ComputeVariation(fastafilename,mincoverage,simmatrix)
 	return threshold,minthreshold
@@ -329,13 +348,19 @@ def IndexSequences(filename):
 	indexedfile.close()
 	return indexedfilename
 
-def SaveVariationInTabFormat(output,variation):
+def SaveVariationInTabFormat(output,variations):
 	outputfile=open(output,"w")
 	outputfile.write("Taxonname\tMedian similarity score\tMin similarity score\tNumber of sequences\n")	
-	for classname in variation.keys():
-		threshold=variation[classname][0]
-		minthreshold=variation[classname][1]
-		seqno=variation[classname][2]
+	for classname in variations.keys():
+		variation=variations[classname]
+		if type(variation) is dict:
+			threshold=variation["median"]
+			minthreshold=variation["min"]
+			seqno=variation["sequence number"]
+		elif type(variation) is list:	
+			threshold=variation[0]
+			minthreshold=variation[1]
+			seqno=variation[2]
 		outputfile.write(classname + "\t" + str(threshold) + "\t" + str(minthreshold) + "\t" + str(seqno) + "\n")
 	outputfile.close()
 	
@@ -376,10 +401,12 @@ def Plot(datasetname,figoutput,variations,rank,displayed):
 def PlotAll(datasetname,figoutput,variationlist,labels):
 	data=[]
 	for variations in variationlist:
-		sorted_variations = sorted(variations.items(), key=lambda x: x[1][0], reverse=True)
+		sorted_variations = sorted(variations.items(), key=lambda x: x[1]["median"], reverse=True)
+		#sorted_variations = sorted(variations.items(), key=lambda x: x[1][0], reverse=True)
 		thresholds=[]
 		for item in sorted_variations:
-			threshold=item[1][0]
+			threshold=item[1]["median"]
+			#threshold=item[1][0]
 			#minthreshold=item[1][1]
 			#seqno=item[1][2]
 			thresholds.append(threshold)
@@ -390,8 +417,12 @@ def PlotAll(datasetname,figoutput,variationlist,labels):
 	fig, ax = plt.subplots(figsize=(3,3))
 	if datasetname=="":
 		ax.set_title("Median similarity scores of all groups")
+		if args.taxa!="":
+			ax.set_title("Median similarity scores of given groups")
 	else:
 		ax.set_title(datasetname + ": median similarity scores of all groups")
+		if args.taxa!="":
+			ax.set_title(datasetname + ": median similarity scores of given groups")
 	ax.set_xlabel("Group index")
 	ax.set_ylabel('Median similarity score')
 	#plt.plot(x, np.array(thresholds), 'r--', x,minthresholds, 'bs') #green 'g^'
@@ -410,14 +441,18 @@ def PlotAll(datasetname,figoutput,variationlist,labels):
 	
 def BoxPlot(datasetname,figoutput,variations,rank,displayed):
 	#sort variations based on median thresholds with decreasing order
-	sorted_variations = sorted(variations.items(), key=lambda x: x[1][0], reverse=True)
+	sorted_variations = sorted(variations.items(), key=lambda x: x[1]["median"], reverse=True)
+	#sorted_variations = sorted(variations.items(), key=lambda x: x[1][0], reverse=True)
 	thresholds=[]
 	minthresholds=[]
 	seqnos=[]
 	for item in sorted_variations:
-		threshold=item[1][0]
-		minthreshold=item[1][1]
-		seqno=item[1][2]
+		threshold=item[1]["median"]
+		minthreshold=item[1]["min"]
+		seqno=item[1]["sequence number"]
+# 		threshold=item[1][0]
+# 		minthreshold=item[1][1]
+# 		seqno=item[1][2]
 		thresholds.append(threshold)
 		minthresholds.append(minthreshold)
 		seqnos.append(seqno)
@@ -488,12 +523,12 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	colors=[]
 	i=0
 	for variations in variationlist:
-		sorted_variations = sorted(variations.items(), key=lambda x: x[1][0], reverse=True)
+		sorted_variations = sorted(variations.items(), key=lambda x: x[1]["median"], reverse=True)
 		thresholds=[]
 		minthresholds=[]
 		for item in sorted_variations:
-			threshold=item[1][0]
-			minthreshold=item[1][1]
+			threshold=item[1]["median"]
+			minthreshold=item[1]["min"]
 			#seqno=item[1][2]
 			thresholds.append(threshold)
 			minthresholds.append(minthreshold)
@@ -504,7 +539,26 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 		labels2.append("Min_" + labels[i])
 		colors.append('b')
 		colors.append('r')
-		i=i+1
+		i=i+1	
+# 	for variations in variationlist:
+# 		sorted_variations = sorted(variations.items(), key=lambda x: x[1][0], reverse=True)
+# 		thresholds=[]
+# 		minthresholds=[]
+# 		for item in sorted_variations:
+# 			threshold=item[1][0]
+# 			minthreshold=item[1][1]
+# 			#seqno=item[1][2]
+# 			thresholds.append(threshold)
+# 			minthresholds.append(minthreshold)
+# 			#seqnos.append(seqno)
+# 		data.append(thresholds)
+# 		data.append(minthresholds)
+# 		labels2.append("Median_" + labels[i])
+# 		labels2.append("Min_" + labels[i])
+# 		colors.append('b')
+# 		colors.append('r')
+# 		i=i+1
+
 #	fig, ax = plt.subplots(figsize=(10, 6))
 #	#fig.canvas.set_window_title('Variation')
 #	fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
@@ -519,6 +573,8 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	# Hide these grid behind plot objects
 	ax.set_axisbelow(True)
 	ax.set_title(datasetname + ': median and min. similarity scores of all groups')
+	if args.taxa!="":
+		ax.set_title(datasetname + ': median and min. similarity scores of given groups')
 	#ax.set_xlabel('')
 	ax.set_ylabel('Similarity score')
 	num_boxes=len(data)
@@ -614,6 +670,8 @@ elif args.classificationranks !="":
 for rank in ranklist:
 	rank=rank.lower()
 	jsonvariationfilename = GetWorkingBase(prefix) + "." + rank + ".variation"
+	if args.taxa!="":
+		jsonvariationfilename = GetWorkingBase(prefix) + "." + rank + ".giventaxa.variation"
 	figoutput=GetBase(jsonvariationfilename) + ".variation.png" 
 	#Load classes, classification:
 	classes={}
@@ -626,14 +684,17 @@ for rank in ranklist:
 	else:
 		classes=LoadClassificationFromDescription(referencerecords,rank)
 	variations={}
-	if not os.path.exists(jsonvariationfilename):
+	if args.taxa!="":
 		variations=ComputeVariations(jsonvariationfilename,classes,mincoverage,simmatrix)
-	else:
-		print("The variation file " + jsonvariationfilename + " exists. Please delete the file if you wish to recalculate the variation.")
-		with open(jsonvariationfilename) as variation_file:
-			variations = json.load(variation_file)
-		SaveVariationInTabFormat(jsonvariationfilename + ".txt",variations)
-		print("The variations are saved in the json file  " + jsonvariationfilename + " and tab file " + jsonvariationfilename + ".txt. The figure is saved in " + figoutput + "."  )
+	else:	
+		if not os.path.exists(jsonvariationfilename):
+			variations=ComputeVariations(jsonvariationfilename,classes,mincoverage,simmatrix)
+			SaveVariationInTabFormat(jsonvariationfilename + ".txt",variations)
+			print("The variations are saved in the json file  " + jsonvariationfilename + " and tab file " + jsonvariationfilename + ".txt. The figure is saved in " + figoutput + "."  )
+		else:
+			print("The variation file " + jsonvariationfilename + " exists. Please delete the file if you wish to recalculate the variation.")
+			with open(jsonvariationfilename) as variation_file:
+				variations = json.load(variation_file)
 	variationlist.append(variations)
 	labels.append(rank)	
 	i=i+1	
