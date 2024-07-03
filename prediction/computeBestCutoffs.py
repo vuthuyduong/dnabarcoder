@@ -30,6 +30,7 @@ parser.add_argument('-mincutoff','--mincutoff', type=float, default=0, help='The
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxproportion','--maxproportion', type=float, default=1, help='Only predict when the proportion of the sequences the largest group of the dataset is less than maxproportion. This is to avoid the problem of inaccurate prediction due to imbalanced data.')
+parser.add_argument('-highestconfidence','--highestconfidence', default="yes", help='Take the similarity cutoff with the highest confidence measure among the predictions for the clades containing the current taxonomic clade if highestconfidence -yes. Otherwise keep the orginal similarity cutoff.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savebestcutoffsascutoffs','--savebestcutoffsascutoffs', default="yes", help='the prefix of output filenames')
 
@@ -369,13 +370,15 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 		maxproportion =0
 		if "max proportion" in datasets[highertaxonname].keys():
 			maxproportion=datasets[highertaxonname]["max proportion"]	
-		if groupno < args.mingroupno or seqno < args.minseqno or maxproportion > args.maxproportion:	#delete the cutoffs that are too imbalanced or dont have enough sequences and groups for prediction	
+		if groupno < args.mingroupno or seqno < args.minseqno or maxproportion > args.maxproportion or cutoff <= args.mincutoff:	#delete the cutoffs that are too imbalanced, or dont have enough sequences and groups for prediction, or are less than a given minimum cutoff	
 			continue
-		if (maxconfidence < confidence) and (cutoff >= args.mincutoff):
+		if (maxconfidence < confidence):
 			maxconfidence =confidence
 			bestcutoff=cutoff
 			bestminalignmentlength=minalignmentlength
-			besttaxon=highertaxonname	
+			besttaxon=highertaxonname
+			if args.highestconfidence != "yes": #take the original similarity cutoffs
+				break
 	return bestcutoff,maxconfidence,besttaxon,bestminalignmentlength,isComputed
 
 def AddCutoffsToTaxonomy(taxonomy,cutoffs):
