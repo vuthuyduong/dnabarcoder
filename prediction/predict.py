@@ -870,10 +870,14 @@ def PlotPrediction(datasetname,thresholdlist,fmeasurelist,optthresholds,bestFmea
 		plt.show()	
 	
 def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfigoutput):
-	#sort all according to increasing order of optthresholds
+# 	#sort all according to increasing order of optthresholds
+# 	if len(optthresholds)==0:
+# 		return
+# 	optthresholds,bestFmeasures,datasetnames,features = zip(*sorted(zip(optthresholds,bestFmeasures,datasetnames,features)))
+	#sort all according to increasing order of bestFmeasures
 	if len(optthresholds)==0:
 		return
-	optthresholds,bestFmeasures,datasetnames,features = zip(*sorted(zip(optthresholds,bestFmeasures,datasetnames,features)))
+	bestFmeasures,optthresholds,datasetnames,features = zip(*sorted(zip(bestFmeasures,optthresholds,datasetnames,features)))	
 	labels=[]
 	i=0
 	for datasetname in datasetnames:
