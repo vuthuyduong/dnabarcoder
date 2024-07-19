@@ -694,8 +694,7 @@ for rank in ranklist:
 		else:
 			print("The variation file " + jsonvariationfilename + " exists. Please delete the file if you wish to recalculate the variation.")
 			with open(jsonvariationfilename) as variation_file:
-				variations = json.load(variation_file)
-	print(variations)			
+				variations = json.load(variation_file)			
 	variationlist.append(variations)
 	labels.append(rank)	
 	i=i+1	
