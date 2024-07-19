@@ -279,7 +279,7 @@ def ComputeVariation(reffilename,mincoverage,simmatrix):
 				except KeyError:
 					continue		 
 	threshold=1
-	minthreshold=0
+	minthreshold=1
 	if len(scorelist) >0:
 		x=[np.array(scorelist)]
 		#x = np.sort(x)
@@ -695,6 +695,7 @@ for rank in ranklist:
 			print("The variation file " + jsonvariationfilename + " exists. Please delete the file if you wish to recalculate the variation.")
 			with open(jsonvariationfilename) as variation_file:
 				variations = json.load(variation_file)
+	print(variations)			
 	variationlist.append(variations)
 	labels.append(rank)	
 	i=i+1	
