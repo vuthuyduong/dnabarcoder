@@ -27,7 +27,6 @@ parser.add_argument('-prefix','--prefix', default="", help='the prefix of output
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-#parser.add_argument('-p','--classificationpositions', default="", help='the classification positions for the prediction, separated by ",".')
 parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks for the prediction, separated by ",".')
 parser.add_argument('-st','--startingthreshold', type=float, default=0, help='starting threshold')
 parser.add_argument('-et','--endthreshold', type=float, default=0, help='ending threshold')
@@ -40,6 +39,7 @@ parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='Th
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-maxseqno','--maxseqno', type=int, default=20000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-maxproportion','--maxproportion', type=float, default=1, help='Only predict when the proportion of the sequences the largest group of the dataset is less than maxproportion. This is to avoid the problem of inaccurate prediction due to imbalanced data.')
+parser.add_argument('-mincutoff','--mincutoff', type=float, default=0, help='The minimum cutoff for selection.')
 parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
 parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If removecomplexes="yes", indistinguishable groups will be removed before the prediction.')
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
@@ -796,11 +796,14 @@ def SavePrediction(predictiondict,outputnamewithfmeasures,outputnamewithoutfmeas
 			minalignmentlength=0
 			if "min alignment length" in dataset.keys():
 				minalignmentlength=dataset["min alignment length"]
+			cutoff=0 
+			if "cut-off" in dataset.keys():
+				cutoff=dataset["cut-off"]	
 			maxproportion =0
 			if "max proportion" in dataset.keys():
 				maxproportion=dataset["max proportion"]	
 			#if groupno < minGroupNo or seqno < minSeqNo or (minalignmentlength>0 and minalignmentlength <mincoverage):	#delete the cutoffs that dont have enough sequences and groups for prediction
-			if groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion :	#remove the cutoffs that dont have enough sequences and groups for prediction
+			if groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion or  cutoff < args.mincutoff:	#remove the cutoffs that dont have enough sequences and groups for prediction, or having a dominant group with its proportion greater than maxpropostion, or having a predicted cutoff lower than the boundary mincutoff
 				del datasets[datasetname]			
 	with open(outputnamewithoutfmeasures,"w") as json_file:
 		if sys.version_info[0] >= 3:
@@ -1004,7 +1007,7 @@ if __name__ == "__main__":
 					continue
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength,maxproportion=LoadPredictionForGivenRankAndDataset(datasetdict)																													   
 				#if not (groupno < minGroupNo or (seqno < minSeqNo) or (minalignmentlength >0 and minalignmentlength < mincoverage)):	#for visualization				
-				if not (groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion):	#for visualization
+				if not (groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion or optthreshold <args.mincutoff):	#for visualization
 					if (len(higherpositionlist)==0 and datasetname == "All") or (len(higherpositionlist)!=0):	
 						thresholdlist.append(thresholds)
 						fmeasurelist.append(fmeasures)
@@ -1046,7 +1049,7 @@ if __name__ == "__main__":
 					datasetdict['max proportion']=maxproportion
 					if not (datasetname in prediction_datasets.keys()):
 						prediction_datasets[datasetname]=datasetdict		
-					if not (groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion):	#for visualization
+					if not (groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion or optthreshold <args.mincutoff):	#for visualization
 						thresholdlist.append(thresholds)
 						fmeasurelist.append(fmeasures)
 						optthresholds.append(optthreshold)
@@ -1062,7 +1065,7 @@ if __name__ == "__main__":
 			outputwithoutfmeasures=GetBase(outputname) + ".cutoffs.json"	
 			SavePrediction(predictiondict,outputname,outputwithoutfmeasures)
 			#SaveCutoffs(predictiondict,outputcutoffs)
-			print("Only cut-offs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", and with the proportion of the largest group less than " + str(args.maxproportion) + ", are saved. If you wish to save cut-offs for clades with less numbers of sequences and groups, please reset minseqno, mingroupno, and maxproportion with -minseqno, -mingroupno, and -maxproportion.")
+			print("Only cut-offs for the clades with the numbers of sequences and subclades greater than  " + str(minSeqNo) + " and " + str(minGroupNo) + ", with the proportion of the largest group less than " + str(args.maxproportion) + ", and the predicted cutoff greater than mincutoff are saved. If you wish to save cut-offs for clades with less numbers of sequences and groups, please reset minseqno, mingroupno, maxproportion, mincutoff with -minseqno, -mingroupno,-maxproportion, and -mincutoff.")
 			print("The prediction and cut-offs are saved in the files " + outputname + ", " + outputwithoutfmeasures + " and " + outputwithoutfmeasures + ".txt.")
 	else:
 		#load existing prediction for plotting
@@ -1072,7 +1075,7 @@ if __name__ == "__main__":
 				prediction_datasetname=prediction_datasets[datasetname]
 				thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength,maxproportion=LoadPredictionForGivenRankAndDataset(prediction_datasetname)
 				#if not (groupno < minGroupNo or seqno < minSeqNo or (minalignmentlength >0 and minalignmentlength < mincoverage)):	#for visualization
-				if not (groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion):	#for visualization
+				if not (groupno < minGroupNo or seqno < minSeqNo or maxproportion > args.maxproportion > args.maxproportion or optthreshold <args.mincutoff):	#for visualization
 					thresholdlist.append(thresholds)
 					fmeasurelist.append(fmeasures)
 					optthresholds.append(optthreshold)
