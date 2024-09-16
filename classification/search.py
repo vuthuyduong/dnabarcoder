@@ -87,20 +87,18 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 
 	#blast
 	#dbfilename="db.nsq"
-	db= reference[:-(len(reference)-reference.rindex("."))]  + ".blastdb"
+	#db= reference[:-(len(reference)-reference.rindex("."))]  + ".blastdb"
+	db= GetWorkingBase(reference)  + ".blastdb"
 	#print(db)
 	#blastoutput="out.txt"
 	blastoutput=query[:-(len(query)-query.rindex("."))] + "." + os.path.basename(reference)[:-(len(os.path.basename(reference))-os.path.basename(reference).rindex("."))] + ".blastoutput"
 	#print(blastoutput)
-# 	if not os.path.exists(db + ".nsq"):
-# 		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out " + db
-# 		print(makedbcommand)
-# 		os.system(makedbcommand)
-# 	else:
-# 		print("The existing BLAST db " + db + " is used. If you wish to remake it, please delete the files " + db + ".*." )
-	makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out " + db
-	print(makedbcommand)
-	os.system(makedbcommand)	
+	if not os.path.exists(db + ".nsq"):
+		makedbcommand = "makeblastdb -in " + reference + " -dbtype \'nucl\' " +  " -out " + db
+		print(makedbcommand)
+		os.system(makedbcommand)
+	else:
+		print("The existing BLAST db " + db + " is used. If you wish to remake it, please delete the files " + db + ".*." )
 	#for short read
 	blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	#for long read
