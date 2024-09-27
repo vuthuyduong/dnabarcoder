@@ -364,8 +364,13 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 	#sort all_data based on number of points with a decreasing order
 	sorted_data = sorted(all_data.items(), key=lambda x: x[1], reverse=True)
 	#colors = plt.cm.rainbow(numpy.linspace(0, 1, len(all_data)))
-	n1=min(10,len(all_data))
+	n1=min(numberofdisplayedlabels,len(all_data))
 	colors = plt.cm.tab10(numpy.linspace(0, 1, n1)) #prism
+	#sort the first 10 colors based on the names of the first 10 dominant group
+	biggest_groups = sorted_data[0:n1]
+	#sort by name
+	biggest_groups = sorted(biggest_groups, key=lambda x: x[0], reverse=True)
+	sorted_data = biggest_groups + sorted_data[n1:(len(sorted_data)-1)]
 #	if len(colors) >=5:
 #		colors=numpy.delete(colors,5,0)#delete the yellow color from the list
 #		if len(colors) >=7:
@@ -432,7 +437,7 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 		label=text.get_text()
 		if label.startswith("unidentified"):
 			color="black"
-		plt.setp(text, color = color)
+		plt.setp(text, color = color,style='italic')
 		i=i+1
 	#plt.xlim(-lim, lim)
     #plt.ylim(-lim, lim)
