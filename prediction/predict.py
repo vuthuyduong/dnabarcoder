@@ -885,13 +885,13 @@ def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfi
 	i=0
 	for datasetname in datasetnames:
 		if len(set(features))==1:
-			labels.append(datasetnames[i] )
+			labels.append(datasetnames[i]) 
 		else:
 			labels.append(features[i] + " cut-off for " + datasetnames[i] )
 		i=i+1
 	x = np.arange(len(labels))  # the label locations
 	#width = 0.35  # the width of the bars
-	fig, ax = plt.subplots(figsize=(6,3)) 
+	fig, ax = plt.subplots(figsize=(6,2.2)) 
 	ax2=ax.twinx()
 	#ax.bar(x,optthresholds,color='b')
 	ax.plot(np.array(labels), np.array(optthresholds), color='b')
@@ -904,7 +904,8 @@ def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfi
 		ax.set_title(prefix + ": cut-offs and F-measures predicted for different groups")
 	
 	ax.set_xticks(x)
-	ax.set_xticklabels(labels,rotation=90, style=args.labelstyle)
+	#ax.set_xticklabels(labels,rotation=90, style=args.labelstyle)
+	ax.set_xticklabels(labels,rotation=90, style='italic')
 	ax.legend()
 	plt.tight_layout()
 	plt.savefig(localfigoutput, dpi = 500)
