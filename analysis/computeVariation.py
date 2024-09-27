@@ -563,7 +563,7 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 #	#fig.canvas.set_window_title('Variation')
 #	fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
 	#box_colors = ['r','b']#['darkkhaki', 'royalblue']
-	fig, ax = plt.subplots(figsize=(4,3))
+	fig, ax = plt.subplots(figsize=(4,2.5))
 	bp = ax.boxplot(data, notch=0, sym='+', vert=1, whis=1.5)
 	plt.setp(bp['boxes'], color='black')
 	plt.setp(bp['whiskers'], color='black')
@@ -606,7 +606,8 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	pos = np.arange(num_boxes) + 1
 	k=0
 	for tick, label in zip(range(num_boxes), ax.get_xticklabels()):
-		ax.text(pos[tick], 0.97, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[k])
+		#ax.text(pos[tick], 0.97, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[k])
+		ax.text(pos[tick], 0.96, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[k])
 		k=k+1
 	#plt.legend()
 	plt.tight_layout()
