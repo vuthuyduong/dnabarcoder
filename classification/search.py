@@ -3,11 +3,7 @@
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2021
 import sys
-#from sklearn.metrics import precision_recall_fscore_support
-#from sklearn.metrics import cohen_kappa_score
-#from sklearn.metrics import matthews_corrcoef
-#from sklearn.metrics import confusion_matrix
-#from sklearn.metrics import accuracy_score
+
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
@@ -16,7 +12,7 @@ from Bio import SeqIO
 import multiprocessing
 
 nproc=multiprocessing.cpu_count()
-#from keras.utils import np_utils
+
 
 parser=argparse.ArgumentParser(prog='search.py',  
 							   usage="%(prog)s [options] -i fastafile -r referencefastafile -ml minalignmentlength ",
@@ -29,11 +25,13 @@ parser.add_argument('-r','--reference', required=True, help='the reference fasta
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 testdataset= args.input
 traindataset = args.reference
 mincoverage = args.minalignmentlength
+ncpus=args.ncpus
 
 prefix=args.prefix
 outputpath=args.out
@@ -100,11 +98,11 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 	else:
 		print("The existing BLAST db " + db + " is used. If you wish to remake it, please delete the files " + db + ".*." )
 	#for short read
-	blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
 	#for long read
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
-	print(blastcommand)	
+		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
+	print(blastcommand)
 	os.system(blastcommand)
 	
 	#read blast output
