@@ -28,12 +28,14 @@ parser.add_argument('-i','--input', required=True, help='the fasta file')
 parser.add_argument('-o','--out',default="dnabarcoder", help='The output folder.') 
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
 parser.add_argument('-ms','--minsim', type=float, default=0, help='The minimum similarity score that will be saved for the output.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 fastafilename= args.input
 mincoverage=args.minalignmentlength
 minsim=args.minsim
 outputpath=args.out
+nproc=args.ncpus
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)	

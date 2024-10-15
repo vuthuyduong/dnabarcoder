@@ -8,13 +8,9 @@ if sys.version_info[0] >= 3:
 import numpy as np
 import os
 from Bio import SeqIO
-#import json
-#import random
+
 import matplotlib.pyplot as plt
 plt.rc('font',size=6)
-
-import multiprocessing
-nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='computeDistribution.py',  
 							   usage="%(prog)s [options] -i fastafile -c classificationfilename -ranks classificationranks  -o output",
@@ -28,7 +24,7 @@ parser.add_argument('-c','--classification', default='', help='the classificatio
 parser.add_argument('-rank','--classificationranks', default="", help='the classification ranks to compute distribution, separated by ",".')
 parser.add_argument('-n','--numberofdisplayedlabels', type=int, default=5, help='The number of labels to be displayed.')
 parser.add_argument('-labelstyle','--labelstyle', default='normal', help='The label style to be displayed: normal, italic, or bold.')
-parser.add_argument('-method','--visualizationmethod', default="plot", help='The visualization method. There are two methods to be selected: krona and plot.')
+parser.add_argument('-method','--visualizationmethod', default="krona", help='The visualization method. There are two methods to be selected: krona and plot.')
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')

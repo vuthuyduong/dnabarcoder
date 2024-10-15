@@ -114,31 +114,31 @@ def LoadClassification(classificationfilename):
 		words=line.split("\t")
 		if p_id >-1:
 			if p_id >= len(words):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			seqid=words[p_id].rstrip()
 		if p_s >-1:
 			if (p_s >= len(words)):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			species=words[p_s].rstrip()	
 		if p_g >-1:
 			if p_g >= len(words):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			genus=words[p_g].rstrip()	
 		if p_f >-1:
 			if p_f >= len(words):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			family=words[p_f].rstrip()	
 		if p_o >-1:
 			if p_o >= len(words):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			order=words[p_o].rstrip()
 		if p_c >-1:
 			if p_c >= len(words):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			bioclass=words[p_c].rstrip()	
 		if p_p >-1:
 			if p_p >= len(words):
-				print("Please check classification of the sequence " + seqid)
+				print("Please check classification of the sequence " + line)
 			phylum=words[p_p].rstrip()	
 		if p_k >-1:
 			kingdom=words[p_k].rstrip()	

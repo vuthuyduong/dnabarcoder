@@ -36,6 +36,7 @@ parser.add_argument('-label','--label',default="", help='The label to display in
 parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 referencename= args.input
@@ -46,6 +47,7 @@ plottype=args.plottype
 simfilename=args.simfilename
 prefix=args.prefix
 label=args.label
+nproc=args.ncpus
 
 
 maxSeqNo=0
