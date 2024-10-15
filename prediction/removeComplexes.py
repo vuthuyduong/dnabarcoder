@@ -17,20 +17,21 @@ parser.add_argument('-t','--cutoff', type=float, default=1, help='The threshold 
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-#parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank for loading the complexes.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 fastafilename= args.input
 threshold=args.cutoff
 mincoverage = args.minalignmentlength
 classificationfilename=args.classification
-#classificationpos=args.classificationpos
 rank=args.classificationrank
 outputpath=args.out
 simfilename=args.simfilename
+nproc=args.ncpus
+
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 

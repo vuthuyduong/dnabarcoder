@@ -68,7 +68,7 @@ prefix=args.prefix
 label=args.label
 outputpath=args.out
 redo=args.redo
-ncpus=args.ncpus
+nproc=args.ncpus
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
@@ -151,9 +151,9 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out " + blastdb
 	print(makedbcommand)
 	os.system(makedbcommand)
-	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
+	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
+		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	print(blastcommand)
 	os.system(blastcommand)
 	if not os.path.exists(blastoutput):

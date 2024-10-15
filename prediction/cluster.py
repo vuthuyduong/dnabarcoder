@@ -6,6 +6,7 @@ import os
 import sys, argparse
 from Bio import SeqIO
 import multiprocessing
+nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='cluster.py',  
 							   usage="%(prog)s [options] -i fastafile -t threshold -mc mincoverage -c classificationfilename -p classificationposition -o output",
@@ -23,6 +24,7 @@ parser.add_argument('-rank','--classificationrank', default="", help='the classi
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -33,10 +35,12 @@ rank=args.classificationrank
 #classificationpos=args.classificationpos
 simfilename=args.simfilename
 outputpath=args.out
+nproc=args.ncpus
+
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
-nproc=multiprocessing.cpu_count()
+
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))] 
