@@ -129,8 +129,11 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 			bestrefidlist[i]=refid
 			bestsimlist[i]=sim
 			bestcoveragelist[i]=coverage
-	os.system("rm " + indexed_query)		
-	os.system("rm " + blastoutput)
+	os.system("rm " + indexed_query)	
+	if 	sum(bestsimlist) ==0:
+		print("The BLAST output seems empty (see the " + blastoutput + " file). Please check the BLAST program or reduce the number of CPUs used for searching with the option -ncpus to avoid memory issues when searching large FASTA files.")
+	else:	
+		os.system("rm " + blastoutput)
 	return bestrefidlist,bestscorelist,bestsimlist,bestcoveragelist
 
 def SavePrediction(testseqIDs,bestscorelist,bestsimlist,bestcoveragelist,bestrefidlist,outputname):
