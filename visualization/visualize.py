@@ -10,7 +10,6 @@ if sys.version_info[0] >= 3:
 import numpy
 import matplotlib.pyplot as plt
 plt.rc('font',size=6)
-from mpl_toolkits import mplot3d	
 from Bio import SeqIO
 import json
 import multiprocessing
@@ -41,6 +40,7 @@ parser.add_argument('-prefix','--prefix',default="", help='The prefix of the out
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -59,6 +59,7 @@ numberofdisplayedlabels=args.numberofdisplayedlabels
 outputpath=args.out
 prefix=args.prefix
 label=args.label
+nproc=args.ncpus
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)	

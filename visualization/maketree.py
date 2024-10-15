@@ -25,12 +25,14 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-alignmentmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 fastafilename= args.input
 classificationfilename= args.classification
 ranks=args.classificationranks
 outputpath=args.out
+nproc=args.ncpus
 
 outputpath=args.out
 if not os.path.exists(outputpath):
