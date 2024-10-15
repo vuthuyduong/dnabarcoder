@@ -10,9 +10,7 @@ import os, argparse
 from Bio import SeqIO
 #import json
 import multiprocessing
-
 nproc=multiprocessing.cpu_count()
-
 
 parser=argparse.ArgumentParser(prog='search.py',  
 							   usage="%(prog)s [options] -i fastafile -r referencefastafile -ml minalignmentlength ",
@@ -31,7 +29,7 @@ args=parser.parse_args()
 testdataset= args.input
 traindataset = args.reference
 mincoverage = args.minalignmentlength
-ncpus=args.ncpus
+nproc=args.ncpus
 
 prefix=args.prefix
 outputpath=args.out
@@ -98,10 +96,10 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 	else:
 		print("The existing BLAST db " + db + " is used. If you wish to remake it, please delete the files " + db + ".*." )
 	#for short read
-	blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
+	blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	#for long read
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
+		blastcommand = "blastn -query " + indexed_query + " -db  " + db + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
 	print(blastcommand)
 	os.system(blastcommand)
 	

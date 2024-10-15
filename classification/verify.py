@@ -39,10 +39,6 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-maxseqno','--maxseqno', type=int, default=2000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
-#parser.add_argument('-lower_taxonomic_pred_columnnames','--lower_taxonomic_prediction_columnnames', default="", help='the colunm names, separated by ",", of the predictions at lower taxonomic levels if exists.')
-#parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
-#parser.add_argument('-fullclassification_columnname','--fullclassification_columnname', default="full classification", help='the colunm name of the predicted full classification.')
-#parser.add_argument('-givenlabel_columnname','--givenlabel_columnname', default="given label", help='the colunm name of the given labels, for comparison purpose.')
 parser.add_argument('-redo','--redo', default="", help='reverifying if -redo yes.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
@@ -57,8 +53,7 @@ parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='M
 parser.add_argument('-alignmentmethod','--alignmentmethod',default="mafft", help='the alignment method: mafft or clustalo.')
 parser.add_argument('-saveverifiedonly','--saveverifiedonly',default="yes", help='The option to save only verified sequences (yes) or all (no) in the classification output.')
 parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
-#parser.add_argument('-seqid','--sequenceid', default="", help='If the sequence id is given, then only classification of this sequence is verified. Otherwise all classifications are verified.')
-
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -76,10 +71,10 @@ globalcutoff=args.globalcutoff
 globalconfidence=args.globalconfidence
 cutoffsfilename=args.cutoffs
 outputpath=args.out
+nproc=args.ncpus
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
-nproc=multiprocessing.cpu_count()
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]

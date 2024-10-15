@@ -8,14 +8,7 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
-#from sklearn.metrics import precision_recall_fscore_support
-#from sklearn.metrics import cohen_kappa_score
-#from sklearn.metrics import matthews_corrcoef
-#from sklearn.metrics import confusion_matrix
-#from sklearn.metrics import accuracy_score
-import json
 from Bio import SeqIO
-import random
 
 parser=argparse.ArgumentParser(prog='visualizeClassification.py',  
 							   usage="%(prog)s [options] -i assignmentfile -o kronareport",

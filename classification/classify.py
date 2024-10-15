@@ -15,7 +15,7 @@ import os, argparse
 #from sklearn.metrics import accuracy_score
 import json
 from Bio import SeqIO
-import multiprocessing
+
 parser=argparse.ArgumentParser(prog='classify.py',  
 							   usage="%(prog)s [options] -i bestmatch/classified file -r referencefastafilename -c classificationfile -ml minalignment -cutoffs cutoffsfile -o output",
 							   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
@@ -57,9 +57,6 @@ outputpath=args.out
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
-
-
-nproc=multiprocessing.cpu_count()
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
