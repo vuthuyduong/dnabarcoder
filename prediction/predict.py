@@ -9,11 +9,12 @@ import sys
 from Bio import SeqIO
 import matplotlib.pyplot as plt
 plt.rc('font',size=6)
-#from matplotlib.patches import Polygon
 import numpy as np
 import multiprocessing
 import json
 import random
+
+nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='predict.py', 
 							   usage="%(prog)s [options] -i fastafile -c classificationfile -p classificationposition -st startingthreshold -et endthreshold -s step -ml minalignmentlength",
@@ -45,6 +46,8 @@ parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If 
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
+parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
+
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -61,17 +64,17 @@ outputfolder=args.out
 simfilename=args.simfilename
 minGroupNo=args.mingroupno
 minSeqNo=args.minseqno
-#taxa=args.taxa
 prefix=args.prefix
 label=args.label
 outputpath=args.out
 redo=args.redo
+ncpus=args.ncpus
 
 if not os.path.exists(outputpath):
 	os.system("mkdir " + outputpath)
 
 
-nproc=multiprocessing.cpu_count()
+
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]  
@@ -148,9 +151,9 @@ def ComputeSim(fastafilename,seqrecords,mincoverage):
 	makedbcommand = "makeblastdb -in " + fastafilename + " -dbtype \'nucl\' " +  " -out " + blastdb
 	print(makedbcommand)
 	os.system(makedbcommand)
-	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+	blastcommand = "blastn -query " + fastafilename + " -db  " + blastdb + " -task blastn-short -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
 	if mincoverage >=400:
-		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(nproc)
+		blastcommand = "blastn -query " + fastafilename + " -db " + blastdb + " -outfmt 6 -out " + blastoutput + " -num_threads " + str(ncpus)
 	print(blastcommand)
 	os.system(blastcommand)
 	if not os.path.exists(blastoutput):
