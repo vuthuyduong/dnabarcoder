@@ -17,11 +17,14 @@ parser=argparse.ArgumentParser(prog='visualizeClassification.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the assignment/classification file')
+parser.add_argument('-countColumnName','--countColumnName',default="", help='the column name in the classification file contains the number of associated sequences in the sample. If this column name is not provided, each sequence is counted once in the sample.')
 parser.add_argument('-o','--out', default="", help='The output krona report.')
 
 args=parser.parse_args()
 predictionfilename=args.input
+countColumnName=args.countColumnName
 kronareport=args.out
+
 #if not os.path.exists(outputpath):
 #	os.system("mkdir " + outputpath)
 
@@ -42,6 +45,7 @@ def GetTaxonomicClassification(level,header,texts):
 	p_c=len(texts)
 	p_p=len(texts)
 	p_k=len(texts)
+	p_count=len(texts)
 	i=0
 	for text in header.split("\t"):
 		text=text.rstrip()
@@ -59,6 +63,8 @@ def GetTaxonomicClassification(level,header,texts):
 			p_p=i	
 		elif text.lower()=="kingdom":
 			p_k=i	
+		elif text.lower()==args.countColumnName:
+			p_count=i	
 		i=i+1 
 	species="unidentified"
 	genus="unidentified"
@@ -67,6 +73,7 @@ def GetTaxonomicClassification(level,header,texts):
 	bioclass="unidentified"
 	phylum="unidentified"
 	kingdom="unidentified"
+	count=1
 	if p_s< len(texts):
 		species=texts[p_s].rstrip()
 	if p_g< len(texts):
@@ -81,6 +88,8 @@ def GetTaxonomicClassification(level,header,texts):
 		phylum=texts[p_p].rstrip()
 	if p_k< len(texts):
 		kingdom=texts[p_k].rstrip()
+	if p_count< len(texts):
+		count=int(texts[p_count].rstrip())	
 	taxonname=""
 	rank=""
 	if level <7 and kingdom!="unidentified":
@@ -112,7 +121,7 @@ def GetTaxonomicClassification(level,header,texts):
 		rank="species"
 		classification=kingdom +"\t"+phylum +"\t"+bioclass +"\t"+ order+"\t"+family + "\t"+ genus+"\t"+species
 
-	return classification
+	return classification,count
 
 def GetTaxonomicClassificationFromDescription(texts):
 	species = "unidentified"
@@ -159,19 +168,18 @@ def LoadPrediction(predictionfilename):
 			text=text.rstrip()
 			if ("species"==text) or ("genus"==text) or ("family"==text) or ("order"==text) or ("class"==text) or ("phylum"==text):
 				areTaxaSeparatedByTab = True
-	print(header)
-	print(areTaxaSeparatedByTab)
 	for line in predictionfile:
 		texts=line.split("\t")
 		classification=""
+		count=1
 		if areTaxaSeparatedByTab==True:
-			classification = GetTaxonomicClassification(0, header, texts)
+			classification,count = GetTaxonomicClassification(0, header, texts)
 		else:
 			classification = GetTaxonomicClassificationFromDescription(texts)
 		if classification in classificationdict.keys():
-			classificationdict[classification]=classificationdict[classification] + 1
+			classificationdict[classification]=classificationdict[classification] + count
 		else:
-			classificationdict.setdefault(classification, 1)	
+			classificationdict.setdefault(classification, count)	
 	return classificationdict
 
 def KronaPieCharts(classification,kronareport,kronahtml):
