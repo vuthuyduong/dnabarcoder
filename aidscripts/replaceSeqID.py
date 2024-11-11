@@ -53,7 +53,6 @@ for old_id in iddict.keys():
 	new_id=iddict[old_id]
 	if old_id==new_id:
 		continue
-	print(new_id)
 	# Define the pattern to match text between [ and ]
 	pattern = rf"(?<=>){old_id}(?= )" #sequence headers in fasta files
 	# Use re.sub to replace the matched pattern
@@ -62,7 +61,7 @@ for old_id in iddict.keys():
 	pattern = rf"(?<=>){old_id}(?=\n)" #sequence IDs in fasta files
 	# Use re.sub to replace the matched pattern
 	content = re.sub(pattern, new_id, content)	
-	pattern = rf"(?<=()){old_id}(?=:)" #sequence IDs in tree files
+	pattern = rf"(?<=\(){old_id}(?=:)" #sequence IDs in tree files
 	# Use re.sub to replace the matched pattern
 	content = re.sub(pattern, new_id, content)	
 
