@@ -11,25 +11,33 @@ import os, argparse
 from Bio import SeqIO
 
 parser=argparse.ArgumentParser(prog='visualizeClassification.py',  
-							   usage="%(prog)s [options] -i assignmentfile -o kronareport",
+							   usage="%(prog)s [options] -i assignmentfile -o outputt",
 							   description='''Script that visualizes using Krona for the classification results.''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
 
 parser.add_argument('-i','--input', required=True, help='the assignment/classification file')
 parser.add_argument('-countColumnName','--countColumnName',default="", help='the column name in the classification file contains the number of associated sequences in the sample. If this column name is not provided, each sequence is counted once in the sample.')
-parser.add_argument('-o','--out', default="", help='The output krona report.')
+parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+
 
 args=parser.parse_args()
 predictionfilename=args.input
 countColumnName=args.countColumnName
-kronareport=args.out
+outputpath=args.out
 
 #if not os.path.exists(outputpath):
 #	os.system("mkdir " + outputpath)
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
+
+def GetWorkingBase(filename):
+	basename=os.path.basename(filename)
+	if "." in basename:
+		basename=basename[:-(len(basename)-basename.rindex("."))] 
+	path=outputpath + "/" + filename
+	return path
 
 def is_fasta(filename):
     with open(filename, "r") as handle:
@@ -196,8 +204,7 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 if __name__ == "__main__":
 	classificationdict = LoadPrediction(predictionfilename)
 	#making krona report
-	if kronareport=="":
-		kronareport = GetBase(predictionfilename) + ".krona.report"
+	kronareport = GetWorkingBase(predictionfilename) + ".krona.report"
 	kronahtml=GetBase(kronareport) + ".html"
 	KronaPieCharts(classificationdict,kronareport,kronahtml)
 	print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".") 
