@@ -233,7 +233,7 @@ def GetTaxonName(description,rank):
 	return taxonname
 
 def LoadClasses(allseqrecords,classificationfilename,pos,seqidpos):
-	classificationfile= open(classificationfilename)
+	classificationfile= open(classificationfilename, errors='ignore')
 #	records= open(classificationfilename,errors='ignore')
 	classification={}
 	classes={}
@@ -342,7 +342,7 @@ def SaveClusters(clusters,seqrecords,classes,classification,output,outputfastafi
 
 def GetPosition(classificationfilename,rank):
 	pos=-1
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename,errors='ignore')
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
