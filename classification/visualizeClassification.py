@@ -166,7 +166,7 @@ def GetTaxonomicClassificationFromDescription(texts):
 
 def LoadPrediction(predictionfilename):
 	classificationdict={}
-	predictionfile= open(predictionfilename, "r")
+	predictionfile= open(predictionfilename, errors='ignore')
 	header=next(predictionfile)
 	header=header.lower()
 	areTaxaSeparatedByTab=False
