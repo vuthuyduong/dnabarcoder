@@ -503,7 +503,7 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 def GetPositionList(classificationfilename,ranklist,higherranklist):
 	positionlist=[]
 	higherpositionlist=[]
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename, errors='ignore')
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
