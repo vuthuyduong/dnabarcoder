@@ -95,7 +95,7 @@ def GetPositionList(classificationfilename,ranks,idcolumnname):
 	elif ranks !="":
 		ranklist.append(ranks)
 	positionlist=[]
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename,errors='ignore')
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
