@@ -39,6 +39,8 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-maxseqno','--maxseqno', type=int, default=2000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-pred_columnname','--prediction_columnname', default="prediction", help='the colunm name of the prediction.')
+parser.add_argument('-proba_columnname','--proba_columnname', default="probability", help='the colunm name of the probability or confidence measure of the prediction.')
+parser.add_argument('-refid_columnname','--refid_columnname', default="referenceid", help='the colunm name of the reference id of the prediction.')
 parser.add_argument('-redo','--redo', default="", help='reverifying if -redo yes.')
 parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
 parser.add_argument('-savefig','--savefig', default="no", help='save the figures of the phylogenetic trees or not: yes or no.')
@@ -54,6 +56,7 @@ parser.add_argument('-alignmentmethod','--alignmentmethod',default="mafft", help
 parser.add_argument('-saveverifiedonly','--saveverifiedonly',default="yes", help='The option to save only verified sequences (yes) or all (no) in the classification output.')
 parser.add_argument('-method','--method', default="cutoff", help='The methods (cutoff,tree) based on the similarity cutoffs or phylogenic trees for the verification of classification.')
 parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
+
 
 args=parser.parse_args()
 predictionfilename=args.input
@@ -453,9 +456,9 @@ def LoadPrediction(predictionfilename,idcolumnname):
 			p_pl=i
 		#if "full classification" in header.lower():
 		#	p_c=i
-		if "probability" in header.lower():
+		if args.proba_columnname in header.lower():
 			p_p=i
-		if ("referenceid" in header.lower()) or ("reference_id" in header.lower()) or ("reference id" in header.lower()) :
+		if args.refid_columnname in header.lower():
 			p_r=i
 		if "score" in header.lower():
 			p_bs=i	
@@ -858,18 +861,19 @@ def VerifyBasedOnCutoffs(seqrecords,predictiondict,refclasses,maxseqno,taxonomy,
 					score=newbestscore
 					sim=newsim
 					coverage=newcoverage
+					predictiondict[seqid]["refid"]=refid
+					predictiondict[seqid]["sim"]=sim
+					predictiondict[seqid]["score"]=score
+					predictiondict[seqid]["coverage"]=coverage
+					predictiondict[seqid]["cut-off"]=predicted_cutoff
+					predictiondict[seqid]["confidence"]=predicted_confidence
+					predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
 					if 	score >= predicted_cutoff:
 						verifiedlabel=predictedname
 						count=count+1
 						predictiondict[seqid]["verifiedlabel"]=verifiedlabel
-						predictiondict[seqid]["numberofrefsequences"]=numberofrefsequences
 						predictiondict[seqid]["classification"]=predicted_classification
-						predictiondict[seqid]["refid"]=refid
-						predictiondict[seqid]["sim"]=sim
-						predictiondict[seqid]["score"]=score
-						predictiondict[seqid]["coverage"]=coverage
-						predictiondict[seqid]["cut-off"]=predicted_cutoff
-						predictiondict[seqid]["confidence"]=predicted_confidence
+						
 	
 	return count,total
 	
@@ -923,12 +927,12 @@ def VerifyBasedOnTrees(seqrecords,predictiondict,refclasses,maxseqno,alignmentme
 	return count,notree_count,total
 
 def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilename):
-	classificationreportfile=open(classificationreportfilename,"w")
+	#classificationreportfile=open(classificationreportfilename,"w")
 	outputfile=open(output,"w")
 	notverifiedoutputfile=open(notverifiedoutput,"w")
-	notverifiedoutputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
-	outputfile.write("ID\tGiven label\tPrediction\tFull classification\tProbability\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
-	classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tscore\tcutoff\tconfidence\n")
+	notverifiedoutputfile.write("ID\tGiven label\tPrediction\tFull classification\t" + args.proba_columnname +"\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	outputfile.write("ID\tGiven label\tPrediction\tFull classification\t" + args.proba_columnname +"\tCut-off\tConfidence\tReferenceID\tBLAST score\tBLAST sim\tBLAST coverage\tVerified label\tTree filename\tNumber of reference sequences\tBranch length\tMax branch length\tAverage branch length\n")
+	#classificationreportfile.write("SequenceID\tReferenceID\tkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tscore\tcutoff\tconfidence\n")
 	for seqid in predictiondict.keys():
 		prediction=predictiondict[seqid]
 		treefilename=prediction["treefilename"]
@@ -959,7 +963,7 @@ def SaveVerification(predictiondict,output,notverifiedoutput,classificationfilen
 		#if (verifiedlabel=="" or verifiedlabel=="unidentified") and ((verifyingrank!="" and verifyingrank==rank) or verifyingrank==""):
 		if (verifiedlabel=="" or verifiedlabel=="unidentified"):
 			notverifiedoutputfile.write(seqid + "\t" + givenlabel + "\t"  + predlabel + "\t"+ classification + "\t" + str(proba)  + "\t" + str(cutoff) + "\t" + str(confidence) + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\t" + verifiedlabel + "\t" + treefilename + "\t" + str(numberofrefsequences) + "\t" + str(branchlength) + "\t" + str(maxbranchlength) + "\t" + str(averagebranchlength) + "\n")			
-		classificationreportfile.close()
+		#classificationreportfile.close()
 	outputfile.close()	
 	notverifiedoutputfile.close()	
 		
@@ -1006,7 +1010,7 @@ if __name__ == "__main__":
 			prefix=prefix[prefix.rindex("/")+1:]	
 	outputname=GetWorkingBase(prefix) + "." + args.prediction_columnname.lower() +".verified"
 	notverifiedoutputname=GetWorkingBase(prefix)+ "." + args.prediction_columnname.lower() + ".unverified"
-	classificationreportfilename=GetWorkingBase(prefix) + "." + args.prediction_columnname.lower()+ ".verified.classification"
+	#classificationreportfilename=GetWorkingBase(prefix) + "." + args.prediction_columnname.lower()+ ".verified.classification"
 	if outputname==predictionfilename:
 		outputname=outputname+".verified"
 	
@@ -1049,7 +1053,7 @@ if __name__ == "__main__":
 			print("Number of verified sequences: " + str(count) + "(" + str(round(count*100/total,2)) + " %).")	
 	#print("The results are saved in file  " + outputname)
 	SaveVerification(predictiondict,outputname,notverifiedoutputname,classificationfilename)
-	print("The results are saved in file  " + outputname + ", " + notverifiedoutputname + " and " + classificationreportfilename + ".")
+	print("The results are saved in file  " + outputname + " and " + notverifiedoutputname + ".")
 	#making krona report
 	kronareport = GetBase(outputname) + ".krona.report"
 	kronahtml=GetBase(kronareport) + ".html"
