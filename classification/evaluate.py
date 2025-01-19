@@ -26,8 +26,11 @@ parser.add_argument('-qc','--queryclassification', default="", help='the given c
 parser.add_argument('-rc','--refclassification', default="", help='the classification file os the reference sequences in the training dataset if exists, in tab. format to compute classification metrices for sequences having labels in the training dataset.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 
-parser.add_argument('-givenlabelcolumnname','--givenlabelcolumnname',default="given label", help='the column name of the given labels in the classification file.')
-parser.add_argument('-predictedlabelcolumnname','--predictedlabelcolumnname',default="prediction", help='the column name of the predicted labels in the classification file.')
+parser.add_argument('-label_columnname','--label_columnname',default="given label", help='the column name of the given labels in the classification file.')
+parser.add_argument('-pred_columnname','--pred_columnname', default="prediction", help='the colunm name of the prediction.')
+parser.add_argument('-proba_columnname','--proba_columnname', default="probability", help='the colunm name of the probability or confidence measure of the prediction.')
+parser.add_argument('-minproba','--minproba', type=float, default=0, help='the colunm name of the probability or confidence measure of the prediction.')
+
 parser.add_argument('-fullclassificationcolumnname','--fullclassificationcolumnname',default="full classification", help='the column name of the predicted full classifications in the classification file.')
 parser.add_argument('-rankcolumnname','--rankcolumnname',default="rank", help='the column name of the ranks in the classification file.')
 parser.add_argument('-rank','--rank',default="", help='the taxonomic of the prediction, in order to load the taxonomic name at the given rank in the case that the query labels are not given.')
@@ -260,10 +263,12 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 		outputfile=open(outputname,"w")
 	given_labels=[]
 	pred_labels=[]
+	probas=[]
 	p_seqid=-1	
 	p_rank=-1
 	p_givenlabel=-1
 	p_predlabel=-1
+	p_proba=-1
 	p_fullclassification=-1
 	rank=args.rank
 	predictionfile= open(predictionfilename)
@@ -272,10 +277,12 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 	i=0
 	for text in texts:
 		text=text.rstrip()
-		if args.givenlabelcolumnname.lower() == text.lower():
+		if args.label_columnname.lower() == text.lower():
 			p_givenlabel=i
-		if args.predictedlabelcolumnname.lower() == text.lower():
+		if args.pred_columnname.lower() == text.lower():
 			p_predlabel=i	
+		if args.proba_columnname.lower() == text.lower():
+			p_proba=i	
 		if args.rankcolumnname.lower() == text.lower():
 			p_rank=i
 		if args.fullclassificationcolumnname.lower() == text.lower():
@@ -303,6 +310,9 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 			givenlabel=texts[p_givenlabel].rstrip()
 		if givenlabel=="":
 			givenlabel="unidentified"
+		proba=0
+		if p_proba >-1:
+			proba=float(texts[p_proba].rstrip())
 		if rank=="" and p_rank >-1:
 			rank=texts[p_rank]
 		level=GetLevel(rank)
@@ -327,8 +337,10 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 				if "\n" not in newline:
 					newline=newline + "\n"
 				outputfile.write(newline)
+		if proba >= args.minproba:		
 			given_labels.append(givenlabel)
 			pred_labels.append(classname)
+			probas.append(proba)
 		classification=""
 		if p_fullclassification > -1:
 			classification=texts[p_fullclassification]
@@ -336,7 +348,7 @@ def LoadPrediction(predictionfilename,queryclassificationdict,outputname):
 
 	if outputname!="":
 		outputfile.close()
-	return given_labels,pred_labels
+	return given_labels,pred_labels,probas
 
 def CalculateMetrics(test_labels,pred_labels,labels): 
 	if len(test_labels)==0:
@@ -422,10 +434,11 @@ if __name__ == "__main__":
 			reftaxa=LoadTaxaFromDescription(refclassificationfilename)	
 		else:	
 			reftaxa=LoadTaxa(refclassificationfilename)	
-	given_labels,pred_labels= LoadPrediction(predictionfilename,queryclassificationdict,outputname)	
+	given_labels,pred_labels,probas= LoadPrediction(predictionfilename,queryclassificationdict,outputname)	
 	if len(given_labels) >0:
 		reportname=GetBase(outputname) + ".report"
 		CalculateClassificationMetrics(given_labels,pred_labels,reftaxa,reportname,outputfilename)
+		print("Prediction number: " + str(len(pred_labels)) + ".")
 		print("Accuracy, precision, and fscore of the " + predictionfilename + " are given in file " + outputfilename +  ".")
 		print("The assigned sequences with given labels are saved in file " + outputname + ".") 
 		print("Accuracy, precision, and fscore of the taxa are given in file " + reportname +  ".")
