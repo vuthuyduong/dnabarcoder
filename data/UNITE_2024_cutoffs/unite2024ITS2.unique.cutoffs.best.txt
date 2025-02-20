@@ -752,3 +752,5 @@ species	Lamprospora	0.953	0.9122	50	Lamprospora	0.953	0.9122	50	32	13	unite2024I
 species	Melanconiella	0.986	0.8875	50	Melanconiella	0.986	0.8875	50	32	16	unite2024ITS2.unique.species.fasta	unite2024ITS2.unique.species.classification
 species	Dominikia	0.953	0.9332	50	Dominikia	0.953	0.9332	50	37	11	unite2024ITS2.unique.species.fasta	unite2024ITS2.unique.species.classification
 species	All	0.987	0.8262	50	All	0.987	0.8262	50	16519	9439	unite2024ITS2.unique.species.fasta	unite2024ITS2.unique.species.classification
+phylum	Fungi	0.828	0.6205	50	Fungi	0.828	0.6205	50	9264	19	unite2024ITS2.unique.phylum.fasta	unite2024ITS2.unique.phylum.classification
+phylum	All	0.828	0.6205	50	All	0.828	0.6205	50	9264	19	unite2024ITS2.unique.phylum.fasta	unite2024ITS2.unique.phylum.classification
