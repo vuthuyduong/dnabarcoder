@@ -12664,5 +12664,35 @@
       "dataset with max confidence": "All",
       "original min alignment length": 400
     }
+  },
+  "phylum": {
+    "Fungi": {
+      "cut-off": 0.917,
+      "confidence": 0.3354,
+      "sequence number": 12198,
+      "group number": 19,
+      "min alignment length": 400,
+      "fasta filename": "unite2024ITS.unique.phylum.fasta",
+      "classification filename": "unite2024ITS.unique.phylum.classification",
+      "max proportion": 0.082,
+      "original cut-off": 0.917,
+      "original confidence": 0.3354,
+      "dataset with max confidence": "Fungi",
+      "original min alignment length": 400
+    },
+    "All": {
+      "cut-off": 0.917,
+      "confidence": 0.3354,
+      "sequence number": 12198,
+      "group number": 19,
+      "min alignment length": 400,
+      "fasta filename": "unite2024ITS.unique.phylum.fasta",
+      "classification filename": "unite2024ITS.unique.phylum.classification",
+      "max proportion": 0.082,
+      "original cut-off": 0.917,
+      "original confidence": 0.3354,
+      "dataset with max confidence": "All",
+      "original min alignment length": 400
+    }
   }
 }

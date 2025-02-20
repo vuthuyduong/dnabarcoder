@@ -903,3 +903,5 @@ class	Basidiomycota	0.942	0.5044	400	Basidiomycota	0.942	0.5044	400	11597	22	uni
 class	Ascomycota	0.933	0.2714	400	All	0.934	0.3651	400	12757	24	unite2024ITS.unique.class.fasta	unite2024ITS.unique.class.classification
 class	Chytridiomycota	0.789	0.3559	400	All	0.934	0.3651	400	4596	11	unite2024ITS.unique.class.fasta	unite2024ITS.unique.class.classification
 class	All	0.934	0.3651	400	All	0.934	0.3651	400	20000	84	unite2024ITS.unique.class.fasta	unite2024ITS.unique.class.classification
+phylum	Fungi	0.917	0.3354	400	Fungi	0.917	0.3354	400	12198	19	unite2024ITS.unique.phylum.fasta	unite2024ITS.unique.phylum.classification
+phylum	All	0.917	0.3354	400	All	0.917	0.3354	400	12198	19	unite2024ITS.unique.phylum.fasta	unite2024ITS.unique.phylum.classification
