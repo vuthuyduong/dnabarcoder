@@ -82,10 +82,16 @@ outputfile=open(outputfilename,"w")
 aver=0
 n=int(maxlength/il) + 1
 sums=[0] * n
+shortsequences=[]
+longsequences=[]
 for seqrecord in seqrecords:
 	l=len(str(seqrecord.seq))
 	i=int(l/il)
 	sums[i]= sums[i] + 1
+	if l <=il:
+		shortsequences.append(seqrecord.id)
+	if l>maxlength-il:
+		longsequences.append(seqrecord.id)
 j=0
 #save sequence length distribution
 outputfile.write("Interval\tNumber of sequences\n")
@@ -100,6 +106,13 @@ outputfile.close()
 print("The minimum sequence length is " + str(minlength))
 print("The maximum sequence length is " + str(maxlength))
 print("The distribution and its figure are saved in files " + outputfilename + " and " + figoutput + ".")
+print("The following sequences are shorter than " + str(il) + " bp:\n")
+for sequenceid in shortsequences:
+	print(sequenceid)
+print("The following sequences are longer than " + str(maxlength-il) + " bp:\n")
+for sequenceid in longsequences:
+	print(sequenceid)
+		
 #plot
 if label=="":
 	label=prefix
