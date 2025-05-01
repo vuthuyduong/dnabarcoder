@@ -46,6 +46,7 @@ def LoadClassificationFromDescription(seqrecords):
 		bioclass=""
 		phylum=""
 		kingdom=""
+		strain=""
 		if " " in description:
 			description=description.split(" ")[1]
 		texts=description.split("|")
@@ -68,7 +69,9 @@ def LoadClassificationFromDescription(seqrecords):
 				elif taxon.startswith("s__") and (" " in taxon.replace("s__","") or "_" in taxon.replace("s__","")):
 					species=taxon.replace("s__","")
 					species=species.replace("_"," ")
-		classification=[kingdom,phylum,bioclass,order,family,genus,species]
+				elif taxon.startswith("st__"):
+					strain=taxon.replace("st__","")	
+		classification=[kingdom,phylum,bioclass,order,family,genus,species,strain]
 		classificationdict.setdefault(seqid,classification)
 	return classificationdict		
 
@@ -78,6 +81,7 @@ def LoadClassification(classificationfilename):
 	header=next(classificationfile)
 	words=header.split("\t")
 	p_id=0
+	p_st=-1
 	p_s=-1
 	p_g=-1
 	p_f=-1
@@ -91,6 +95,8 @@ def LoadClassification(classificationfilename):
 			p_id=i
 		if word.rstrip().lower()=="species":
 			p_s=i
+		if word.rstrip().lower()=="strain":
+			p_st=i	
 		if word.rstrip().lower()=="genus":
 			p_g=i
 		if word.rstrip().lower()=="family":
@@ -104,6 +110,7 @@ def LoadClassification(classificationfilename):
 		i=i+1       
 	for line in classificationfile:
 		seqid=""
+		strain=""
 		species=""
 		genus=""
 		family=""
@@ -114,8 +121,12 @@ def LoadClassification(classificationfilename):
 		words=line.split("\t")
 		if p_id >-1:
 			if p_id >= len(words):
-				print("Please check classification of the sequence " + line)
+				print("Please check classification of the sequence " + line)		
 			seqid=words[p_id].rstrip()
+		if p_st >-1:
+			if p_st >= len(words):
+				print("Please check classification of the sequence " + line)
+			strain=	words[p_st].rstrip()
 		if p_s >-1:
 			if (p_s >= len(words)):
 				print("Please check classification of the sequence " + line)
@@ -142,7 +153,7 @@ def LoadClassification(classificationfilename):
 			phylum=words[p_p].rstrip()	
 		if p_k >-1:
 			kingdom=words[p_k].rstrip()	
-		classification=[kingdom,phylum,bioclass,order,family,genus,species]
+		classification=[kingdom,phylum,bioclass,order,family,genus,species,strain]
 		if seqid!="":
 			classificationdict.setdefault(seqid,classification)	
 	classificationfile.close()	   
@@ -204,7 +215,6 @@ if "," in args.classificationranks:
 	ranklist=args.classificationranks.split(",")
 else:
 	ranklist=[args.classificationranks]	
-    
 outputfilename=""
 seqids=[]
 if fastafilename != "":
@@ -230,6 +240,11 @@ outputfile.write("Taxonomic level\tNumber of taxa\tNumber of sequences\n")
 seqnumber,seqnumber,count,species=ReportAtLevel(seqids,-1,6,classificationdict)
 SaveOverview("sequence",species,outputfilename + ".species")
 print("The overview at the species level is saved in  file " + outputfilename + ".species")
+if "strain" in ranklist:
+    strainnumber,strainseqnumber,count,genera=ReportAtLevel(seqids,7,6,classificationdict)
+    outputfile.write("Strain" + "\t" + str(strainnumber) + "\t" + str(strainseqnumber) + "\n")
+    SaveOverview("strain",species,outputfilename + ".species")
+    print("The overview at the genus level is saved in  file " + outputfilename + ".genus")
 if "species" in ranklist:
     speciesnumber,speciesseqnumber,count,genera=ReportAtLevel(seqids,6,5,classificationdict)
     outputfile.write("Species" + "\t" + str(speciesnumber) + "\t" + str(speciesseqnumber) + "\n")
