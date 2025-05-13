@@ -15,6 +15,7 @@ import json
 from Bio import SeqIO
 #import random
 import multiprocessing
+import numpy as np
 parser=argparse.ArgumentParser(prog='computeBestCutoffs.py',  
 							   usage="%(prog)s [options] -i cutoffs -c classificationfile -o output",
 							   description='''Script that computes best cutoffs of the taxa given in the cutoffs and classification file for sequence identification at different taxonomic levels.''',
@@ -391,6 +392,30 @@ def AddCutoffsToTaxonomy(taxonomy,cutoffs):
 				taxonomy[taxonname]["cut-off"]=bestcutoff
 				taxonomy[taxonname]["confidence"]=maxconfidence
 				taxonomy[taxonname]["minalignmentlength"]=bestminalignmentlength
+				
+def ComputeStatistics(cutoffs):
+	for rank in cutoffs.keys():
+		datasets=cutoffs[rank]
+		cutofflist=[]
+		confidencelist=[]
+		print("Statistics at the " + rank + " level: ")	
+		for datasetname in datasets.keys():
+			dataset=datasets[datasetname]
+			cutoff=dataset["cut-off"]
+			confidence=dataset["confidence"]
+			cutofflist.append(cutoff)
+			confidencelist.append(confidence)
+		cutoffs_stats="Min: " + str(round(np.min(cutofflist),4))
+		cutoffs_stats=cutoffs_stats + "\t Max: " + str(round(np.max(cutofflist),4))	
+		cutoffs_stats=cutoffs_stats + "\t Average: " + str(round(np.mean(cutofflist),4))
+		cutoffs_stats=cutoffs_stats + "\t Median: " + str(round(np.median(cutofflist),4))
+		confidence_stats="Min: " + str(round(np.min(confidencelist),4))
+		confidence_stats=confidence_stats + "\t Max: " + str(round(np.max(confidencelist),4))	
+		confidence_stats=confidence_stats + "\t Average: " + str(round(np.mean(confidencelist),4))
+		confidence_stats=confidence_stats + "\t Median: " + str(round(np.median(confidencelist),4))
+		print("Number of predictions:\t" + str(len(cutofflist)))
+		print("Cutoffs:\t" + cutoffs_stats)
+		print("Confidences:\t" + confidence_stats)
 			
 def SaveBestCutoffsAsCutoffs(cutoffs,classificationdict,jsonoutputname,txtoutputname,problematicoutputname,problematicoutputname1):
 	count=0
@@ -720,6 +745,10 @@ if __name__ == "__main__":
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)
+	#compute statistics for the cutoffs
+	ComputeStatistics(cutoffs)
+	
+	#compute best cutoffs
 	classificationdict={}	
 	if classificationfilename!="":	
 		classificationdict= LoadClassification(classificationfilename)
