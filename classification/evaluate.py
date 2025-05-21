@@ -21,7 +21,7 @@ parser=argparse.ArgumentParser(prog='evaluate.py',
    )
 
 parser.add_argument('-i','--input', required=True, help='the assigment/classified file')
-parser.add_argument('-o','--out', help='The metrics output .')
+parser.add_argument('-o','--out', required=True, help='The metrics output .')
 parser.add_argument('-qc','--queryclassification', default="", help='the given classification file of the query sequences if exists, in tab. format to compute classification metrices.')
 parser.add_argument('-rc','--refclassification', default="", help='the classification file os the reference sequences in the training dataset if exists, in tab. format to compute classification metrices for sequences having labels in the training dataset.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
@@ -193,21 +193,19 @@ def LoadClassificationFromDescription(fastafilename):
 		classificationdict[seqid]=classification
 	return classificationdict
 
-def LoadTaxa(fastafilename,classificationfilename):
-	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
+def LoadTaxa(classificationfilename):
 	taxa={}
 	classificationfile=open(classificationfilename)
+	next(classificationfile)
 	for line in classificationfile:
 		line=line.rstrip()
 		texts=line.split("\t")
-		seqid=texts[0]
-		if seqid in seqrecords.keys():
-			for text in texts:
-				if text!="":
-					if not (text in taxa.keys()):
-						taxa.setdefault(text,1)
-					else:
-						taxa[text]=taxa[text] + 1
+		for text in texts:
+			if text!="":
+				if not (text in taxa.keys()):
+					taxa.setdefault(text,1)
+				else:
+					taxa[text]=taxa[text] + 1
 	classificationfile.close()	
 	return taxa
 
