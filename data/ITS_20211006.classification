@@ -484,8 +484,7 @@ KY102114	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	H
 KY102115	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Trichomonascaceae	Sugiyamaella	Sugiyamaella grinbergsii	CBS 5113
 KY102116	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Trichomonascaceae	Sugiyamaella	Sugiyamaella grinbergsii	CBS 5924
 KY102117	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales		Candida	Candida haemulonii var. vulnera	CBS 12436
-KY102118	Fungi						Candida haemulonii var. vulnera
-	CBS 12439
+KY102118	Fungi						Candida haemulonii var. vulnera	CBS 12439
 KY102119	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales		Candida	Candida haemulonii var. vulnera	CBS 12437
 KY102120	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales		Candida	Candida haemulonis	CBS 7801
 KY102121	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales		Candida	Candida haemulonis	CBS 6332
@@ -2969,8 +2968,7 @@ KY104598	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	P
 KY104599	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	Pichia	Pichia mandshurica	CBS 4043
 KY104600	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	Pichia	Pichia mandshurica	CBS 241
 KY104601	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	Pichia	Pichia mandshurica	CBS 240
-KY104602	Fungi						Pichia mandshurica
-	CBS 7324
+KY104602	Fungi						Pichia mandshurica	CBS 7324
 KY104603	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	Pichia	Pichia mandshurica	CBS 763
 KY104604	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	Pichia	Pichia membranifaciens	CBS 1363
 KY104605	Fungi	Ascomycota	Saccharomycetes	Saccharomycetales	Saccharomycetaceae	Pichia	Pichia membranifaciens	CBS 1331
