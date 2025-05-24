@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # FILE: search.py
 # AUTHOR: Duong Vu
@@ -10,36 +11,40 @@ import os, argparse
 from Bio import SeqIO
 #import json
 import multiprocessing
-nproc=multiprocessing.cpu_count()
 
-parser=argparse.ArgumentParser(prog='search.py',  
-							   usage="%(prog)s [options] -i fastafile -r referencefastafile -ml minalignmentlength ",
-							   description='''Script that classifies the sequences of the fasta files using BLAST with a cut-off value or the cut-off values given in the cutoffs file. ''',
-							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
-   )
 
-parser.add_argument('-i','--input', required=True, help='the fasta file to be classified.')
-parser.add_argument('-r','--reference', required=True, help='the reference fasta file.')
-parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
-parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
-parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
+def main():
+	parser=argparse.ArgumentParser(prog='search.py',  
+								   usage="%(prog)s [options] -i fastafile -r referencefastafile -ml minalignmentlength ",
+								   description='''Script that classifies the sequences of the fasta files using BLAST with a cut-off value or the cut-off values given in the cutoffs file. ''',
+								   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
+	   )
 
-args=parser.parse_args()
-testdataset= args.input
-traindataset = args.reference
-mincoverage = args.minalignmentlength
-nproc=args.ncpus
+	parser.add_argument('-i','--input', required=True, help='the fasta file to be classified.')
+	parser.add_argument('-r','--reference', required=True, help='the reference fasta file.')
+	parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should be set to smaller, 50 for instance.')
+	parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+	parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+	parser.add_argument('-ncpus','--ncpus', type=int, default=0, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
-prefix=args.prefix
-outputpath=args.out
-if not os.path.exists(outputpath):
-	os.system("mkdir " + outputpath)
+	args=parser.parse_args()
+	testdataset= args.input
+	traindataset = args.reference
+	mincoverage = args.minalignmentlength
+	nproc=args.ncpus
+	if nproc==0:
+		nproc=multiprocessing.cpu_count()
+	prefix=args.prefix
+	outputpath=args.out
+	Search(testdataset,traindataset,mincoverage,outputpath,prefix,nproc)
+	
+	
+
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 	
-def GetWorkingBase(filename):
+def GetWorkingBase(filename,outputpath):
 	basename=os.path.basename(filename)
 	if "." in basename:
 		basename=basename[:-(len(basename)-basename.rindex("."))] 
@@ -69,7 +74,7 @@ def IndexSequences(filename):
 	indexedfile.close()
 	return indexedfilename
 
-def ComputeBestBLASTscore(query,reference,mincoverage):
+def ComputeBestBLASTscore(query,reference,mincoverage,outputpath,nproc):
 	indexed_query= IndexSequences(query)
 
 	#load sequeces from the fasta files
@@ -84,7 +89,7 @@ def ComputeBestBLASTscore(query,reference,mincoverage):
 	#blast
 	#dbfilename="db.nsq"
 	#db= reference[:-(len(reference)-reference.rindex("."))]  + ".blastdb"
-	db= GetWorkingBase(reference)  + ".blastdb"
+	db= GetBase(reference)  + ".blastdb"
 	#print(db)
 	#blastoutput="out.txt"
 	blastoutput=query[:-(len(query)-query.rindex("."))] + "." + os.path.basename(reference)[:-(len(os.path.basename(reference))-os.path.basename(reference).rindex("."))] + ".blastoutput"
@@ -142,31 +147,32 @@ def SavePrediction(testseqIDs,bestscorelist,bestsimlist,bestcoveragelist,bestref
 		output.write(seqid + "\t"  + bestrefidlist[i] + "\t" +  str(bestscorelist[i]) + "\t" + str(bestsimlist[i]) + "\t" + str(bestcoveragelist[i]) +"\n")
 		i=i+1
 	output.close()
+
+def Search(testdataset,traindataset,mincoverage,outputpath,prefix,nproc):
+	if not os.path.exists(outputpath):
+		os.system("mkdir " + outputpath)
+	
+	#load test seq records
+	testseqrecords = SeqIO.to_dict(SeqIO.parse(testdataset, "fasta"))
+
+	#search for a best match of a test sequence in a train dataset
+	bestmatchlist,bestscorelist,bestsimlist,bestcoveragelist=ComputeBestBLASTscore(testdataset,traindataset,mincoverage,outputpath,nproc)
+
+	#Save prediction by searching 
+	if prefix=="" or prefix==None:
+		prefix=GetBase(testdataset)
+		if "/" in prefix:
+			prefix=prefix[prefix.rindex("/")+1:]	
+	basename=GetBase(traindataset)
+	if "/" in basename:
+		basename=basename[basename.rindex("/")+1:]		
+	reportfilename=GetWorkingBase(prefix,outputpath) + "." + basename + "_BLAST.bestmatch"
+	SavePrediction(testseqrecords.keys(),bestscorelist,bestsimlist,bestcoveragelist,bestmatchlist,reportfilename)
+	print("The results are saved in file  " + reportfilename)
 	
 ##############################################################################
 # MAIN
 ##############################################################################
-path=sys.argv[0]
-path=path[:-(len(path)-path.rindex("/")-1)]
-
-#load ref seq records
-refseqrecords = SeqIO.to_dict(SeqIO.parse(traindataset, "fasta"))
-
-#load test seq records
-testseqrecords = SeqIO.to_dict(SeqIO.parse(testdataset, "fasta"))
-
-#search for a best match of a test sequence in a train dataset
-bestmatchlist,bestscorelist,bestsimlist,bestcoveragelist=ComputeBestBLASTscore(testdataset,traindataset,mincoverage)
-
-#Save prediction by searching 
-if prefix=="" or prefix==None:
-	prefix=GetBase(testdataset)
-	if "/" in prefix:
-		prefix=prefix[prefix.rindex("/")+1:]	
-basename=GetBase(traindataset)
-if "/" in basename:
-	basename=basename[basename.rindex("/")+1:]		
-reportfilename=GetWorkingBase(prefix) + "." + basename + "_BLAST.bestmatch"
-SavePrediction(testseqrecords.keys(),bestscorelist,bestsimlist,bestcoveragelist,bestmatchlist,reportfilename)
-print("The results are saved in file  " + reportfilename)
+if __name__ == '__main__':
+	main()
 

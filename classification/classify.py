@@ -16,52 +16,49 @@ import os, argparse
 import json
 from Bio import SeqIO
 
-parser=argparse.ArgumentParser(prog='classify.py',  
-							   usage="%(prog)s [options] -i bestmatch/classified file -r referencefastafilename -c classificationfile -ml minalignment -cutoffs cutoffsfile -o output",
-							   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
-							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
-   )
+def main():
+	parser=argparse.ArgumentParser(prog='classify.py',  
+								   usage="%(prog)s [options] -i bestmatch/classified file -r referencefastafilename -c classificationfile -ml minalignment -cutoffs cutoffsfile -o output",
+								   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
+								   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
+	   )
 
-parser.add_argument('-i','--input', required=True, help='the classified file.')
-parser.add_argument('-f','--fasta', default="", help='The fasta file of the sequences for saving unidentified sequences. Optional.')
-parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-parser.add_argument('-r','--reference', default="", help='the reference fasta file, in case the classification of the sequences is given in the sequence headers.')
-parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
-parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
-parser.add_argument('-cutoff','--globalcutoff', type=float, default=-1,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
-parser.add_argument('-confidence','--globalconfidence', type=float,default=-1,help='The global confidence to assign the sequences to predicted taxa')
-parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
-parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
-parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the local cutoffs to assign the sequences to the predicted taxa.')
-parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
-parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
-parser.add_argument('-saveclassifiedonly','--saveclassifiedonly',default=False, help='The option to save all (False) or only classified sequences (True) in the classification output.')
-parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
-parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
+	parser.add_argument('-i','--input', required=True, help='the classified file.')
+	parser.add_argument('-f','--fasta', default="", help='The fasta file of the sequences for saving unidentified sequences. Optional.')
+	parser.add_argument('-c','--classification', default="", help='the classification file in tab. format or the fasta file where classifications are given in the headers.')
+	#parser.add_argument('-r','--reference', default="", help='the reference fasta file, in case the classification of the sequences is given in the sequence headers.')
+	parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
+	parser.add_argument('-fmt','--inputformat', default="tab delimited", help='the format of the classified file. The inputfmt can have two values "tab delimited" and "blast". The value "tab delimited" is given as default, and the "blast" fmt is the format of the BLAST output with outfmt=6.')
+	parser.add_argument('-cutoff','--globalcutoff', type=float, default=-1,help='The global cutoff to assign the sequences to predicted taxa. If the cutoffs file is not given, this value will be taken for sequence assignment.')
+	parser.add_argument('-confidence','--globalconfidence', type=float,default=-1,help='The global confidence to assign the sequences to predicted taxa')
+	parser.add_argument('-rank','--classificationrank', default="", help='the classification rank')
+	parser.add_argument('-prefix','--prefix', help='the prefix of output filenames')
+	parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the local cutoffs to assign the sequences to the predicted taxa.')
+	parser.add_argument('-minseqno','--minseqno', type=int, default=0, help='the minimum number of sequences for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+	parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='the minimum number of groups for using the predicted cut-offs to assign sequences. Only needed when the cutoffs file is given.')
+	parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
+	parser.add_argument('-saveclassifiedonly','--saveclassifiedonly',default=False, help='The option to save all (False) or only classified sequences (True) in the classification output.')
+	parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
+	parser.add_argument('-display','--display',default="", help='If display=="yes" then the krona html is displayed.')
 
-args=parser.parse_args()
-predictionfilename=args.input
-globalcutoff=args.globalcutoff
-globalconfidence=args.globalconfidence
-cutoffsfilename=args.cutoffs
-classificationfilename=args.classification
-classificationrank=args.classificationrank
-fastafilename= args.fasta
-referencefastafilename= args.reference
-mincoverage = args.minalignmentlength
-prefix=args.prefix
-outputpath=args.out
-
-
-if not os.path.exists(outputpath):
-	os.system("mkdir " + outputpath)
-
+	args=parser.parse_args()
+	predictionfilename=args.input
+	globalcutoff=args.globalcutoff
+	globalconfidence=args.globalconfidence
+	cutoffsfilename=args.cutoffs
+	classificationfilename=args.classification
+	classificationrank=args.classificationrank
+	fastafilename= args.fasta
+	#referencefastafilename= args.reference
+	mincoverage = args.minalignmentlength
+	prefix=args.prefix
+	outputpath=args.out
+	classify(predictionfilename,args.idcolumnname,classificationfilename,globalcutoff,globalconfidence,cutoffsfilename,classificationrank,args.inputformat,mincoverage,args.minseqno,args.mingroupno,fastafilename,args.saveclassifiedonly,outputpath,prefix,args.display)
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
 	
-def GetWorkingBase(filename):
+def GetWorkingBase(filename,outputpath):
 	basename=os.path.basename(filename)
 	if "." in basename:
 		basename=basename[:-(len(basename)-basename.rindex("."))] 
@@ -239,7 +236,10 @@ def LoadClassification(classificationfilename,idcolumnname):
 	classificationfile.close()	
 	return classificationdict,taxonomy,isError
 
-def LoadClassificationFromDescription(seqrecords):
+def LoadClassificationFromDescription(classificationfilename):
+	seqrecords={}
+	if os.path.exists(classificationfilename):
+		seqrecords=SeqIO.to_dict(SeqIO.parse(classificationfilename, "fasta"))
 	classificationdict={}
 	taxonomy={}
 	for seqid in seqrecords.keys():
@@ -361,7 +361,7 @@ def GetHigherTaxa(rank,classification):
 		highertaxa.append(kingdom)
 	return highertaxa
 
-def GetCutoffAndConfidence(rank,classification,cutoffs):
+def GetCutoffAndConfidence(rank,classification,cutoffs,minseqno,mingroupno):
 	if not rank in cutoffs.keys():
 		return [0,0,False]
 	highertaxa=GetHigherTaxa(rank,classification)
@@ -388,7 +388,7 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 		groupno=0	
 		if "group number" in datasets[highertaxonname].keys():
 			groupno=datasets[highertaxonname]["group number"]	
-		if not ((seqno >0 and seqno < args.minseqno) or (groupno >0 and groupno < args.mingroupno)):	
+		if not ((seqno >0 and seqno < minseqno) or (groupno >0 and groupno < mingroupno)):	
 			if maxconfidence < confidence:
 				maxconfidence =confidence
 				bestcutoff=localcutoff
@@ -510,7 +510,7 @@ def GetAssignment(refid,classificationdict,bestscore,taxonomy,classificationrank
 		classification=GetRankClassification(-1,classification)
 	return classification,taxonname,rank,level,localcutoff,confidence
 
-def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename):
+def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename,classificationrank,saveclassifiedonly):
 	#classificationlevel=GetLevel(classificationrank)
 	output=open(outputname,"w")
 	classificationreportfile=open(classificationreportfilename,"w")
@@ -570,7 +570,7 @@ def Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificatio
 			rank=""
 		cleanclassification=classification.replace("k__","").replace("p__","").replace("c__","").replace("o__","").replace("f__","").replace("g__","").replace("s__","").replace("_"," ")
 		#save all classification"
-		if args.saveclassifiedonly==False:
+		if saveclassifiedonly==False:
 			#save all including unidentified sequences in the classification file
 			output.write(seqid + "\t" + giventaxonname + "\t"  + predictedname + "\t"+ classification + "\t" + rank + "\t" + cutoff_str + "\t" + confidence_str + "\t" + refid + "\t" + str(bestscore) + "\t" + str(sim) + "\t" + str(coverage) + "\n")			
 			classificationreportfile.write(seqid + "\t" + refid + "\t" + cleanclassification.replace(";","\t") + "\t" + rank + "\t" + str(bestscore) + "\t" + cutoff_str + "\t" + confidence_str + "\n")
@@ -741,7 +741,7 @@ def LoadClassificationForKronaReport(classificationfilename):
 	classificationfile.close()	
 	return classificationdict
 
-def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs):
+def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs,minseqno,mingroupno):
 	for taxonname in taxonomy.keys():
 		if cutoffs!={}:
 			classification=taxonomy[taxonname]["classification"]
@@ -750,7 +750,7 @@ def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs):
 				taxonomy[taxonname]["cut-off"]=cutoffs[taxonname]["cut-off"]
 				taxonomy[taxonname]["confidence"]=cutoffs[taxonname]["confidence"]
 			else:	
-				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs)
+				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs,minseqno,mingroupno)
 				if cutoff_confidence[2]==True:
 					taxonomy[taxonname]["cut-off"]=cutoff_confidence[0]
 					taxonomy[taxonname]["confidence"]=cutoff_confidence[1]
@@ -764,7 +764,7 @@ def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs):
 	taxonomy["unidentified"]["cut-off"]=globalcutoff
 	taxonomy["unidentified"]["confidence"]=globalconfidence		
 
-def KronaPieCharts(classification,kronareport,kronahtml):
+def KronaPieCharts(classification,kronareport,kronahtml,display):
 	kronareportfile=open(kronareport,"w")
 	for classname in classification.keys():
 		kronareportfile.write(str(classification[classname]) + "\t" + classname + "\n")
@@ -773,49 +773,57 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	command="ImportText.pl " + kronareport + " -o " + kronahtml
 	#print(command)
 	os.system(command)
-	if args.display=="yes":
+	if display=="yes":
 		os.system("firefox " + kronahtml) 
-	
-if __name__ == "__main__":
+		
+def is_fasta(filename):
+	try:
+		with open(filename, "r") as handle:
+			fasta = SeqIO.parse(handle, "fasta")
+			return any(fasta)  # False when `fasta` is empty, i.e. wasn't a FASTA file
+	except ValueError:
+		return False		
+		
+def classify(predictionfilename,idcolumnname,classificationfilename,globalcutoff,globalconfidence,cutoffsfilename,classificationrank,inputformat,mincoverage,minseqno,mingroupno,fastafilename,saveclassifiedonly,outputpath,prefix,display):
+	if not os.path.exists(outputpath):
+		os.system("mkdir " + outputpath)
 	if prefix=="" or prefix==None:
 		prefix=GetBase(predictionfilename)
 		if "/" in prefix:
 			prefix=prefix[prefix.rindex("/")+1:]	
 		if globalcutoff >0 and cutoffsfilename=="":
 			prefix =prefix + "." + str(globalcutoff)
-	outputname=GetWorkingBase(prefix) + ".classified"
+	outputname=GetWorkingBase(prefix,outputpath) + ".classified"
 	if classificationrank!="":
-		outputname=GetWorkingBase(prefix) + "." + classificationrank + ".classified"
+		outputname=GetWorkingBase(prefix,outputpath) + "." + classificationrank + ".classified"
 	if outputname==predictionfilename:
 		outputname=outputname+".classified"
 	classificationreportfilename=GetBase(outputname) + ".classification"
 	unclassifiedfastafilename=GetBase(outputname)  + ".unclassified.fasta"	
 	#load prediction
 	bestmatchdict={}
-	if args.inputformat=="blast":
+	if inputformat=="blast":
 		bestmatchdict=LoadBlastOutput(predictionfilename,mincoverage)	
 	else:
-		bestmatchdict=LoadPrediction(predictionfilename,mincoverage,args.idcolumnname)	
+		bestmatchdict=LoadPrediction(predictionfilename,mincoverage,idcolumnname)	
 	refclassificationdict={}
 	#load classification for the sequences
-	if classificationfilename!="":
-		refclassificationdict,taxonomy,isError = LoadClassification(classificationfilename,args.idcolumnname)
+	if not is_fasta(classificationfilename):
+		refclassificationdict,taxonomy,isError = LoadClassification(classificationfilename,idcolumnname)
 		if isError==True:
 			sys.exit()
 	else:
 		#load reference sequences, in case the classification of the sequences is given in sequence headers
-		refseqrecords={}
-		if os.path.exists(referencefastafilename):
-			refseqrecords=SeqIO.to_dict(SeqIO.parse(referencefastafilename, "fasta"))
-		refclassificationdict,taxonomy = LoadClassificationFromDescription(refseqrecords)
-	predictedclassificationdict={}
+		
+		refclassificationdict,taxonomy = LoadClassificationFromDescription(classificationfilename)
+
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
 			cutoffs = json.load(cutoffsfile)	
 	#add cutoffs to taxa for sequence identification		
-	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs)
-	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename)
+	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs,minseqno,mingroupno)
+	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename,classificationrank,saveclassifiedonly)
 	print("Number of classified sequences: " + str(count))
 	#print("The results are saved in file  " + outputname)
 	print("The results are saved in file  " + outputname + " and " + classificationreportfilename + ".")
@@ -837,5 +845,9 @@ if __name__ == "__main__":
 		kronareport = GetBase(outputname) + ".krona.report"
 		kronahtml=GetBase(kronareport) + ".html"
 		classificationdict= LoadClassificationForKronaReport(outputname)
-		KronaPieCharts(classificationdict,kronareport,kronahtml)
+		KronaPieCharts(classificationdict,kronareport,kronahtml,display)
 		print("The krona report and html are saved in files " + kronareport + " and " + kronahtml + ".") 
+		
+	
+if __name__ == "__main__":
+	main()
