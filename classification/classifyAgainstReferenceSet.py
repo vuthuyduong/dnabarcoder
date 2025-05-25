@@ -8,6 +8,7 @@ import sys
 if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
+
 from dnabarcoder.classification.search import ComputeBestBLASTscore
 from dnabarcoder.classification.classify import GetAssignment
 from dnabarcoder.classification.classify import LoadClassification
@@ -20,12 +21,12 @@ import multiprocessing
 
 def main():
 	parser=argparse.ArgumentParser(prog='classifyOne.py',  
-								   usage="%(prog)s [options] -i sequence -r referencepath -o output",
+								   usage="%(prog)s [options] -i sequences -r referencepath -o output",
 								   description='''Script that assigns the classified sequences of the prediction file to their BLAST best match based on the given cutoffs.''',
 								   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
 	   )
 
-	parser.add_argument('-i','--input', help='The sequence for classification')
+	parser.add_argument('-i','--input', help='The input can be a fasta file name or a text of sequences for classification')
 	parser.add_argument('-r','--referencepath', default="references", help='The path to the folder containing reference datasets and their associated similarity cutoffs files.')
 	#parser.add_argument('-f','--fasta', default="", help='The fasta file of the sequences for saving unidentified sequences. Optional.')
 	#parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
@@ -46,7 +47,7 @@ def main():
 	parser.add_argument('-ncpus','--ncpus', type=int, default=0, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 	args=parser.parse_args()
-	sequence=args.input
+	sequences=args.input
 	referencepath=args.referencepath
 	#globalcutoff=args.globalcutoff
 	#globalconfidence=args.globalconfidence
@@ -62,9 +63,14 @@ def main():
 		nproc=multiprocessing.cpu_count()
 	outputpath=args.out
 	
-	finalbestmatchdict=classifyAgainstReferenceSet(sequence,referencepath,args.idcolumnname,outputpath,nproc)
+	finalbestmatchdict=classifyAgainstReferenceSet(sequences,referencepath,args.idcolumnname,outputpath,nproc)
 	classification_result=Dict2Tab(finalbestmatchdict)
-	print(classification_result)
+	outputfilename=outputpath + "/query.classification"
+	if os.path.exists(sequences):
+		outputfilename=outputpath + "/" + os.path.basename(sequences)[0:os.path.basename(sequences).index(".")] + ".classification"
+	with open(outputfilename, "w") as f:
+		f.write(classification_result)
+	print("The classification output is saved in " + outputfilename + ".")	
 	
 	#classifyOneSequence(sequence,referencefastafilename,classificationfilename,args.idcolumnname,cutoffsfilename,globalcutoff,globalconfidence,mincoverage,args.minseqno,args.mingroupno,classificationrank,outputpath,nproc)
 	
@@ -107,11 +113,14 @@ def classifySequences(sequences,referencefastafilename,classificationfilename,id
 		os.system("mkdir " + outputpath)
 	
 	query = outputpath + "/query.fasta"
-	if not (">" in sequences):
-		command = "echo \">query\n" + sequences + "\" > " + query
-	else:
-		command = "echo \"" + sequences + "\" > " + query
-	os.system(command)
+	if os.path.exists(sequences): #input is a fasta file
+		os.system("cp " + sequences + " " + query)
+	else: #the input is a text of sequences	
+		if not (">" in sequences):
+			command = "echo \">query\n" + sequences + "\" > " + query
+		else:
+			command = "echo \"" + sequences + "\" > " + query
+		os.system(command)
 	queryrecords=SeqIO.to_dict(SeqIO.parse(query, "fasta"))	
 	#search for a best match of a test sequence in a train dataset
 	bestmatchlist,bestscorelist,bestsimlist,bestcoveragelist=ComputeBestBLASTscore(query,referencefastafilename,mincoverage,outputpath,nproc)
