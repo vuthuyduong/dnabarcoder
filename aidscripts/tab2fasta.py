@@ -19,15 +19,19 @@ parser=argparse.ArgumentParser(prog='tab2fasta.py',
 
 parser.add_argument('-i','--input', required=True, help='the tab. file.')
 parser.add_argument('-o','--out', help='The fasta filename.') 
-parser.add_argument('-seqidpos','--seqidpos', required=True, help='The position of seqid in the tab. file.') 
-parser.add_argument('-seqpos','--seqpos', type=int, required=True, help='The position of sequences in the tab. file.') 
+#parser.add_argument('-seqidpos','--seqidpos', required=True, help='The position of seqid in the tab. file.') 
+#parser.add_argument('-seqpos','--seqpos', type=int, required=True, help='The position of sequences in the tab. file.') 
+parser.add_argument('-idcolumnname','--idcolumnname', default="ID", help='the column name of sequence id in the input file.')
+parser.add_argument('-seqcolumnname','--seqcolumnname', default="sequence", help='the colunm name of the sequences in the inputfile')
 
 
 args=parser.parse_args()
 tabfilename= args.input
-seqidpos=args.seqidpos
-seqpos=args.seqpos
+#seqidpos=args.seqidpos
+#seqpos=args.seqpos
 output=args.out
+idcolumnname=args.idcolumnname
+seqcolumnname=args.seqcolumnname
 
 #fastafilename=sys.argv[1]
 #classificationfilename=sys.argv[2]
@@ -35,34 +39,36 @@ output=args.out
 
 def GetBase(filename):
 	return filename[:-(len(filename)-filename.rindex("."))]
-
-seqidposlist=[]
-if "," in seqidpos:
-	texts=seqidpos.split(",")
-	for text in texts:
-		seqidposlist.append(int(text))
-else:
-	seqidposlist.append(int(seqidpos))		
+	
 
 outputfile=open(output,"w")
 tabfile=open(tabfilename, errors='ignore')
-next(tabfile)
+header=next(tabfile)
+texts=header.split("\t")
+i=0
+seqpos=-1
+seqidpos=-1
 seqids=[]
+for text in texts:
+	if idcolumnname.lower()==text.rstrip().lower():
+		seqidpos=i
+	if seqcolumnname.lower()==text.rstrip().lower():
+		seqpos=i
+	i=i+1	
 for line in tabfile:
 	#line=unicode(line,'latin1')
 	texts=line.split("\t")
 	seqid=""
-	for pos in seqidposlist:
-		seqid=texts[pos]
-		if seqid!="":
-			break
-	if seqid =="":
-		print(line)
+	if seqidpos>=len(texts):
 		continue
-	seq=texts[seqpos]
-	if seq=="" or "fail" in seq:
-		print(line)
-		continue 
+	if seqpos>=len(texts):
+		continue
+	seqid=texts[seqidpos]
+	seq=texts[seqpos].replace("*","")
+	if seqid=="" or seq=="—":
+		continue
+	if seq=="" or ("fail" in seq) or seq=="—":
+		continue
 	if seqid in seqids:
 		print(line)
 		continue
