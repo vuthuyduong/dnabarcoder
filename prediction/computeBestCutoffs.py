@@ -405,6 +405,8 @@ def ComputeStatistics(cutoffs):
 			confidence=dataset["confidence"]
 			cutofflist.append(cutoff)
 			confidencelist.append(confidence)
+		if len(cutofflist)==0:
+			return
 		cutoffs_stats="Min: " + str(round(np.min(cutofflist),4))
 		cutoffs_stats=cutoffs_stats + "\t Max: " + str(round(np.max(cutofflist),4))	
 		cutoffs_stats=cutoffs_stats + "\t Average: " + str(round(np.mean(cutofflist),4))
