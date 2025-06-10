@@ -161,6 +161,8 @@ def getReferences(referencepath):
 			referencedict.setdefault(reference,{})
 	for filename in filenames:
 		reference=filename.split(".")[0]
+		if not reference in referencedict.keys():
+			continue
 		if ".json" in filename:
 			referencedict[reference]["cutoffs"]=referencepath + "/" + filename
 		if ".classification" in filename:
