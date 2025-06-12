@@ -277,7 +277,7 @@ def GetTaxonName(description,rank):
 	return taxonname
 
 def LoadClasses(seqids,classificationfilename,pos,seqidpos):
-	classificationfile= open(classificationfilename)
+	classificationfile= open(classificationfilename,errors='ignore')
 #	records= open(classificationfilename,errors='ignore')
 	classification={}
 	classes={}
