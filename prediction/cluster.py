@@ -382,11 +382,12 @@ def SaveClusters(clusters,seqrecords,classification,output,synnonymdict_output,s
 		for name in synnonymsdict[clusterindex]:
 			finalsynnonymdict[name]=i
 	#save the dictionaries:
-	with open(synnonymdict_output, 'w') as f:
-		json.dump(synnonymdict,f,indent=4)
-	with open(synnonymsdict_output, 'w') as f:
-		json.dump(synnonymsdict,f,indent=4)	
-		
+	if i>0:
+		with open(synnonymdict_output, 'w') as f:
+			json.dump(synnonymdict,f,indent=4)
+		with open(synnonymsdict_output, 'w') as f:
+			json.dump(synnonymsdict,f,indent=4)	
+		print("The complexes and names' complex index are saved in files " + synnonymsdict_output + " and " + synnonymdict_output + ".")
 	outputfile.close()
 	
 def GetPosition(classificationfilename,rank):
@@ -453,11 +454,10 @@ if __name__ == "__main__":
 	synnonymsdict_output=""	
 	if args.savecomplexes=="yes" and rank!="":
 		synnonymsdict_output=GetWorkingBase(fastafilename) + "." + rank + "complexes"	
-		synnonymdict_output=GetWorkingBase(fastafilename) + "." + rank +  "complex.index"	
+		synnonymdict_output=GetWorkingBase(fastafilename) + "." + rank +  ".complexindex"	
 	print("Saving clusters...")	
 	SaveClusters(clusters,seqrecords,classification,outputname,synnonymdict_output,synnonymsdict_output)
 	print("The clustering result is saved in file " + outputname + ".")
-	if args.savecomplexes=="yes" and rank!="":
-		print("The complexes and names' complex index are saved in files " + synnonymsdict_output + " and " + synnonymdict_output + ".")
+		
 
 
