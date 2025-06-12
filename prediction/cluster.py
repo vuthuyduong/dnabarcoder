@@ -5,11 +5,12 @@
 import os
 import sys, argparse
 from Bio import SeqIO
+import json
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='cluster.py',  
-							   usage="%(prog)s [options] -i fastafile -t threshold -mc mincoverage -c classificationfilename -p classificationposition -o output",
+							   usage="%(prog)s [options] -i fastafile -t threshold -ml minimumalignmentlength -c classificationfilename -rank classificationrank -o output",
 							   description='''Script that clusters the sequences of the fasta file based on BLAST comparison with the given threshold. The mincoverage is given for BLAST comparision. The classificationfilename and position are given optionally, in order to compute the quality (F-measure) of the clustering. ''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -19,12 +20,12 @@ parser.add_argument('-t','--cutoff', type=float, default=0.97, help='The thresho
 parser.add_argument('-ml','--minalignmentlength', type=int, default=400, help='Minimum sequence alignment length required for BLAST. For short barcode sequences like ITS2 (ITS1) sequences, minalignmentlength should probably be set to smaller, 50 for instance.')
 parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder.')
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
-#parser.add_argument('-p','--classificationpos', type=int, default=0, help='the classification position to load the classification.')
 parser.add_argument('-rank','--classificationrank', default="", help='the classification rank to evaluate the clustering result.')
 parser.add_argument('-sim','--simfilename', help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
+parser.add_argument('-savecomplexes','--savecomplexes', default="no", help='If -savecomplexes yes, the clusters of name complexes will be saved.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -311,9 +312,11 @@ def LoadClassesFromDescription(allseqrecords,rank):
 			classes.setdefault(classname,[seqid]) 
 	return classes,classification
 
-def SaveClusters(clusters,seqrecords,classification,output):
+def SaveClusters(clusters,seqrecords,classification,output,synnonymdict_output,synnonymsdict_output):
 	outputfile=open(output,"w")
 	outputfile.write("ClusterID\tSequenceID\tClassification\tPrediction\n")
+	synnonymsdict={}
+	synnonymdict={}
 	for cluster in clusters:
 		classnames=[]
 		seqnumbers=[]
@@ -337,7 +340,53 @@ def SaveClusters(clusters,seqrecords,classification,output):
 			givenclassname=""
 			if len(classification) >0:
 				givenclassname=classification[id]
+			#add the names to synonymsdict and synnonymdict if needed	
+			if givenclassname!="" and classname!="" and givenclassname!=classname: # givenclassname and classname are considered as synnonyms:
+				if givenclassname in synnonymdict.keys():
+					clusterindex1=synnonymdict[givenclassname]
+					if classname in synnonymdict.keys():
+						clusterindex2=synnonymdict[givenclassname]
+						if clusterindex1!=clusterindex2:
+							#merge clusters
+							namelist2=synnonymsdict[clusterindex2]
+							for name in namelist2:
+								synnonymsdict[clusterindex1].append(name)
+								synnonymdict.setdefault(name,clusterindex1)	
+							#delete cluster with clusterindex2
+							del synnonymsdict[clusterindex2]
+					else:
+						synnonymsdict[clusterindex1].append(classname)
+						synnonymdict.setdefault(classname,clusterindex1)
+				elif classname in synnonymdict.keys():
+					clusterindex2=synnonymdict[classname]
+					synnonymsdict[clusterindex2].append(givenclassname)
+					synnonymdict.setdefault(givenclassname,clusterindex2)
+				else:
+					if len(list(synnonymsdict.keys()))==0:
+						clusterindex=1
+					else:
+						clusterindex=max(list(synnonymsdict.keys())) + 1
+					synnonymsdict.setdefault(clusterindex,[])	
+					synnonymsdict[clusterindex].append(givenclassname)
+					synnonymsdict[clusterindex].append(classname)
+					synnonymdict.setdefault(givenclassname,clusterindex)
+					synnonymdict.setdefault(classname,clusterindex)
 			outputfile.write(str(cluster.id) + "\t" + seqrecord.description + "\t" + givenclassname + "\t" + classname + "\n")		
+	#reset the index of the final clusters:		
+	finalsynnonymsdict={}
+	finalsynnonymdict={}	
+	i=0
+	for clusterindex in synnonymsdict.keys():
+		i=i+1
+		finalsynnonymsdict.setdefault(i,synnonymsdict[clusterindex])
+		for name in synnonymsdict[clusterindex]:
+			finalsynnonymdict[name]=i
+	#save the dictionaries:
+	with open(synnonymdict_output, 'w') as f:
+		json.dump(synnonymdict,f,indent=4)
+	with open(synnonymsdict_output, 'w') as f:
+		json.dump(synnonymsdict,f,indent=4)	
+		
 	outputfile.close()
 	
 def GetPosition(classificationfilename,rank):
@@ -400,8 +449,15 @@ if __name__ == "__main__":
 		fmeasure=ComputeFmeasure(classes,clusters)
 		print("Threshold\tFmeasure")
 		print(str(threshold) + "\t" + str(fmeasure))
+	synnonymdict_output=""	
+	synnonymsdict_output=""	
+	if args.savecomplexes=="yes" and rank!="":
+		synnonymsdict_output=GetWorkingBase(fastafilename) + "." + rank + "complexes"	
+		synnonymdict_output=GetWorkingBase(fastafilename) + "." + rank +  "complex.index"	
 	print("Saving clusters...")	
-	SaveClusters(clusters,seqrecords,classification,outputname)
+	SaveClusters(clusters,seqrecords,classification,outputname,synnonymdict_output,synnonymsdict_output)
 	print("The clustering result is saved in file " + outputname + ".")
+	if args.savecomplexes=="yes" and rank!="":
+		print("The complexes and names' complex index are saved in files " + synnonymsdict_output + " and " + synnonymdict_output + ".")
 
 
