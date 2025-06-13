@@ -312,7 +312,7 @@ def LoadClassesFromDescription(allseqrecords,rank):
 			classes.setdefault(classname,[seqid]) 
 	return classes,classification
 
-def SaveClusters(clusters,seqrecords,classification,output,synnonymdict_output,synnonymsdict_output):
+def SaveClusters(clusters,seqrecords,classification,output,complexes_output):
 	outputfile=open(output,"w")
 	outputfile.write("ClusterID\tSequenceID\tClassification\tPrediction\n")
 	synnonymsdict={}
@@ -373,21 +373,17 @@ def SaveClusters(clusters,seqrecords,classification,output,synnonymdict_output,s
 					synnonymdict.setdefault(classname,clusterindex)
 			outputfile.write(str(cluster.id) + "\t" + seqrecord.description + "\t" + givenclassname + "\t" + classname + "\n")		
 	#reset the index of the final clusters:		
-	finalsynnonymsdict={}
-	finalsynnonymdict={}	
-	i=0
-	for clusterindex in synnonymsdict.keys():
-		i=i+1
-		finalsynnonymsdict.setdefault(i,synnonymsdict[clusterindex])
-		for name in synnonymsdict[clusterindex]:
-			finalsynnonymdict[name]=i
+	complexesdict={}
+	for classname in synnonymdict:
+		clusterindex=synnonymdict[classname]
+		classnames=synnonymsdict[clusterindex]
+		complexesdict.setdefault(classname,classnames)
 	#save the dictionaries:
-	if i>0:
-		with open(synnonymdict_output, 'w') as f:
-			json.dump(synnonymdict,f,indent=4)
-		with open(synnonymsdict_output, 'w') as f:
-			json.dump(synnonymsdict,f,indent=4)	
-		print("The complexes and names' complex index are saved in files " + synnonymsdict_output + " and " + synnonymdict_output + ".")
+	if len(list(complexesdict.keys()))>0:
+		with open(complexes_output, 'w') as f:
+			json.dump(complexesdict,f,indent=4)
+		
+		print("The complexes are saved in file " + complexes_output +  ".")
 	outputfile.close()
 	
 def GetPosition(classificationfilename,rank):
@@ -450,13 +446,11 @@ if __name__ == "__main__":
 		fmeasure=ComputeFmeasure(classes,clusters)
 		print("Threshold\tFmeasure")
 		print(str(threshold) + "\t" + str(fmeasure))
-	synnonymdict_output=""	
-	synnonymsdict_output=""	
+	complexes_output=""	
 	if args.savecomplexes=="yes" and rank!="":
-		synnonymsdict_output=GetWorkingBase(fastafilename) + "." + rank + "complexes"	
-		synnonymdict_output=GetWorkingBase(fastafilename) + "." + rank +  ".complexindex"	
+		complexes_output=GetWorkingBase(fastafilename) + "." + rank + "complexes"	
 	print("Saving clusters...")	
-	SaveClusters(clusters,seqrecords,classification,outputname,synnonymdict_output,synnonymsdict_output)
+	SaveClusters(clusters,seqrecords,classification,outputname,complexes_output)
 	print("The clustering result is saved in file " + outputname + ".")
 		
 
