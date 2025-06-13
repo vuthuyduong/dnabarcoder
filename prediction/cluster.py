@@ -392,7 +392,7 @@ def SaveClusters(clusters,seqrecords,classification,output,synnonymdict_output,s
 	
 def GetPosition(classificationfilename,rank):
 	pos=-1
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename,errors='ignore')
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
