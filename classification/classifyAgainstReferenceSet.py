@@ -148,7 +148,7 @@ def classifySequences(sequences,referencefastafilename,classificationfilename,id
 	#add cutoffs to taxa for sequence identification		
 	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs,minseqno,mingroupno)
 	Assign(refclassificationdict,taxonomy,bestmatchdict,classificationrank)
-	
+
 	return bestmatchdict
 	
 def getReferences(referencepath):
@@ -173,6 +173,8 @@ def getReferences(referencepath):
 			referencedict[reference]["mincoverage"]=50
 		else:
 			referencedict[reference]["mincoverage"]=400
+		if ("speciescomplexes" in filename):
+			referencedict[reference]["speciescomplexes"]=referencepath + "/" + filename	
 		referencedict[reference]["minseqno"]=0
 		referencedict[reference]["mingroupno"]=0
 	return referencedict
@@ -217,6 +219,21 @@ def classifyAgainstReferenceSet(sequences,referencepath,idcolumnname,outputpath,
 						finalbestmatchdict[seqid]=bestmatchdict[seqid].copy()
 				else:
 					finalbestmatchdict.setdefault(seqid,bestmatchdict[seqid])
+		#add indistinguishable species to finalbestmatchdict
+		for seqid in finalbestmatchdict.keys():
+			species=finalbestmatchdict[seqid]["species"]
+			if species=="" or species=="unidentified":
+				continue
+			if "speciescomplexes" in referencedict[reference].keys():
+				speciescomplexes={}
+				with open(referencedict[reference]["speciescomplexes"], 'r') as f:
+					speciescomplexes=json.load(f)
+				try:
+					finalbestmatchdict[seqid]["indistinguishable species"]=speciescomplexes[species]
+					finalbestmatchdict[seqid]["indistinguishable species"]
+				except KeyError:
+					pass
+	
 	#output 				
 	#classification_result=Dict2Tab(finalbestmatchdict)	
 	return finalbestmatchdict
