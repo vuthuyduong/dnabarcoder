@@ -229,8 +229,7 @@ def classifyAgainstReferenceSet(sequences,referencepath,idcolumnname,outputpath,
 				with open(referencedict[reference]["speciescomplexes"], 'r') as f:
 					speciescomplexes=json.load(f)
 				try:
-					finalbestmatchdict[seqid]["indistinguishable species"]=speciescomplexes[species]
-					finalbestmatchdict[seqid]["indistinguishable species"]
+					finalbestmatchdict[seqid]["species complex"]=speciescomplexes[species]
 				except KeyError:
 					pass
 	
