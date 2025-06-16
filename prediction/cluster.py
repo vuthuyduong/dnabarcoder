@@ -25,7 +25,7 @@ parser.add_argument('-sim','--simfilename', help='The similarity matrix of the s
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
-parser.add_argument('-savecomplexes','--savecomplexes', default="no", help='If -savecomplexes yes, the clusters of name complexes will be saved.')
+parser.add_argument('-saveindistinct','--saveindistinct', default="no", help='If -saveindistinct yes, the clusters of indistinguishable taxa will be saved.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -312,7 +312,7 @@ def LoadClassesFromDescription(allseqrecords,rank):
 			classes.setdefault(classname,[seqid]) 
 	return classes,classification
 
-def SaveClusters(clusters,seqrecords,classification,output,complexes_output):
+def SaveClusters(clusters,seqrecords,classification,output,indistinct_output):
 	outputfile=open(output,"w")
 	outputfile.write("ClusterID\tSequenceID\tClassification\tPrediction\n")
 	synnonymsdict={}
@@ -373,17 +373,17 @@ def SaveClusters(clusters,seqrecords,classification,output,complexes_output):
 					synnonymdict.setdefault(classname,clusterindex)
 			outputfile.write(str(cluster.id) + "\t" + seqrecord.description + "\t" + givenclassname + "\t" + classname + "\n")		
 	#reset the index of the final clusters:		
-	complexesdict={}
+	indistinctdict={}
 	for classname in synnonymdict:
 		clusterindex=synnonymdict[classname]
 		classnames=synnonymsdict[clusterindex]
-		complexesdict.setdefault(classname,classnames)
+		indistinctdict.setdefault(classname,classnames)
 	#save the dictionaries:
-	if len(list(complexesdict.keys()))>0:
-		with open(complexes_output, 'w') as f:
-			json.dump(complexesdict,f,indent=4)
+	if len(list(indistinctdict.keys()))>0:
+		with open(indistinct_output, 'w') as f:
+			json.dump(indistinctdict,f,indent=4)
 		
-		print("The complexes are saved in file " + complexes_output +  ".")
+		print("The indistincts are saved in file " + indistinct_output +  ".")
 	outputfile.close()
 	
 def GetPosition(classificationfilename,rank):
@@ -446,11 +446,11 @@ if __name__ == "__main__":
 		fmeasure=ComputeFmeasure(classes,clusters)
 		print("Threshold\tFmeasure")
 		print(str(threshold) + "\t" + str(fmeasure))
-	complexes_output=""	
-	if args.savecomplexes=="yes" and rank!="":
-		complexes_output=GetWorkingBase(fastafilename) + "." + rank + "complexes"	
+	indistinct_output=""	
+	if args.saveindistinct=="yes" and rank!="":
+		indistinct_output=GetWorkingBase(fastafilename) + ".indistinct." + rank	
 	print("Saving clusters...")	
-	SaveClusters(clusters,seqrecords,classification,outputname,complexes_output)
+	SaveClusters(clusters,seqrecords,classification,outputname,indistinct_output)
 	print("The clustering result is saved in file " + outputname + ".")
 		
 
