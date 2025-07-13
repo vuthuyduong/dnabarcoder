@@ -31,7 +31,7 @@ def SaveCutoffs(mergeddict,dictionarynames,outputfilename):
 # 		else:
 # 			json.dump(mergeddict,json_file,encoding='latin1',indent=2)			
 	#save as tab. format
-	textoutput=outputfilename+".txt"
+	textoutput=outputfilename
 	textfile=open(textoutput,"w")
 	header="Rank\tDataset"
 	for dictionary in dictionarynames:
