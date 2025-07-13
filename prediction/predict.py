@@ -38,7 +38,7 @@ parser.add_argument('-sim','--simfilename', help='The similarity matrix of the s
 parser.add_argument('-higherrank','--higherclassificationranks', default="", help='The prediction is done on the whole dataset if higherranks="". Otherwise it will be predicted for different datasets obtained at the higher classifications, separated by ",".')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
 parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
-parser.add_argument('-maxseqno','--maxseqno', type=int, default=20000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
+parser.add_argument('-maxseqno','--maxseqno', type=int, default=25000, help='Maximum number of the sequences of the predicted taxon name from the classification file will be selected for the comparison to find the best match. If it is not given, all the sequences will be selected.')
 parser.add_argument('-maxproportion','--maxproportion', type=float, default=1, help='Only predict when the proportion of the sequences the largest group of the dataset is less than maxproportion. This is to avoid the problem of inaccurate prediction due to imbalanced data.')
 parser.add_argument('-mincutoff','--mincutoff', type=float, default=0, help='The minimum cutoff for selection.')
 parser.add_argument('-taxa','--taxa', default="", help='The selected taxa separated by commas for local prediction. If taxa=="", all the clades at the given higher positions are selected for prediction.')
@@ -447,7 +447,7 @@ def Predict(datasetname,prediction_datasetname,records,classes,classification,si
 		bestFmeasure=prediction_datasetname['confidence']
 	if 'fmeasures' in prediction_datasetname.keys():
 		fmeasuredict=prediction_datasetname['fmeasures']
-	if args.redo == "yes" and optthreshold>=t and optthreshold<=endthreshold:
+	if (args.redo == "yes" or optthreshold < t or optthreshold > endthreshold or optthreshold < args.mincutoff):
 		optthreshold = 0
 		bestFmeasure = 0
 	isError=False		
