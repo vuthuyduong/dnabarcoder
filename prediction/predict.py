@@ -768,10 +768,14 @@ def LoadPredictionForGivenRankAndDataset(prediction_datasetname):
 		if float(t)>=args.startingthreshold and ((float(t)<=args.endthreshold and args.endthreshold>0) or args.endthreshold==0):
 			thresholds.append(float(t))
 			fmeasures.append(fmeasuredict[t])
+	##sorting
+	#keydict = dict(zip(fmeasures,thresholds))
+	#fmeasures.sort(key=keydict.get)
+	#thresholds.sort()
 	#sorting
-	keydict = dict(zip(fmeasures,thresholds))
-	fmeasures.sort(key=keydict.get)
-	thresholds.sort()
+	# Pair thresholds and fmeasures, sort by threshold, then unzip
+	paired = sorted(zip(thresholds, fmeasures))
+	thresholds, fmeasures = map(list, zip(*paired)) if paired else ([], [])
 	return thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength,maxproportion
 
 def SavePrediction(predictiondict,outputnamewithfmeasures,outputnamewithoutfmeasures):

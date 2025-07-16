@@ -84,9 +84,10 @@ def LoadPredictionForGivenRankAndDataset(prediction_datasetname):
 			thresholds.append(float(t))
 			fmeasures.append(fmeasuredict[t])
 	#sorting
-	keydict = dict(zip(fmeasures,thresholds))
-	fmeasures.sort(key=keydict.get)
-	thresholds.sort()
+	# Pair thresholds and fmeasures, sort by threshold, then unzip
+	paired = sorted(zip(thresholds, fmeasures))
+	thresholds, fmeasures = map(list, zip(*paired)) if paired else ([], [])
+	
 	return thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength,maxproportion
 
 def PlotPrediction(label,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames, biomarkerlist, figoutput):
