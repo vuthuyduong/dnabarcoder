@@ -364,6 +364,9 @@ def GetHigherTaxa(rank,classification):
 def GetCutoffAndConfidence(rank,classification,cutoffs,minseqno,mingroupno):
 	if not rank in cutoffs.keys():
 		return [0,0,False]
+	if classification=="k__Eukaryota;p__Streptophyta;c__Magnoliopsida;o__Fagales;f__Fagaceae;g__Castanea;s__unidentified": 
+		print(classification)
+		print(rank)
 	highertaxa=GetHigherTaxa(rank,classification)
 	highertaxa.append("All") 
 	localcutoff=0
@@ -749,7 +752,7 @@ def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs,minseqno
 			if taxonname in cutoffs.keys():
 				taxonomy[taxonname]["cut-off"]=cutoffs[taxonname]["cut-off"]
 				taxonomy[taxonname]["confidence"]=cutoffs[taxonname]["confidence"]
-			else:	
+			else:
 				cutoff_confidence=GetCutoffAndConfidence(rank,classification,cutoffs,minseqno,mingroupno)
 				if cutoff_confidence[2]==True:
 					taxonomy[taxonname]["cut-off"]=cutoff_confidence[0]
@@ -759,7 +762,7 @@ def AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs,minseqno
 				taxonomy[taxonname]["confidence"]=globalconfidence
 		else:
 			taxonomy[taxonname]["cut-off"]=globalcutoff
-			taxonomy[taxonname]["confidence"]=globalconfidence	
+			taxonomy[taxonname]["confidence"]=globalconfidence
 	taxonomy.setdefault("unidentified",{})
 	taxonomy["unidentified"]["cut-off"]=globalcutoff
 	taxonomy["unidentified"]["confidence"]=globalconfidence		
@@ -770,9 +773,14 @@ def KronaPieCharts(classification,kronareport,kronahtml,display):
 		kronareportfile.write(str(classification[classname]) + "\t" + classname + "\n")
 	kronareportfile.close()	
 	#create kronahtml
-	command="ImportText.pl " + kronareport + " -o " + kronahtml
-	#print(command)
-	os.system(command)
+	if os.path.exists("ImportText.pl"):
+		command="ImportText.pl " + kronareport + " -o " + kronahtml
+		#print(command)
+		os.system(command)
+	else:
+		command="ktImportText " + kronareport + " -o " + kronahtml
+		#print(command)
+		os.system(command)
 	if display=="yes":
 		os.system("firefox " + kronahtml) 
 		
@@ -820,8 +828,8 @@ def classify(predictionfilename,idcolumnname,classificationfilename,globalcutoff
 	cutoffs={}
 	if cutoffsfilename!="" and cutoffsfilename!=None:
 		with open(cutoffsfilename) as cutoffsfile:
-			cutoffs = json.load(cutoffsfile)	
-	#add cutoffs to taxa for sequence identification		
+			cutoffs = json.load(cutoffsfile)
+	#add cutoffs to taxa for sequence identification
 	AddCutoffsToTaxonomy(taxonomy,globalcutoff,globalconfidence,cutoffs,minseqno,mingroupno)
 	count,given_labels,assigned_labels,unclassifiedseqids=Assign(refclassificationdict,taxonomy,bestmatchdict,outputname,classificationreportfilename,classificationrank,saveclassifiedonly)
 	print("Number of classified sequences: " + str(count))
