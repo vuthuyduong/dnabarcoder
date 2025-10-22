@@ -27,7 +27,7 @@ parser.add_argument('-o','--out', default="dnabarcoder", help='The output folder
 parser.add_argument('-c','--classification', default="", help='the classification file in tab. format.')
 parser.add_argument('-f','--fasta', default="", help='the fasta file with sequence descriptions containing taxonomic classification.')
 parser.add_argument('-cutoffs','--cutoffs', help='The json file containing the cutoffs to assign the sequences to the predicted taxa.')
-parser.add_argument('-mincutoff','--mincutoff', type=float, default=0.7, help='The minimum cutoff for selection.')
+parser.add_argument('-mincutoff','--mincutoff', type=float, default=0, help='The minimum cutoff for selection.')
 #parser.add_argument('-mingroupno','--mingroupno', type=int, default=10, help='The minimum number of groups needed for prediction.')
 #parser.add_argument('-minseqno','--minseqno', type=int, default=30, help='The minimum number of sequences needed for prediction.')
 parser.add_argument('-mingroupno','--mingroupno', type=int, default=0, help='The minimum number of groups needed for prediction.')
@@ -373,7 +373,7 @@ def GetCutoffAndConfidence(rank,classification,cutoffs):
 		maxproportion =0
 		if "max proportion" in datasets[highertaxonname].keys():
 			maxproportion=datasets[highertaxonname]["max proportion"]	
-		if groupno < args.mingroupno or seqno < args.minseqno or maxproportion > args.maxproportion or cutoff <= args.mincutoff:	#delete the cutoffs that are too imbalanced, or dont have enough sequences and groups for prediction, or are less than a given minimum cutoff	
+		if groupno < args.mingroupno or seqno < args.minseqno or maxproportion > args.maxproportion or cutoff < args.mincutoff:	#delete the cutoffs that are too imbalanced, or dont have enough sequences and groups for prediction, or are less than a given minimum cutoff	
 			continue
 		if (maxconfidence < confidence):
 			maxconfidence =confidence
