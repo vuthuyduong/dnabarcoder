@@ -127,7 +127,11 @@ for seqrecord in seqrecords:
 	except KeyError:
 		classification = sep * numberoffeatures
 		pass
-	seqrecord.description= classification
+	if sep != "":
+		seqrecord.description= classification
+	else:
+		seqrecord.id= seqrecord.id + " " + classification.replace(" ","_")
+		seqrecord.description=""
 #save new file	
 SeqIO.write(seqrecords, output, "fasta")
 print("The new fasta file with classification saved in the sequence headers is saved in " + output +".")
