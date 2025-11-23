@@ -383,11 +383,13 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 		colors1=cmap(numpy.arange(len(all_data)-n1)) 
 		colors=numpy.concatenate((colors,colors1), axis=0)
 	 #Set1, primse 
-	fig, ax = plt.subplots(figsize=(4,3)) 
+	#plt.rcParams.update({'font.size': 10}) 
+	fig, ax = plt.subplots(figsize=(5.5,4)) 
+	fig.subplots_adjust(left=0.2, right=0.98)
 	if prefix=="":
 		title="Sequence distribution at the " + rank + " level."
 	else:
-		title=prefix + ": sequence distribution at the " + rank + " level."
+		title=prefix + ": sequence distribution at the " + rank + " level"
 	labels=[]
 	if dim==2:
 		# Hide grid lines
@@ -395,7 +397,7 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 		# Hide axes ticks
 		#ax.set_xticks([])
 		#ax.set_yticks([])
-		ax.set_title(title,loc='left')
+		ax.set_title(title,loc='left',fontsize=12)
 		for color, item in zip(colors, sorted_data):
 			x = [t[0] for t in item[1][1]]
 			y = [t[1] for t in item[1][1]]
@@ -409,7 +411,8 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 			labels.append(label)	
 	elif dim==3:
 		ax = plt.axes(projection='3d')
-		ax.set_title(title,loc='left')
+		ax.set_title(title,x=-0.2, loc='left',fontsize=12)
+		#ax.set_title(title, x=-0.15, y=-0.12, ha='left',va='top',fontsize=12)
 		# Hide grid lines
 		#ax.grid(False)
 		# Hide axes ticks
@@ -431,19 +434,20 @@ def Plot(prefix,seqids,coordfilename,labels,size,output):
 			#ax.scatter3D(x, y, z, '.', color = color)
 			#ax.axis('off')
 	#leg=fig.legend(labels[0:numberofdisplayedlabels],loc='best')
-	leg=fig.legend(labels[0:numberofdisplayedlabels],loc='lower right')
+	leg=fig.legend(labels[0:numberofdisplayedlabels],loc='lower left', handlelength=0, handletextpad=0)
+	#leg=fig.legend(labels[0:numberofdisplayedlabels],loc='upper right', handlelength=0, handletextpad=0)
 	i=0
 	for text in leg.get_texts():
 		color= colors[i]
 		label=text.get_text()
 		if label.startswith("unidentified"):
 			color="black"
-		plt.setp(text, color = color,style='italic')
+		plt.setp(text, color = color,style='italic',fontsize=12)
 		i=i+1
 	#plt.xlim(-lim, lim)
     #plt.ylim(-lim, lim)
-	plt.rcParams['font.size'] = 6.0
-	plt.savefig(output, dpi = 500)
+	#plt.rcParams['font.size'] = 6.0
+	plt.savefig(output, dpi = 600)
 	if args.display=="yes":
 		plt.show()		
 	
