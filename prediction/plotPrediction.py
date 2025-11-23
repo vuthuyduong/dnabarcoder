@@ -8,7 +8,7 @@ import os, argparse
 import sys
 from Bio import SeqIO
 import matplotlib.pyplot as plt
-plt.rc('font',size=6)
+plt.rc('font',size=11)
 import numpy as np
 import multiprocessing
 import json
@@ -17,7 +17,7 @@ import json
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='plotPredict.py', 
-							   usage="%(prog)s [options] -i listofpredictionfiles -t taxonname -st startingthreshold -et endthreshold -rank taxonomic level",
+							   usage="%(prog)s [options] -i listofpredictionfiles -t taxonname -st startingthreshold -et endthreshold -rank taxonomic level -o outputfilename",
 							   description='''Script that plot predictions from different predictionfiles for a taxonomic clade''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
@@ -91,10 +91,11 @@ def LoadPredictionForGivenRankAndDataset(prediction_datasetname):
 	return thresholds,fmeasures,optthreshold,bestFmeasure,seqno,groupno,minalignmentlength,maxproportion
 
 def PlotPrediction(label,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames, biomarkerlist, figoutput):
-	if len(thresholdlist) >5:
-		fig, ax = plt.subplots(figsize=(6,3))
-	else:	
-		fig, ax = plt.subplots(figsize=(4.3,3)) 
+# 	if len(thresholdlist) >5:
+# 		fig, ax = plt.subplots(figsize=(6,3))
+# 	else:	
+# 		fig, ax = plt.subplots(figsize=(4.3,3)) 
+	fig, ax = plt.subplots(figsize=(5.4,4),linewidth=4) 
 	ax.set_xlabel("Cut-off")
 	ax.set_ylabel('F-measure')
 	colors = plt.cm.rainbow(np.linspace(0, 1, len(thresholdlist)))
@@ -107,14 +108,16 @@ def PlotPrediction(label,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,
 		bestFmeasure=bestFmeasures[i]
 		ax.plot(np.array(thresholds), np.array(fmeasures),color=colors[i])
 		#labels.append(features[i] + " " + biomarker + " cut-off for " + datasetnames[i] + ": "  + str(round(optthresholds[i],4)))
-		labels.append(features[i] + " " + biomarker + " cut-off " + str(round(optthreshold,4)) +  " with highest F-measure " +  str(round(bestFmeasure,4)) + " for " + datasetnames[i])
+		labels.append(features[i] + " " + biomarker + " cut-off " + str(round(optthreshold,4)) +  ", F-measure " +  str(round(bestFmeasure,4)) + ", " + datasetnames[i])
 		#ax.text(round(optthreshold,4), 0.97, round(bestFmeasure,4), transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[i])
 		i=i+1
 	#ax.set_title(datasetname + " Predicting similarity cut-offs for sequence identification")	
 	ax.set_title(label)	
 	plt.legend(labels, loc="lower left", bbox_transform=plt.gcf().transFigure,prop={'style': args.labelstyle})
-	plt.tight_layout()
-	plt.savefig(figoutput, dpi = 500)
+	plt.subplots_adjust(left=0.1, right=0.99, top=0.94, bottom=0.11)
+	#plt.subplots_adjust(0, 0, 1, 1)
+	#plt.tight_layout()
+	plt.savefig(figoutput, dpi = 600)
 	print("The prediction plot is saved in file " + figoutput + ".")
 	if args.display=="yes":
 		plt.show()	
@@ -150,7 +153,7 @@ def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfi
 	ax.set_xticklabels(labels,rotation=90, style='italic')
 	ax.legend()
 	plt.tight_layout()
-	plt.savefig(localfigoutput, dpi = 500)
+	plt.savefig(localfigoutput, dpi = 600)
 	print("The prediction plot is saved in file " + localfigoutput + ".")
 	if args.display=="yes":
 		plt.show()	
