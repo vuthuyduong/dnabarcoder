@@ -33,7 +33,7 @@ parser.add_argument('-plt','--plottype', default="boxplot", help='The type of pl
 parser.add_argument('-sim','--simfilename', default="", help='The similarity matrix of the sequences if exists.')
 parser.add_argument('-prefix','--prefix',default="", help='The prefix of the output files.')
 parser.add_argument('-label','--label',default="", help='The label to display in the figure.')
-parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
+parser.add_argument('-maxSimMatrixSize','--maxSimMatrixSize', type=int, default=25000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
 parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
@@ -134,7 +134,7 @@ def LoadClassification(seqrecords,classificationfilename,pos,seqidpos):
 	classes={}
 	if classificationfilename == "":
 		return classes
-	records= open(classificationfilename)
+	records= open(classificationfilename, errors='ignore')
 	next(records)
 	for line in records:
 		elements=line.split("\t")
@@ -394,8 +394,8 @@ def Plot(datasetname,figoutput,variations,rank,displayed):
 	ax.plot(x, np.array(minthresholds), 'rs', label='Min. Median score: ' + str(median_min))
 	plt.legend()
 	plt.tight_layout()
-	plt.rcParams['font.size'] = 6.0
-	plt.savefig(figoutput, dpi = 500)
+	plt.rcParams['font.size'] = 12.0
+	plt.savefig(figoutput, dpi = 600)
 	if displayed==True:
 		if args.display=="yes":
 			plt.show()
@@ -436,8 +436,8 @@ def PlotAll(datasetname,figoutput,variationlist,labels):
 		k=k+1
 	plt.legend()
 	plt.tight_layout()
-	plt.rcParams['font.size'] = 6.0
-	plt.savefig(figoutput, dpi = 500)
+	plt.rcParams['font.size'] = 12.0
+	plt.savefig(figoutput, dpi = 600)
 	if args.display=="yes":
 		plt.show()
 	
@@ -463,7 +463,8 @@ def BoxPlot(datasetname,figoutput,variations,rank,displayed):
 #	fig, ax = plt.subplots(figsize=(10, 6))
 #	#fig.canvas.set_window_title('Variation')
 #	fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
-	fig, ax = plt.subplots(figsize=(3,3))
+	fig, ax = plt.subplots(figsize=(4,4))
+	plt.rcParams.update({'font.size': 12})
 	box_colors = ['b','r']#['darkkhaki', 'royalblue']
 	bp = ax.boxplot(data, notch=0, sym='+', vert=1, whis=1.5)
 	plt.setp(bp['boxes'], color='black')
@@ -513,8 +514,9 @@ def BoxPlot(datasetname,figoutput,variations,rank,displayed):
 		k=k+1
 	#plt.legend()
 	plt.tight_layout()
-	plt.rcParams['font.size'] = 6.0
-	plt.savefig(figoutput, dpi = 500)
+	#plt.rcParams['font.size'] = 6.0
+	#plt.rcParams['font.size'] = 12.0
+	plt.savefig(figoutput, dpi = 600)
 	if displayed==True:
 		if args.display=="yes":
 			plt.show()
@@ -565,7 +567,10 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 #	#fig.canvas.set_window_title('Variation')
 #	fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
 	#box_colors = ['r','b']#['darkkhaki', 'royalblue']
-	fig, ax = plt.subplots(figsize=(4,2.5))
+	#fig, ax = plt.subplots(figsize=(4,2.5))
+	fig, ax = plt.subplots(figsize=(5,4))
+	ax.margins(y=0.1)
+	plt.rcParams.update({'font.size': 13})
 	bp = ax.boxplot(data, notch=0, sym='+', vert=1, whis=1.5)
 	plt.setp(bp['boxes'], color='black')
 	plt.setp(bp['whiskers'], color='black')
@@ -574,11 +579,11 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 	ax.yaxis.grid(True, linestyle='-', which='major', color='lightgrey', alpha=0.5)
 	# Hide these grid behind plot objects
 	ax.set_axisbelow(True)
-	ax.set_title(datasetname + ': median and min. similarity scores of all groups')
+	ax.set_title(datasetname + ': median and min. sim. scores of all groups', x=-0.11,  ha='left', fontsize =13)
 	if args.taxa!="":
-		ax.set_title(datasetname + ': median and min. similarity scores of given groups')
+		ax.set_title(datasetname + ': median and min. sim. scores of given groups', x=-0.11,  ha='left', fontsize =13)
 	#ax.set_xlabel('')
-	ax.set_ylabel('Similarity score')
+	ax.set_ylabel('Similarity score', fontsize=13)
 	num_boxes=len(data)
 	#colors = plt.cm.Set1(np.linspace(0, 1,num_boxes))
 	medians=np.empty(num_boxes)
@@ -602,19 +607,19 @@ def BoxPlotAll(datasetname,figoutput,variationlist,labels):
 		#plot the average value
 		ax.plot(np.average(med.get_xdata()), np.average(data[i]),color='w', marker='*', markeredgecolor='k')	
 	#add labels	
-	ax.set_xticklabels(np.array(labels2), rotation=90)	
+	ax.set_xticklabels(np.array(labels2), rotation=90, fontsize=13)	
 	#add median values 
 	upper_labels = [str(np.round(s, 4)) for s in medians]
 	pos = np.arange(num_boxes) + 1
 	k=0
 	for tick, label in zip(range(num_boxes), ax.get_xticklabels()):
 		#ax.text(pos[tick], 0.97, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[k])
-		ax.text(pos[tick], 0.96, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[k])
+		ax.text(pos[tick], 0.94, upper_labels[tick], transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[k])
 		k=k+1
 	#plt.legend()
 	plt.tight_layout()
-	plt.rcParams['font.size'] = 6.0
-	plt.savefig(figoutput, dpi = 500)
+	#plt.rcParams['font.size'] = 12.0
+	plt.savefig(figoutput, dpi = 600)
 	if args.display=="yes":
 		plt.show()		
 
@@ -622,7 +627,7 @@ def GetPositionList(classificationfilename,ranklist):
 	positionlist=[]	
 	isError=False	
 	seqidpos=-1	
-	classificationfile=open(classificationfilename)
+	classificationfile=open(classificationfilename, errors='ignore')
 	header=classificationfile.readline()
 	header=header.rstrip()
 	classificationfile.close()
