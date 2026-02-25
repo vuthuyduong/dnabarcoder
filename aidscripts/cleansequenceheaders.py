@@ -3,10 +3,7 @@
 # AUTHOR: Duong Vu
 # CREATE DATE: 07 June 2021
 import sys, argparse
-import numpy as np
 import os
-from Bio import SeqIO
-import json
 import multiprocessing
 nproc=multiprocessing.cpu_count()
 #from keras.utils import np_utils
