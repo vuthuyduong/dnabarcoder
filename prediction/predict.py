@@ -17,7 +17,7 @@ import random
 nproc=multiprocessing.cpu_count()
 
 parser=argparse.ArgumentParser(prog='predict.py', 
-							   usage="%(prog)s [options] -i fastafile -c classificationfile -p classificationposition -st startingthreshold -et endthreshold -s step -ml minalignmentlength",
+							   usage="%(prog)s [options] -i fastafile -c classificationfile -st startingthreshold -et endthreshold -s step -ml minalignmentlength -rank species",
 							   description='''Script that predicts an optimal threshold to separate the sequences based on the given classification''',
 							   epilog="""Written by Duong Vu duong.t.vu@gmail.com""",
    )
