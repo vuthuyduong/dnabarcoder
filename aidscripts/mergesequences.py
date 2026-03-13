@@ -24,11 +24,11 @@ args=parser.parse_args()
 output=args.out
 
 fastafilenames=args.input.split(",")
-mergedrecords=[]
+mergedrecords={}
 for fastafilename in fastafilenames:
 	seqrecords=SeqIO.to_dict(SeqIO.parse(fastafilename, "fasta"))
-	mergedrecords=mergedrecords | seqrecords
+	mergedrecords = mergedrecords | seqrecords
 #save to file:
-SeqIO.write(mergedrecords,output,"fasta")
+SeqIO.write(mergedrecords.values(),output,"fasta")
 print("All sequences are saved in " + output + ".")
 
