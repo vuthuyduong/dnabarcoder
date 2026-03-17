@@ -227,6 +227,9 @@ uniquesequences = {}
 classificationdict={}
 for seqid in seqrecords.keys():
 	seqrec = seqrecords[seqid]
+	seq=seqrec.seq
+	if len(list(seq)) < l:
+		continue
 	description = seqrec.description
 	classname=SelectClassName(seqid,description,classificationrank,taxa,classnames)
 	if classname != "" and classname !="unidentified":
