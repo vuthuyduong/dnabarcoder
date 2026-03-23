@@ -1,29 +1,32 @@
 - name: Set vars
-    vars:
+  hosts: all
+  become: true 
+  vars: # Runs commands with sudo privileges
         repo_url: "https://github.com/vuthuyduong/dnabarcoder.git"
         install_dir: "/opt/dnabarcoder"
 
-- name: Install dependencies
-    apt:
+  tasks:       
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install dependencies
+      apt:
         name:
-            - python3
+            - python3s
             - python3-pip
             - python3-venv
             - ncbi-blast+
             - git
         state: present
 
-- name: Clone github repo
-    git:
-        repo: "{{ repo_url }}"
-        dest: "{{ install_dir }}"
-        version: main
+    - name: Clone github repo
+      git:
+          repo: "{{ repo_url }}"
+          dest: "{{ install_dir }}"
+          version: main
 
-- name: Create virtual environment
-  hosts: localhost
-  gather_facts: false
-
-  tasks:
     - name: Create virtual environment directory
       file:
         path: "{{ install_dir }}/venv"
@@ -33,9 +36,9 @@
       command: python3 -m venv "{{ install_dir }}/venv"
 
     - name: Activate virtual environment
-      command: source "{{ install_dir }}"/venv/bin/activate"
+      command: source "{{ install_dir }}/venv/bin/activate"
 
-- name: Run dnabarcoder
-    file:
+    - name: Run dnabarcoder
+      file:
         path: "{{ install_dir }}/dnabarcoder.py"
         mode: "0755"
