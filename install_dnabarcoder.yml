@@ -1,0 +1,41 @@
+- name: Set vars
+    vars:
+        repo_url: "https://github.com/vuthuyduong/dnabarcoder.git"
+        install_dir: "/opt/dnabarcoder"
+
+- name: Install dependencies
+    apt:
+        name:
+            - python3
+            - python3-pip
+            - python3-venv
+            - ncbi-blast+
+            - git
+        state: present
+
+- name: Clone github repo
+    git:
+        repo: "{{ repo_url }}"
+        dest: "{{ install_dir }}"
+        version: main
+
+- name: Create virtual environment
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Create virtual environment directory
+      file:
+        path: "{{ install_dir }}/venv"
+        state: directory
+
+    - name: Create virtual environment
+      command: python3 -m venv "{{ install_dir }}/venv"
+
+    - name: Activate virtual environment
+      command: source "{{ install_dir }}"/venv/bin/activate"
+
+- name: Run dnabarcoder
+    file:
+        path: "{{ install_dir }}/dnabarcoder.py"
+        mode: "0755"
