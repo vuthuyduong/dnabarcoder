@@ -36,7 +36,7 @@ def GetWorkingBase(filename):
 	basename=os.path.basename(filename)
 	if "." in basename:
 		basename=basename[:-(len(basename)-basename.rindex("."))] 
-	path=outputpath + "/" + filename
+	path=outputpath + "/" + basename
 	return path
 
 def is_fasta(filename):
@@ -202,6 +202,7 @@ def KronaPieCharts(classification,kronareport,kronahtml):
 	os.system("firefox " + kronahtml) 
 	
 if __name__ == "__main__":
+	print(predictionfilename)
 	classificationdict = LoadPrediction(predictionfilename)
 	#making krona report
 	kronareport = GetWorkingBase(predictionfilename) + ".krona.report"
