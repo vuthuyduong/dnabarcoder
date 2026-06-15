@@ -5,6 +5,8 @@
 # CREATE DATE: 08 oct 2020
 
 import os, argparse
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from PIL import Image
 
