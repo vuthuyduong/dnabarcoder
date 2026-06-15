@@ -8,6 +8,8 @@ import os, argparse
 import sys
 from Bio import SeqIO
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 plt.rc('font',size=6)
 import numpy as np
 import multiprocessing
@@ -46,6 +48,7 @@ parser.add_argument('-removecomplexes','--removecomplexes',default="", help='If 
 parser.add_argument('-redo','--redo', default="", help='Recompute F-measure for the current parameters.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-display','--display',default="", help='If display=="yes" then the plot figure is displayed.')
+parser.add_argument('-plotpredictioncurve','--plotpredictioncurve',default="yes", help='If plotpredictioncurve=="yes" then the prediction curves are plotted, otherwise only prediction results are plotted.')
 parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
 
 
@@ -867,8 +870,10 @@ def PlotPrediction(datasetname,thresholdlist,fmeasurelist,optthresholds,bestFmea
 		fmeasures=fmeasurelist[i]
 		optthreshold=optthresholds[i]
 		bestFmeasure=bestFmeasures[i]
+		italic_name=f"$\\mathit{{{datasetnames[i]}}}$"
 		ax.plot(np.array(thresholds), np.array(fmeasures),color=colors[i])
-		labels.append(features[i] + " cut-off for " + datasetnames[i] + ": "  + str(round(optthresholds[i],4)))
+		labels.append(f"{features[i]} cut-off for {italic_name}: {round(optthresholds[i], 4)}")
+		#labels.append(features[i] + " cut-off for " + italic_name + ": "  + str(round(optthresholds[i],4)))
 		ax.text(round(optthreshold,4), 0.97, round(bestFmeasure,4), transform=ax.get_xaxis_transform(), horizontalalignment='center', size='x-small', color=colors[i])
 		i=i+1
 	ax.set_title(datasetname + ": predicting similarity cut-offs for sequence identification")	
@@ -891,10 +896,11 @@ def PlotResults(prefix,optthresholds,bestFmeasures,features,datasetnames,localfi
 	labels=[]
 	i=0
 	for datasetname in datasetnames:
+		italic_name = f"$\\mathit{{{datasetnames[i]}}}$"
 		if len(set(features))==1:
-			labels.append(datasetnames[i]) 
+			labels.append(italic_name) 
 		else:
-			labels.append(features[i] + " cut-off for " + datasetnames[i] )
+			labels.append(f"{features[i]} cut-off for {italic_name}")
 		i=i+1
 	x = np.arange(len(labels))  # the label locations
 	#width = 0.35  # the width of the bars
@@ -1101,7 +1107,8 @@ if __name__ == "__main__":
 		barplotfigoutput=GetBase(outputname) + ".local.png"
 	if label=="":
 		label=prefix	
-	if len(higherranklist)==0 or len(thresholdlist)==1:
+	#if len(higherranklist)==0 or len(thresholdlist)==1:
+	if args.plotpredictioncurve=="yes":    
 		if len(higherranklist)==0:
 			#plot all predictions		
 			PlotPrediction(label,thresholdlist,fmeasurelist,optthresholds,bestFmeasures,features,datasetnames,globalfigoutput)	
