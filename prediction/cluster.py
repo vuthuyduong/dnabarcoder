@@ -374,16 +374,21 @@ def SaveClusters(clusters,seqrecords,classification,output,indistinct_output):
 			outputfile.write(str(cluster.id) + "\t" + seqrecord.description + "\t" + givenclassname + "\t" + classname + "\n")		
 	#reset the index of the final clusters:		
 	indistinctdict={}
+	count=0
 	for classname in synnonymdict:
 		clusterindex=synnonymdict[classname]
 		classnames=synnonymsdict[clusterindex]
-		indistinctdict.setdefault(classname,classnames)
+		indistinctdict.setdefault(classname,classnames)    
+		if len(classnames) >0:
+			count=count+1
+            			
 	#save the dictionaries:
 	if len(list(indistinctdict.keys()))>0:
 		with open(indistinct_output, 'w') as f:
 			json.dump(indistinctdict,f,indent=4)
 		
-		print("The indistincts are saved in file " + indistinct_output +  ".")
+		print("The similar groups are saved in file " + indistinct_output +  ".")
+		print("The number of indistinguishable taxa: " + str(count) +  ".")
 	outputfile.close()
 	
 def GetPosition(classificationfilename,rank):
@@ -447,8 +452,9 @@ if __name__ == "__main__":
 		print("Threshold\tFmeasure")
 		print(str(threshold) + "\t" + str(fmeasure))
 	indistinct_output=""	
-	if args.saveindistinct=="yes" and rank!="":
-		indistinct_output=GetWorkingBase(fastafilename) + ".indistinct." + rank	
+	if args.savesimilar=="yes" and rank!="":
+		indistinct_output=GetWorkingBase(fastafilename) + ".similar." + rank	
+		
 	print("Saving clusters...")	
 	SaveClusters(clusters,seqrecords,classification,outputname,indistinct_output)
 	print("The clustering result is saved in file " + outputname + ".")
