@@ -9,11 +9,11 @@ if sys.version_info[0] >= 3:
 	unicode = str
 import os, argparse
 
-from dnabarcoder.classification.search import ComputeBestBLASTscore
-from dnabarcoder.classification.classify import GetAssignment
-from dnabarcoder.classification.classify import LoadClassification
-from dnabarcoder.classification.classify import LoadClassificationFromDescription
-from dnabarcoder.classification.classify import AddCutoffsToTaxonomy
+from .search import ComputeBestBLASTscore
+from .classify import GetAssignment
+from .classify import LoadClassification
+from .classify import LoadClassificationFromDescription
+from .classify import AddCutoffsToTaxonomy
 
 import json
 from Bio import SeqIO
@@ -204,35 +204,33 @@ def classifyAgainstReferenceSet(sequences,referencepath,idcolumnname,outputpath,
 		mincoverage=referencedict[reference]["mincoverage"]
 		minseqno=referencedict[reference]["minseqno"]
 		mingroupno=referencedict[reference]["mingroupno"]
+		similarspecies={}
+		if "similarspecies" in referencedict[reference].keys():
+			similarspecies=referencedict[reference]["similarspecies"]
+			with open(referencedict[reference]["similarspecies"], 'r') as f:
+				similarspecies=json.load(f)
 		globalcutoff=0
 		globalconfidence=0
 		classificationrank=""
 		bestmatchdict=classifySequences(sequences,referencefilename,classificationfilename,idcolumnname,cutoffsfilename,globalcutoff,globalconfidence,mincoverage,minseqno,mingroupno,classificationrank,outputpath,nproc)
+		for seqid in bestmatchdict.keys():
+			species=bestmatchdict[seqid]["species"]
+			try:
+				bestmatchdict[seqid]["similar species"]=similarspecies[species]
+			except KeyError:
+				pass
 		if finalbestmatchdict=={}:
-			finalbestmatchdict=bestmatchdict.copy()
+			finalbestmatchdict=bestmatchdict
 		else:
 			for seqid in bestmatchdict.keys():
 				if seqid in finalbestmatchdict.keys():
 					if finalbestmatchdict[seqid]["score"] < bestmatchdict[seqid]["score"]:
-						finalbestmatchdict[seqid]=bestmatchdict[seqid].copy()
+						finalbestmatchdict[seqid]=bestmatchdict[seqid]
 					elif (finalbestmatchdict[seqid]["score"] == bestmatchdict[seqid]["score"]) and (finalbestmatchdict[seqid]["coverage"] < bestmatchdict[seqid]["coverage"]):
-						finalbestmatchdict[seqid]=bestmatchdict[seqid].copy()
+						finalbestmatchdict[seqid]=bestmatchdict[seqid]
 				else:
 					finalbestmatchdict.setdefault(seqid,bestmatchdict[seqid])
-		#add indistinguishable species to finalbestmatchdict
-		for seqid in finalbestmatchdict.keys():
-			species=finalbestmatchdict[seqid]["species"]
-			if species=="" or species=="unidentified":
-				continue
-			if "similarspecies" in referencedict[reference].keys():
-				similarspecies={}
-				with open(referencedict[reference]["similarspecies"], 'r') as f:
-					similarspecies=json.load(f)
-				try:
-					finalbestmatchdict[seqid]["species with identical score"]=similarspecies[species]
-				except KeyError:
-					pass
-	
+                    
 	#output 				
 	#classification_result=Dict2Tab(finalbestmatchdict)	
 	return finalbestmatchdict
