@@ -25,7 +25,7 @@ parser.add_argument('-sim','--simfilename', help='The similarity matrix of the s
 parser.add_argument('-maxsimmatrixsize','--maxSimMatrixSize', type=int, default=20000, help='The maximum number of sequences to load or compute a full similarity matrix. In case the number of sequences is greater than this number, only similarity values greater than 0 will be loaded to avoid memory problems.')
 parser.add_argument('-idcolumnname','--idcolumnname',default="ID", help='the column name of sequence id in the classification file.')
 parser.add_argument('-ncpus','--ncpus', type=int, default=nproc, help='The number of CPUs used for searching. The default value is the total number of CPUs.')
-parser.add_argument('-savesimilar','--savesimilar', default="no", help='If -savesimilar yes, the clusters of indistinguishable taxa will be saved.')
+parser.add_argument('-savesimilar','--savesimilar', default="yes", help='If -savesimilar yes, the clusters of indistinguishable/similar taxa will be saved.')
 
 args=parser.parse_args()
 fastafilename= args.input
@@ -388,7 +388,7 @@ def SaveClusters(clusters,seqrecords,classification,output,indistinct_output):
 			json.dump(indistinctdict,f,indent=4)
 		
 		print("The similar groups are saved in file " + indistinct_output +  ".")
-		print("The number of indistinguishable taxa: " + str(count) +  ".")
+		print("The number of similar taxa: " + str(count) +  ".")
 	outputfile.close()
 	
 def GetPosition(classificationfilename,rank):
