@@ -173,8 +173,8 @@ def getReferences(referencepath):
 			referencedict[reference]["mincoverage"]=50
 		else:
 			referencedict[reference]["mincoverage"]=400
-		if ("indistinct.species" in filename):
-			referencedict[reference]["indistinctspecies"]=referencepath + "/" + filename	
+		if ("indistinct.species" in filename or "similar.species" in filename):
+			referencedict[reference]["similarspecies"]=referencepath + "/" + filename	
 		referencedict[reference]["minseqno"]=0
 		referencedict[reference]["mingroupno"]=0
 	return referencedict
@@ -224,12 +224,12 @@ def classifyAgainstReferenceSet(sequences,referencepath,idcolumnname,outputpath,
 			species=finalbestmatchdict[seqid]["species"]
 			if species=="" or species=="unidentified":
 				continue
-			if "indistinctspecies" in referencedict[reference].keys():
-				indistinctspecies={}
-				with open(referencedict[reference]["indistinctspecies"], 'r') as f:
-					indistinctspecies=json.load(f)
+			if "similarspecies" in referencedict[reference].keys():
+				similarspecies={}
+				with open(referencedict[reference]["similarspecies"], 'r') as f:
+					similarspecies=json.load(f)
 				try:
-					finalbestmatchdict[seqid]["species with identical score"]=indistinctspecies[species]
+					finalbestmatchdict[seqid]["species with identical score"]=similarspecies[species]
 				except KeyError:
 					pass
 	
