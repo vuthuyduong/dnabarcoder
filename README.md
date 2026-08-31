@@ -2,6 +2,12 @@
 
 ## <i>News</i> 
 
+### <i>News (31-aug-2026) </i> 
+
+We have computed similarity cutoffs for ITS, ITS1, and ITS2 using the UNITE 2025 dataset. Download the ready-to-use UNITE+INSD 2025 fungal ITS, ITS1, and ITS2 reference sequences, classifications, and their cutoffs from [https://zenodo.org/records/22210122](https://zenodo.org/records/22210122) 
+
+### <i>News (2024)</i> 
+
 We have computed the [ITS1](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS1.unique.cutoffs.best.json), [ITS2](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS2.unique.cutoffs.best.json), and [ITS](https://github.com/vuthuyduong/dnabarcoder/blob/master/data/UNITE_2024_cutoffs/unite2024ITS.unique.cutoffs.best.json) similarity cutoffs for species, genus, family, order, and class identification for different clades of [the newly released 2024 UNITE dataset](https://doi.plutof.ut.ee/doi/10.15156/BIO/2959330), making them ready for use. These cutoffs are also provided in .txt format for reading purposes. Note that these cutoffs are computed based on BLAST alignments. If you are using other search/alignment algorithms, they may require different similarity cutoffs.
 
 <b> Classify the sequences using UNITE cutoffs </b>
